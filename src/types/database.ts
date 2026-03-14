@@ -802,6 +802,41 @@ export interface Database {
         };
         Relationships: [];
       };
+      spotify_connections: {
+        Row: {
+          id: string;
+          user_id: string;
+          spotify_user_id: string;
+          display_name: string | null;
+          access_token: string;
+          refresh_token: string;
+          token_expires_at: string;
+          scopes: string[];
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          spotify_user_id: string;
+          display_name?: string | null;
+          access_token: string;
+          refresh_token: string;
+          token_expires_at: string;
+          scopes?: string[];
+        };
+        Update: {
+          id?: string;
+          spotify_user_id?: string;
+          display_name?: string | null;
+          access_token?: string;
+          refresh_token?: string;
+          token_expires_at?: string;
+          scopes?: string[];
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -824,3 +859,4 @@ export type ExerciseInsight = Database['public']['Tables']['exercise_insights'][
 export type ConceptTooltip = Database['public']['Tables']['concept_tooltips']['Row'];
 export type ExerciseLibraryCache = Database['public']['Tables']['exercise_library_cache']['Row'];
 export type ExerciseVideoFeedback = Database['public']['Tables']['exercise_video_feedback']['Row'];
+export type SpotifyConnection = Database['public']['Tables']['spotify_connections']['Row'];

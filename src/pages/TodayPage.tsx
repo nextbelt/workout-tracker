@@ -16,6 +16,8 @@ import { MoodCheck } from '../components/MoodCheck';
 import { ExerciseDetail } from '../components/ExerciseDetail';
 import { ScienceTooltip } from '../components/ScienceTooltip';
 import { CardioLogger } from '../components/CardioLogger';
+import { SpotifyMoodPlaylist } from '../components/SpotifyMoodPlaylist';
+import { useSpotify } from '../hooks/useSpotify';
 import { supabase } from '../lib/supabase';
 import type { RecoveryRating, DayTemplate, PreMood, BlockExercise, SplitType } from '../types/database';
 
@@ -54,6 +56,7 @@ export default function TodayPage() {
   const moodEngine = useMoodAdjustment();
   const microVar = useMicroVariation();
   const { checkProgression } = useProgression();
+  const spotify = useSpotify();
 
   // Dynamic day order from profile split type
   const splitType = (profile?.split_type ?? 'upper_lower') as SplitType;
@@ -209,6 +212,10 @@ export default function TodayPage() {
     if (session) {
       await moodEngine.saveMoodToSession(session.id);
     }
+    // Fetch Spotify recommendations based on mood
+    if (spotify.isConnected) {
+      spotify.fetchRecommendations(mood);
+    }
     setStartingWorkout(false);
   }, [startWorkout, selectedDay, weekNumber, moodEngine, blockExercises]);
 
@@ -352,6 +359,17 @@ export default function TodayPage() {
             <ExternalLink size={12} />
           </a>
         </div>
+      )}
+
+      {/* Spotify Mood Playlist */}
+      {todaySession && spotify.isConnected && (spotify.tracks.length > 0 || spotify.loadingTracks) && (
+        <SpotifyMoodPlaylist
+          tracks={spotify.tracks}
+          mood={(moodEngine.moodInput?.preMood as PreMood) ?? 'steady'}
+          loading={spotify.loadingTracks}
+          error={spotify.error}
+          onRefresh={spotify.fetchRecommendations}
+        />
       )}
 
       {/* Day selector (only if no active session) */}

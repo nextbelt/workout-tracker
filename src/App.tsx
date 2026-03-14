@@ -12,6 +12,7 @@ import ProgramPage from './pages/ProgramPage';
 import NutritionPage from './pages/NutritionPage';
 import HistoryPage from './pages/HistoryPage';
 import SettingsPage from './pages/SettingsPage';
+import SpotifyCallbackPage from './pages/SpotifyCallbackPage';
 import { RestTimerWidget } from './components/RestTimer';
 
 const AnalyticsPage = lazy(() => import('./pages/AnalyticsPage'));
@@ -73,6 +74,7 @@ function AppShell() {
           <Route path="/exercises"  element={<ExerciseLibraryPage />} />
           <Route path="/settings"   element={<SettingsPage />}        />
           <Route path="/onboarding" element={<OnboardingFlow />}     />
+          <Route path="/spotify/callback" element={<SpotifyCallbackPage />} />
         </Routes>
         </Suspense>
       </main>

@@ -82,7 +82,7 @@ foodRouter.get('/search', async (req: Request, res: Response) => {
 
 // GET /api/food/barcode/:barcode
 foodRouter.get('/barcode/:barcode', async (req: Request, res: Response) => {
-  const { barcode } = req.params;
+  const barcode = String(req.params['barcode'] ?? '');
   if (!barcode) {
     res.json({ result: null });
     return;

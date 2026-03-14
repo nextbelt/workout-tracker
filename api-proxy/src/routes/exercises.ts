@@ -141,7 +141,7 @@ exercisesRouter.get('/search', async (req: Request, res: Response) => {
 
 // GET /api/exercises/:exerciseId
 exercisesRouter.get('/:exerciseId', async (req: Request, res: Response) => {
-  const { exerciseId } = req.params;
+  const exerciseId = String(req.params['exerciseId'] ?? '');
   if (!exerciseId) {
     res.json({ result: null });
     return;

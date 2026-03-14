@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Target, Info, BookOpen, Loader2 } from 'lucide-react';
+import { X, Target, Info, BookOpen, Loader2, Video } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { Exercise, ExerciseInsight } from '../types/database';
 
@@ -40,7 +40,7 @@ export function ExerciseDetail({ exercise, onClose }: ExerciseDetailProps) {
 
   return (
     <div className="fixed inset-0 z-50 bg-black/80 flex items-end justify-center">
-      <div className="w-full max-w-lg bg-surface-2 rounded-t-2xl max-h-[85vh] overflow-y-auto animate-slide-up">
+      <div className="w-full max-w-lg bg-surface-2 rounded-t-2xl max-h-[85vh] overflow-y-auto animate-slide-up" style={{ paddingBottom: 'var(--safe-bottom)' }}>
         {/* Header with GIF/image */}
         <div className="relative">
           {exercise.gif_url ? (
@@ -68,6 +68,39 @@ export function ExerciseDetail({ exercise, onClose }: ExerciseDetailProps) {
             <X size={18} className="text-white" />
           </button>
         </div>
+
+        {/* Embedded video */}
+        {exercise.video_url && (
+          <div className="px-6 pt-4">
+            <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-surface-3">
+              <iframe
+                src={exercise.video_url.includes('youtube.com/watch')
+                  ? exercise.video_url.replace('watch?v=', 'embed/') + '?rel=0&playsinline=1'
+                  : exercise.video_url.includes('youtu.be/')
+                    ? `https://www.youtube.com/embed/${exercise.video_url.split('youtu.be/')[1]}?rel=0&playsinline=1`
+                    : exercise.video_url
+                }
+                title={`${exercise.name} tutorial`}
+                className="absolute inset-0 w-full h-full"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
+          </div>
+        )}
+        {!exercise.video_url && (
+          <div className="px-6 pt-4">
+            <a
+              href={`https://www.youtube.com/results?search_query=${encodeURIComponent(exercise.name + ' exercise form')}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 w-full py-2.5 min-h-11 bg-surface-3 rounded-xl text-neutral-400 text-sm hover:text-white transition-colors"
+            >
+              <Video size={14} />
+              Watch video tutorial on YouTube
+            </a>
+          </div>
+        )}
 
         <div className="p-6 space-y-5">
           {/* Title */}

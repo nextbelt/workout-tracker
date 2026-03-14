@@ -19,7 +19,7 @@ export function RecoveryRatingModal({ onSubmit, onCancel }: RecoveryRatingModalP
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 flex items-end justify-center">
-      <div className="w-full max-w-lg bg-surface-2 rounded-t-2xl p-6 animate-slide-up">
+      <div className="w-full max-w-lg bg-surface-2 rounded-t-2xl p-6 animate-slide-up" style={{ paddingBottom: 'calc(1.5rem + var(--safe-bottom))' }}>
         <h2 className="text-xl font-bold text-white mb-1">How'd It Go?</h2>
         <p className="text-neutral-400 text-sm mb-4">Rate your recovery for today's session.</p>
 

@@ -62,7 +62,7 @@ export function FoodSearch({ mealType, onAdd, searchFood, recentFoods = [], onCl
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 flex items-end justify-center">
-      <div className="w-full max-w-lg bg-surface-2 rounded-t-2xl p-4 max-h-[80vh] flex flex-col">
+      <div className="w-full max-w-lg bg-surface-2 rounded-t-2xl p-4 max-h-[80vh] flex flex-col" style={{ paddingBottom: 'calc(1rem + var(--safe-bottom))' }}>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-bold text-white capitalize">Add to {mealType}</h2>
           <button onClick={onClose} className="p-2 min-h-11 min-w-11 bg-surface-3 rounded-lg flex items-center justify-center">
@@ -195,7 +195,7 @@ export function ManualFoodEntry({ mealType, onAdd, onClose }: ManualEntryProps) 
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 flex items-end justify-center">
-      <div className="w-full max-w-lg bg-surface-2 rounded-t-2xl p-6">
+      <div className="w-full max-w-lg bg-surface-2 rounded-t-2xl p-6" style={{ paddingBottom: 'calc(1.5rem + var(--safe-bottom))' }}>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold text-white capitalize">Manual Entry – {mealType}</h2>
           <button onClick={onClose} className="p-2 min-h-11 min-w-11 bg-surface-3 rounded-lg flex items-center justify-center">

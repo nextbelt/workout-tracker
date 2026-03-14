@@ -31,10 +31,10 @@ const API_BASE = import.meta.env.VITE_API_PROXY_URL ?? 'http://localhost:3001';
  *
  * Priority:
  * 1. User's liked video for this exercise (from exercise_video_feedback)
- * 2. Exercise gif_url (from free-exercise-db)
- * 3. Exercise video_url (existing YouTube link in DB)
- * 4. YouTube Data API search via proxy (with like/dislike cycling)
- * 5. Static images from free-exercise-db
+ * 2. YouTube Data API search via proxy (with like/dislike cycling)
+ * 3. Exercise gif_url (from free-exercise-db) — fallback
+ * 4. Exercise video_url (existing YouTube link in DB) — fallback
+ * 5. Static images from free-exercise-db — fallback
  * 6. Fallback YouTube search link
  */
 export function useExerciseVideo(
@@ -99,7 +99,25 @@ export function useExerciseVideo(
         }
       }
 
-      // Step 2: GIF from free-exercise-db
+      // Step 2: Search YouTube via API proxy (main path for embedded video + like/dislike)
+      if (!cancelled && API_BASE) {
+        try {
+          const results = await searchYouTube(exerciseName, 0);
+          if (!cancelled && results.length > 0) {
+            setSearchResults(results);
+            setCurrentIndex(0);
+            setSearchAttempt(0);
+            setVideoFromSearchResult(results[0]);
+            setCanCycle(true);
+            setLoading(false);
+            return;
+          }
+        } catch {
+          // Proxy not available — fall through to local media
+        }
+      }
+
+      // Step 3: GIF from free-exercise-db (fallback if YouTube unavailable)
       if (!cancelled && existingGifUrl) {
         setVideo({
           videoId: '',
@@ -119,7 +137,7 @@ export function useExerciseVideo(
         return;
       }
 
-      // Step 3: Existing video_url in exercises table
+      // Step 4: Existing video_url in exercises table
       if (!cancelled && existingVideoUrl) {
         const videoId = extractYouTubeId(existingVideoUrl);
         if (videoId) {
@@ -139,24 +157,6 @@ export function useExerciseVideo(
           setCanCycle(true);
           setLoading(false);
           return;
-        }
-      }
-
-      // Step 4: Search YouTube via API proxy
-      if (!cancelled && API_BASE) {
-        try {
-          const results = await searchYouTube(exerciseName, 0);
-          if (!cancelled && results.length > 0) {
-            setSearchResults(results);
-            setCurrentIndex(0);
-            setSearchAttempt(0);
-            setVideoFromSearchResult(results[0]);
-            setCanCycle(true);
-            setLoading(false);
-            return;
-          }
-        } catch {
-          // Proxy not available — fall through
         }
       }
 

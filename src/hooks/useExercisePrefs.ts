@@ -40,12 +40,12 @@ export function useExercisePrefs() {
     if (existing) {
       await supabase
         .from('user_exercise_prefs')
-        .update({ is_favorite: newVal } as never)
+        .update({ is_favorite: newVal })
         .eq('id', existing.id);
     } else {
       await supabase
         .from('user_exercise_prefs')
-        .insert({ user_id: user.id, exercise_id: exerciseId, is_favorite: newVal } as never);
+        .insert({ user_id: user.id, exercise_id: exerciseId, is_favorite: newVal });
     }
     await fetchPrefs();
   }, [user, prefs, fetchPrefs]);

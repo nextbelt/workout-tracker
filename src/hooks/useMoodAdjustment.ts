@@ -395,7 +395,7 @@ export function useMoodAdjustment() {
         energy_level: moodInput.energyLevel,
         time_available_minutes: moodInput.timeAvailableMinutes,
         mood_adjusted: adjustments !== null,
-      } as never)
+      })
       .eq('id', sessionId);
   }, [user, moodInput, adjustments]);
 

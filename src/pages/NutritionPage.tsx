@@ -138,13 +138,13 @@ export default function NutritionPage() {
       {/* Protein bar */}
       <ProteinBar
         current={totals.protein}
-        min={profile?.protein_target_min ?? 170}
-        max={profile?.protein_target_max ?? 190}
+        min={profile?.protein_target_min ?? 0}
+        max={profile?.protein_target_max ?? 0}
       />
 
       {/* Macro cards */}
       <div className="flex gap-2">
-        <MacroCard label="Calories" value={totals.calories} unit="kcal" target={profile?.calorie_target ?? 2500} />
+        <MacroCard label="Calories" value={totals.calories} unit="kcal" target={profile?.calorie_target ?? 0} />
         <MacroCard label="Carbs" value={totals.carbs} />
         <MacroCard label="Fat" value={totals.fat} />
       </div>

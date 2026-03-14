@@ -49,7 +49,7 @@ export function useCardio() {
     };
     const { data, error } = await supabase
       .from('cardio_sessions')
-      .insert(payload as never)
+      .insert(payload)
       .select()
       .single();
     if (!error) {

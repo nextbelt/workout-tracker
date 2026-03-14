@@ -49,7 +49,7 @@ export function useMicroVariation() {
       .update({
         variant_pool: pool as unknown as Json,
         current_variant: pool[0]?.exerciseId ?? null,
-      } as never)
+      })
       .eq('id', blockExerciseId);
   }, []);
 

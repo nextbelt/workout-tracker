@@ -31,7 +31,7 @@ export function useBodyweight() {
     // upsert on (user_id, log_date) unique constraint
     await supabase
       .from('bodyweight_log')
-      .upsert(payload as never, { onConflict: 'user_id,log_date' })
+      .upsert(payload, { onConflict: 'user_id,log_date' })
       .select()
       .single();
     await fetchEntries();

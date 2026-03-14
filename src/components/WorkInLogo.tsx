@@ -16,14 +16,3 @@ export function WorkInLogo({ size = 'md', className = '' }: { size?: 'sm' | 'md'
     </span>
   );
 }
-
-export function WorkInLogoFull({ className = '' }: { className?: string }) {
-  return (
-    <div className={`flex flex-col items-center ${className}`}>
-      <WorkInLogo size="lg" />
-      <span className="text-faint text-xs tracking-[0.3em] uppercase mt-1 font-medium">
-        AI-Powered Training
-      </span>
-    </div>
-  );
-}

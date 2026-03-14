@@ -361,14 +361,13 @@ export default function AnalyticsPage() {
                     <Tooltip
                       contentStyle={{ backgroundColor: chartTheme.surface, border: `1px solid ${chartTheme.border}`, borderRadius: '8px' }}
                       labelStyle={{ color: '#fff' }}
-                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                      formatter={((value: any, name: any) => {
+                      formatter={(value, name) => {
                         if (name === 'Mood') {
                           const labels = ['', 'Beat Up', 'Low', 'Steady', 'Fired Up'];
                           return labels[Number(value)] ?? value;
                         }
                         return name === 'Volume' ? `${Number(value).toLocaleString()} lbs` : value;
-                      }) as never}
+                      }}
                     />
                     <Scatter data={moodData} fill={CHART_COLORS.brand} />
                   </ScatterChart>

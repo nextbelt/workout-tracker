@@ -220,7 +220,7 @@ export default function OnboardingFlow() {
       sets_per_muscle_per_week: derived.setsPerMusclePerWeek,
       weeks_between_deloads: derived.weeksBetweenDeloads,
       cardio_sessions_per_week: derived.cardioSessionsPerWeek,
-    } as never, { onConflict: 'id' });
+    }, { onConflict: 'id' });
   }, [user, buildAnswers]);
 
   const handleNext = useCallback(async () => {
@@ -239,7 +239,7 @@ export default function OnboardingFlow() {
       await supabase.from('user_profiles').update({
         onboarding_completed: true,
         onboarding_completed_at: new Date().toISOString(),
-      } as never).eq('id', user.id);
+      }).eq('id', user.id);
       await refreshProfile();
     } catch {
       setError('Failed to save profile. Please try again.');

@@ -10,27 +10,12 @@ interface DailyTotals {
   fat: number;
 }
 
-interface NormalizedFood {
-  source: 'usda' | 'openfoodfacts';
-  external_id: string;
-  food_name: string;
-  serving_size: string;
-  calories: number;
-  protein: number;
-  carbs: number;
-  fat: number;
-}
-
-const API_BASE = import.meta.env.VITE_API_PROXY_URL ?? 'http://localhost:3001';
-
 export function useNutrition(date?: string) {
   const { user } = useAuth();
   const logDate = date ?? new Date().toISOString().split('T')[0];
   const [entries, setEntries] = useState<NutritionEntry[]>([]);
   const [totals, setTotals] = useState<DailyTotals>({ calories: 0, protein: 0, carbs: 0, fat: 0 });
   const [recentFoods, setRecentFoods] = useState<NutritionEntry[]>([]);
-  const [searchResults, setSearchResults] = useState<NormalizedFood[]>([]);
-  const [searching, setSearching] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const fetchEntries = useCallback(async () => {
@@ -87,7 +72,7 @@ export function useNutrition(date?: string) {
       user_id: user.id,
       log_date: logDate,
       ...entry,
-    } as never);
+    });
     await fetchEntries();
     await fetchRecent();
   }, [user, logDate, fetchEntries, fetchRecent]);
@@ -96,23 +81,6 @@ export function useNutrition(date?: string) {
     await supabase.from('nutrition_entries').delete().eq('id', entryId);
     await fetchEntries();
   }, [fetchEntries]);
-
-  const searchFood = useCallback(async (query: string) => {
-    if (!query.trim()) {
-      setSearchResults([]);
-      return;
-    }
-    setSearching(true);
-    try {
-      const res = await fetch(`${API_BASE}/api/food/search?q=${encodeURIComponent(query)}`);
-      const json = await res.json() as { results: NormalizedFood[] };
-      setSearchResults(json.results ?? []);
-    } catch {
-      setSearchResults([]);
-    } finally {
-      setSearching(false);
-    }
-  }, []);
 
   useEffect(() => {
     const load = async () => {
@@ -128,11 +96,8 @@ export function useNutrition(date?: string) {
     entries,
     totals,
     recentFoods,
-    searchResults,
-    searching,
     loading,
     addEntry,
     deleteEntry,
-    searchFood,
   };
 }

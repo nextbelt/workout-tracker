@@ -3,7 +3,6 @@ import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom';
 import { Dumbbell, CalendarDays, Apple, History, Settings, BarChart3, BookOpen, Loader2 } from 'lucide-react';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import { RestTimerProvider } from './context/RestTimerContext';
-import { ThemeProvider } from './context/ThemeContext';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import OnboardingFlow from './pages/Onboarding/OnboardingFlow';
@@ -134,13 +133,11 @@ function AppShell() {
 
 export function App() {
   return (
-    <ThemeProvider>
-      <AuthProvider>
-        <BrowserRouter>
-          <AppShell />
-        </BrowserRouter>
-      </AuthProvider>
-    </ThemeProvider>
+    <AuthProvider>
+      <BrowserRouter>
+        <AppShell />
+      </BrowserRouter>
+    </AuthProvider>
   );
 }
 

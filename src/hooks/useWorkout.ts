@@ -1,14 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './useAuth';
-import type { TrainingBlock, BlockExercise, Exercise, WorkoutSession, SetLog, DayTemplate } from '../types/database';
+import type { TrainingBlock, BlockExercise, Exercise, WorkoutSession, SetLog, DayTemplate, Database } from '../types/database';
+
+type BlockExerciseInsert = Database['public']['Tables']['block_exercises']['Insert'];
 
 export interface BlockExerciseWithDetails extends BlockExercise {
   exercise: Exercise;
-}
-
-export interface SessionWithSets extends WorkoutSession {
-  sets: SetLog[];
 }
 
 export function useWorkout() {
@@ -126,7 +124,7 @@ export function useWorkout() {
     };
     const { error } = await supabase
       .from('set_logs')
-      .insert(payload as never)
+      .insert(payload)
       .select()
       .single();
     if (!error) {
@@ -147,7 +145,7 @@ export function useWorkout() {
     };
     const { data, error } = await supabase
       .from('workout_sessions')
-      .insert(payload as never)
+      .insert(payload)
       .select()
       .single();
     if (!error && data) {
@@ -164,7 +162,7 @@ export function useWorkout() {
     };
     const { error } = await supabase
       .from('workout_sessions')
-      .update(payload as never)
+      .update(payload)
       .eq('id', sessionId);
     if (!error) {
       setTodaySession(null);
@@ -181,7 +179,7 @@ export function useWorkout() {
     const blockPayload = { user_id: user.id, block_number: 1, start_date: today, is_active: true };
     const { data: blockData, error: blockErr } = await supabase
       .from('training_blocks')
-      .insert(blockPayload as never)
+      .insert(blockPayload)
       .select()
       .single();
     if (blockErr || !blockData) return;
@@ -193,7 +191,7 @@ export function useWorkout() {
     if (allEx.length === 0) return;
     const byName = (n: string) => allEx.find((e) => e.name === n)?.id;
 
-    const block1 = [
+    const block1: BlockExerciseInsert[] = [
       // Upper A
       { block_id: block.id, day_template: 'upper_a', slot_order: 1, movement_pool: 'horizontal_press', exercise_id: byName('Barbell Bench Press')!, sets: 4, rep_min: 6, rep_max: 8, rest_seconds: 150, rir_target: 2, is_anchor: true },
       { block_id: block.id, day_template: 'upper_a', slot_order: 2, movement_pool: 'horizontal_row', exercise_id: byName('Chest-Supported Row')!, sets: 4, rep_min: 8, rep_max: 10, rest_seconds: 105, rir_target: 2, is_anchor: true },
@@ -230,7 +228,7 @@ export function useWorkout() {
       { block_id: block.id, day_template: 'lower_b', slot_order: 7, movement_pool: 'abs', exercise_id: byName('Plank')!, sets: 3, rep_min: 12, rep_max: 15, rest_seconds: 60, rir_target: 2, is_anchor: false },
     ];
 
-    await supabase.from('block_exercises').insert(block1 as never);
+    await supabase.from('block_exercises').insert(block1);
     await fetchActiveBlock();
   }, [user, fetchActiveBlock]);
 
@@ -248,7 +246,7 @@ export function useWorkout() {
     // 2. Deactivate old block
     await supabase
       .from('training_blocks')
-      .update({ is_active: false } as never)
+      .update({ is_active: false })
       .eq('id', activeBlock.id);
 
     // 3. Create new block
@@ -261,7 +259,7 @@ export function useWorkout() {
     };
     const { data: newBlockData, error: blockErr } = await supabase
       .from('training_blocks')
-      .insert(newBlockPayload as never)
+      .insert(newBlockPayload)
       .select()
       .single();
     if (blockErr || !newBlockData) return;
@@ -318,13 +316,13 @@ export function useWorkout() {
       return { ...base, exercise_id: be.exercise_id };
     });
 
-    await supabase.from('block_exercises').insert(newExercises as never);
+    await supabase.from('block_exercises').insert(newExercises);
 
     // Store rotation notes
     if (rotationNotes.length > 0) {
       await supabase
         .from('training_blocks')
-        .update({ rotation_notes: rotationNotes } as never)
+        .update({ rotation_notes: rotationNotes })
         .eq('id', newBlock.id);
     }
 

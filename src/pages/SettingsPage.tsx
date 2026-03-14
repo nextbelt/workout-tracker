@@ -1,11 +1,10 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, Save, Loader2, User as UserIcon, Scale, Target, Wrench, TrendingDown, Bell, Sun, Moon, RotateCcw } from 'lucide-react';
+import { LogOut, Save, Loader2, User as UserIcon, Scale, Target, Wrench, TrendingDown, Bell, RotateCcw } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../lib/supabase';
 import { BodyweightLog } from '../components/BodyweightLog';
 import { useNotifications } from '../hooks/useNotifications';
-import { useTheme } from '../context/ThemeContext';
 import type { TrainingMode } from '../types/database';
 
 const EQUIPMENT_OPTIONS = ['barbell', 'dumbbell', 'cable', 'machine', 'smith_machine', 'bodyweight', 'ez_bar', 'bands'] as const;
@@ -23,9 +22,9 @@ export default function SettingsPage() {
   const [heightInches, setHeightInches] = useState(profile?.height_inches?.toString() ?? '');
   const [currentWeight, setCurrentWeight] = useState(profile?.current_weight?.toString() ?? '');
   const [targetWeight, setTargetWeight] = useState(profile?.target_weight?.toString() ?? '');
-  const [proteinMin, setProteinMin] = useState(profile?.protein_target_min?.toString() ?? '170');
-  const [proteinMax, setProteinMax] = useState(profile?.protein_target_max?.toString() ?? '190');
-  const [calorieTarget, setCalorieTarget] = useState(profile?.calorie_target?.toString() ?? '2500');
+  const [proteinMin, setProteinMin] = useState(profile?.protein_target_min?.toString() ?? '');
+  const [proteinMax, setProteinMax] = useState(profile?.protein_target_max?.toString() ?? '');
+  const [calorieTarget, setCalorieTarget] = useState(profile?.calorie_target?.toString() ?? '');
   const [trainingMode, setTrainingMode] = useState<TrainingMode>(profile?.training_mode ?? 'gym');
   const [equipment, setEquipment] = useState<string[]>(profile?.equipment_available ?? ['barbell', 'dumbbell', 'cable', 'machine']);
   const [saving, setSaving] = useState(false);
@@ -34,7 +33,6 @@ export default function SettingsPage() {
   const [proteinAlert, setProteinAlert] = useState(true);
   const [recoveryWarning, setRecoveryWarning] = useState(true);
   const notifications = useNotifications();
-  const { theme, setTheme } = useTheme();
 
   const autoCalcInitRef = useRef(false);
   useEffect(() => {
@@ -70,12 +68,12 @@ export default function SettingsPage() {
         height_inches: heightInches ? Number(heightInches) : null,
         current_weight: currentWeight ? Number(currentWeight) : null,
         target_weight: targetWeight ? Number(targetWeight) : null,
-        protein_target_min: Number(proteinMin) || 170,
-        protein_target_max: Number(proteinMax) || 190,
-        calorie_target: Number(calorieTarget) || 2500,
+        protein_target_min: Number(proteinMin) || profile?.protein_target_min || 0,
+        protein_target_max: Number(proteinMax) || profile?.protein_target_max || 0,
+        calorie_target: Number(calorieTarget) || profile?.calorie_target || 0,
         training_mode: trainingMode,
         equipment_available: equipment,
-      } as never)
+      })
       .eq('id', profile.id);
     await refreshProfile();
     setSaving(false);
@@ -86,40 +84,6 @@ export default function SettingsPage() {
   return (
     <div className="p-4 pb-24 space-y-6">
       <h1 className="text-2xl font-bold text-foreground">Settings</h1>
-
-      {/* Appearance */}
-      <section className="space-y-3">
-        <div className="flex items-center gap-2 text-muted">
-          <Sun size={16} />
-          <h2 className="text-sm font-medium">APPEARANCE</h2>
-        </div>
-        <div className="bg-surface-2 rounded-xl p-4">
-          <div className="flex gap-2">
-            <button
-              onClick={() => setTheme('light')}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 min-h-11 rounded-lg text-sm font-medium transition-colors ${
-                theme === 'light'
-                  ? 'bg-brand/15 text-brand border border-brand/30'
-                  : 'bg-surface-3 text-muted border border-border-2'
-              }`}
-            >
-              <Sun size={16} />
-              Light
-            </button>
-            <button
-              onClick={() => setTheme('dark')}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 min-h-11 rounded-lg text-sm font-medium transition-colors ${
-                theme === 'dark'
-                  ? 'bg-brand/15 text-brand border border-brand/30'
-                  : 'bg-surface-3 text-muted border border-border-2'
-              }`}
-            >
-              <Moon size={16} />
-              Dark
-            </button>
-          </div>
-        </div>
-      </section>
 
       {/* Profile section */}
       <section className="space-y-3">
@@ -325,7 +289,7 @@ export default function SettingsPage() {
           if (!confirmed) return;
           await supabase
             .from('user_profiles')
-            .update({ onboarding_completed: false } as never)
+            .update({ onboarding_completed: false })
             .eq('id', profile.id);
           await refreshProfile();
           navigate('/onboarding');

@@ -28,7 +28,15 @@ jobs:
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_STAGING_DB_PASSWORD }}
 
       - name: Push migrations to staging
-        run: supabase db push --include-all
+        run: |
+          for i in 1 2 3 4 5; do
+            echo "Attempt $i..."
+            supabase db push --include-all && exit 0
+            echo "Attempt $i failed, waiting 30 seconds..."
+            sleep 30
+          done
+          echo "All attempts failed"
+          exit 1
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_STAGING_DB_PASSWORD }}

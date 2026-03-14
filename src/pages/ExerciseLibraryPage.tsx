@@ -5,7 +5,7 @@ import { ExerciseDetail } from '../components/ExerciseDetail';
 import type { Exercise } from '../types/database';
 
 const BODY_PARTS = ['chest', 'back', 'shoulders', 'upper arms', 'lower arms', 'upper legs', 'lower legs', 'core', 'cardio', 'full body'];
-const EQUIPMENT_TYPES = ['barbell', 'dumbbell', 'cable', 'machine', 'bodyweight', 'smith_machine', 'kettlebell', 'band', 'other'];
+const EQUIPMENT_TYPES = ['barbell', 'dumbbell', 'cable', 'machine', 'bodyweight', 'smith_machine', 'kettlebell', 'band', 'medicine_ball', 'exercise_ball', 'foam_roll', 'other'];
 
 export default function ExerciseLibraryPage() {
   const [exercises, setExercises] = useState<Exercise[]>([]);
@@ -189,6 +189,8 @@ export default function ExerciseLibraryPage() {
             >
               {ex.gif_url ? (
                 <img src={ex.gif_url} alt="" className="w-12 h-12 rounded-lg object-cover shrink-0" />
+              ) : ex.image_urls && ex.image_urls.length > 0 ? (
+                <img src={ex.image_urls[0]} alt="" className="w-12 h-12 rounded-lg object-cover shrink-0" loading="lazy" />
               ) : (
                 <div className="w-12 h-12 rounded-lg bg-surface-3 flex items-center justify-center shrink-0">
                   <span className="text-neutral-600 text-lg">💪</span>

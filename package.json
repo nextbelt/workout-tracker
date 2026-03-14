@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "import:exercises": "tsx scripts/import-free-exercise-db.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.99.1",
@@ -31,6 +32,7 @@
     "globals": "^17.4.0",
     "supabase": "^2.78.1",
     "tailwindcss": "^4.2.1",
+    "tsx": "^4.21.0",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.56.1",
     "vite": "^6.4.1"

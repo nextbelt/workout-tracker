@@ -10,6 +10,7 @@
 --        exercise_library_cache is shared writable for authenticated users.
 
 -- ─── ALTER exercises: add metadata columns ─────────────────────────────────────
+-- Columns matching free-exercise-db JSON schema (yuhonas/free-exercise-db)
 ALTER TABLE exercises ADD COLUMN IF NOT EXISTS body_part TEXT;
 ALTER TABLE exercises ADD COLUMN IF NOT EXISTS category TEXT
   CHECK (category IN ('strength', 'stretching', 'plyometrics', 'strongman',
@@ -22,11 +23,18 @@ ALTER TABLE exercises ADD COLUMN IF NOT EXISTS gif_url TEXT;
 ALTER TABLE exercises ADD COLUMN IF NOT EXISTS external_id TEXT;
 ALTER TABLE exercises ADD COLUMN IF NOT EXISTS source TEXT
   CHECK (source IN ('seed', 'free_exercise_db', 'exercisedb_api', 'user'));
+-- Additional free-exercise-db fields
+ALTER TABLE exercises ADD COLUMN IF NOT EXISTS force_type TEXT;      -- push, pull, static
+ALTER TABLE exercises ADD COLUMN IF NOT EXISTS mechanic TEXT;        -- compound, isolation
+ALTER TABLE exercises ADD COLUMN IF NOT EXISTS difficulty TEXT;      -- beginner, intermediate, expert
+ALTER TABLE exercises ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE exercises ADD COLUMN IF NOT EXISTS video_url TEXT;
 
 -- Index for filtering by body_part and category
 CREATE INDEX IF NOT EXISTS idx_exercises_body_part ON exercises (body_part);
 CREATE INDEX IF NOT EXISTS idx_exercises_category ON exercises (category);
 CREATE INDEX IF NOT EXISTS idx_exercises_source ON exercises (source);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_exercises_external_id ON exercises (external_id) WHERE external_id IS NOT NULL;
 
 -- ─── ALTER workout_sessions: add mood/energy/time columns ──────────────────────
 ALTER TABLE workout_sessions ADD COLUMN IF NOT EXISTS pre_mood TEXT

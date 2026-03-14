@@ -89,6 +89,11 @@ export interface Database {
           gif_url: string | null;
           external_id: string | null;
           source: ExerciseSource | null;
+          force_type: string | null;
+          mechanic: string | null;
+          difficulty: string | null;
+          description: string | null;
+          video_url: string | null;
           created_at: string;
         };
         Insert: {
@@ -112,6 +117,11 @@ export interface Database {
           gif_url?: string | null;
           external_id?: string | null;
           source?: ExerciseSource | null;
+          force_type?: string | null;
+          mechanic?: string | null;
+          difficulty?: string | null;
+          description?: string | null;
+          video_url?: string | null;
         };
         Update: {
           id?: string;
@@ -134,6 +144,11 @@ export interface Database {
           gif_url?: string | null;
           external_id?: string | null;
           source?: ExerciseSource | null;
+          force_type?: string | null;
+          mechanic?: string | null;
+          difficulty?: string | null;
+          description?: string | null;
+          video_url?: string | null;
         };
         Relationships: [];
       };

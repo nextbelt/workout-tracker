@@ -49,6 +49,13 @@ export function ExerciseDetail({ exercise, onClose }: ExerciseDetailProps) {
               alt={exercise.name}
               className="w-full h-48 object-cover rounded-t-2xl"
             />
+          ) : exercise.image_urls && exercise.image_urls.length > 0 ? (
+            <img
+              src={exercise.image_urls[0]}
+              alt={exercise.name}
+              className="w-full h-48 object-cover rounded-t-2xl"
+              loading="lazy"
+            />
           ) : (
             <div className="w-full h-32 bg-surface-3 rounded-t-2xl flex items-center justify-center">
               <Target size={48} className="text-neutral-600" />
@@ -83,6 +90,16 @@ export function ExerciseDetail({ exercise, onClose }: ExerciseDetailProps) {
               {exercise.is_compound && (
                 <span className="text-xs bg-blue-500/10 text-blue-400 px-2 py-1 rounded-lg">
                   Compound
+                </span>
+              )}
+              {exercise.force_type && (
+                <span className="text-xs bg-surface-3 text-neutral-400 px-2 py-1 rounded-lg capitalize">
+                  {exercise.force_type}
+                </span>
+              )}
+              {exercise.difficulty && (
+                <span className="text-xs bg-surface-3 text-neutral-400 px-2 py-1 rounded-lg capitalize">
+                  {exercise.difficulty}
                 </span>
               )}
             </div>

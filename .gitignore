@@ -12,6 +12,10 @@ dist
 dist-ssr
 *.local
 
+# Lockfile generated on Windows has wrong platform binaries for Linux builds
+package-lock.json
+api-proxy/package-lock.json
+
 # API proxy build output
 api-proxy/dist
 

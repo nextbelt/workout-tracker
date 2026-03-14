@@ -12,6 +12,7 @@ interface VideoState {
   isImage: boolean;
   isGif: boolean;
   imageUrls: string[];
+  viewCount: number | null;
   source: 'liked' | 'search' | 'local_gif' | 'local_video' | 'local_image';
 }
 
@@ -20,6 +21,7 @@ interface YouTubeResult {
   title: string;
   channelTitle: string;
   thumbnailUrl: string;
+  viewCount?: number;
 }
 
 const API_BASE = import.meta.env.VITE_API_PROXY_URL ?? 'http://localhost:3001';
@@ -84,6 +86,7 @@ export function useExerciseVideo(
               isImage: false,
               isGif: false,
               imageUrls: [],
+              viewCount: null,
               source: 'liked',
             });
             setHasLiked(true);
@@ -108,6 +111,7 @@ export function useExerciseVideo(
           isImage: false,
           isGif: true,
           imageUrls: [],
+          viewCount: null,
           source: 'local_gif',
         });
         setCanCycle(true);
@@ -129,6 +133,7 @@ export function useExerciseVideo(
             isImage: false,
             isGif: false,
             imageUrls: [],
+            viewCount: null,
             source: 'local_video',
           });
           setCanCycle(true);
@@ -167,6 +172,7 @@ export function useExerciseVideo(
           isImage: true,
           isGif: false,
           imageUrls: existingImageUrls,
+          viewCount: null,
           source: 'local_image',
         });
         setCanCycle(false);
@@ -314,6 +320,7 @@ export function useExerciseVideo(
       isImage: false,
       isGif: false,
       imageUrls: [],
+      viewCount: result.viewCount ?? null,
       source: 'search',
     });
   }

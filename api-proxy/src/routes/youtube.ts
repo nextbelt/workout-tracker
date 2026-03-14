@@ -11,6 +11,7 @@ interface YouTubeSearchResult {
   channelTitle: string;
   thumbnailUrl: string;
   publishedAt: string;
+  viewCount: number;
 }
 
 interface YouTubeApiItem {
@@ -23,6 +24,14 @@ interface YouTubeApiItem {
   };
 }
 
+interface YouTubeVideoStats {
+  id: string;
+  statistics: {
+    viewCount: string;
+    likeCount?: string;
+  };
+}
+
 // ─── Helpers ────────────────────────────────────────────────────────────────────
 
 function getSupabase() {
@@ -30,20 +39,6 @@ function getSupabase() {
   const key = process.env.SUPABASE_SERVICE_KEY;
   if (!url || !key) return null;
   return createClient(url, key);
-}
-
-function normalizeItem(item: YouTubeApiItem): YouTubeSearchResult {
-  return {
-    videoId: item.id.videoId,
-    title: item.snippet.title,
-    channelTitle: item.snippet.channelTitle,
-    thumbnailUrl:
-      item.snippet.thumbnails.high?.url ??
-      item.snippet.thumbnails.medium?.url ??
-      item.snippet.thumbnails.default?.url ??
-      '',
-    publishedAt: item.snippet.publishedAt,
-  };
 }
 
 // ─── Routes ─────────────────────────────────────────────────────────────────────
@@ -103,31 +98,71 @@ youtubeRouter.get('/search', async (req: Request, res: Response) => {
     }
   }
 
-  // 2. Call YouTube Data API v3
+  // 2. Call YouTube Data API v3 — search then fetch stats for view count sorting
   try {
-    const params = new URLSearchParams({
+    const searchParams = new URLSearchParams({
       part: 'snippet',
       q: searchQuery,
       type: 'video',
-      order: 'relevance',
-      maxResults: '5',
+      order: 'viewCount',
+      maxResults: '8',
       videoDuration: 'medium', // 4-20 min — filters out shorts and long vlogs
       key: YOUTUBE_API_KEY,
     });
 
-    const apiUrl = `https://www.googleapis.com/youtube/v3/search?${params}`;
-    const response = await fetch(apiUrl);
+    const searchUrl = `https://www.googleapis.com/youtube/v3/search?${searchParams}`;
+    const searchResponse = await fetch(searchUrl);
 
-    if (!response.ok) {
-      const text = await response.text();
-      console.error(`[youtube api] ${response.status}: ${text}`);
+    if (!searchResponse.ok) {
+      const text = await searchResponse.text();
+      console.error(`[youtube api] ${searchResponse.status}: ${text}`);
       res.status(502).json({ results: [], error: 'YouTube API error' });
       return;
     }
 
-    const data = await response.json();
-    const items: YouTubeApiItem[] = data.items ?? [];
-    const results = items.map(normalizeItem);
+    const searchData = await searchResponse.json();
+    const items: YouTubeApiItem[] = searchData.items ?? [];
+
+    if (items.length === 0) {
+      res.json({ results: [], source: 'api', query: searchQuery });
+      return;
+    }
+
+    // Fetch actual view counts from videos endpoint (costs 1 quota unit vs 100 for search)
+    const videoIds = items.map((i) => i.id.videoId).join(',');
+    const statsParams = new URLSearchParams({
+      part: 'statistics',
+      id: videoIds,
+      key: YOUTUBE_API_KEY,
+    });
+
+    const statsUrl = `https://www.googleapis.com/youtube/v3/videos?${statsParams}`;
+    const statsResponse = await fetch(statsUrl);
+    const statsMap = new Map<string, number>();
+
+    if (statsResponse.ok) {
+      const statsData = await statsResponse.json();
+      for (const v of (statsData.items ?? []) as YouTubeVideoStats[]) {
+        statsMap.set(v.id, parseInt(v.statistics.viewCount, 10) || 0);
+      }
+    }
+
+    // Build results with view counts, sorted by most views
+    const results: YouTubeSearchResult[] = items
+      .map((item) => ({
+        videoId: item.id.videoId,
+        title: item.snippet.title,
+        channelTitle: item.snippet.channelTitle,
+        thumbnailUrl:
+          item.snippet.thumbnails.high?.url ??
+          item.snippet.thumbnails.medium?.url ??
+          item.snippet.thumbnails.default?.url ??
+          '',
+        publishedAt: item.snippet.publishedAt,
+        viewCount: statsMap.get(item.id.videoId) ?? 0,
+      }))
+      .sort((a, b) => b.viewCount - a.viewCount)
+      .slice(0, 5); // Top 5 by views
 
     // 3. Write to cache
     if (supabase && results.length > 0) {

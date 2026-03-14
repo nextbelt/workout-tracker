@@ -117,13 +117,21 @@ export function ExerciseDetail({ exercise, onClose }: ExerciseDetailProps) {
               />
             ) : null}
 
-            {/* Video title + channel */}
+            {/* Video title + channel + views */}
             {exerciseVideo.video.title && exerciseVideo.video.source !== 'local_gif' && (
               <div className="px-1">
                 <p className="text-secondary text-sm font-medium truncate">{exerciseVideo.video.title}</p>
-                {exerciseVideo.video.channelName && (
-                  <p className="text-faint text-xs">{exerciseVideo.video.channelName}</p>
-                )}
+                <div className="flex items-center gap-2">
+                  {exerciseVideo.video.channelName && (
+                    <span className="text-faint text-xs">{exerciseVideo.video.channelName}</span>
+                  )}
+                  {exerciseVideo.video.viewCount != null && exerciseVideo.video.viewCount > 0 && (
+                    <>
+                      <span className="text-faint text-xs">·</span>
+                      <span className="text-faint text-xs">{formatViewCount(exerciseVideo.video.viewCount)} views</span>
+                    </>
+                  )}
+                </div>
               </div>
             )}
 
@@ -351,6 +359,14 @@ export function ExerciseDetail({ exercise, onClose }: ExerciseDetailProps) {
       </div>
     </div>
   );
+}
+
+// ─── Helpers ────────────────────────────────────────────────────────────────────
+
+function formatViewCount(count: number): string {
+  if (count >= 1_000_000) return `${(count / 1_000_000).toFixed(1)}M`;
+  if (count >= 1_000) return `${(count / 1_000).toFixed(0)}K`;
+  return count.toString();
 }
 
 // ─── Lite YouTube Embed ─────────────────────────────────────────────────────────

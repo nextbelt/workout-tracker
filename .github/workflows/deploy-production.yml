@@ -58,9 +58,6 @@ jobs:
 
   deploy-api-proxy:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: api-proxy
     steps:
       - uses: actions/checkout@v5
 
@@ -71,7 +68,9 @@ jobs:
           cache-dependency-path: api-proxy/package-lock.json
 
       - run: npm ci
+        working-directory: api-proxy
       - run: npm run build
+        working-directory: api-proxy
 
       - name: Install Railway CLI
         run: npm install -g @railway/cli

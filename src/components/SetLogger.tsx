@@ -45,7 +45,7 @@ function StepperInput({
         <button
           type="button"
           onClick={() => onChange(String(Math.max(min, numVal - step)))}
-          className="w-8 h-10 flex items-center justify-center bg-surface-3 rounded-l-lg border border-border-2 text-muted active:bg-surface-2 transition-colors"
+          className="hidden sm:flex w-8 h-10 items-center justify-center bg-surface-3 rounded-l-lg border border-border-2 text-muted active:bg-surface-2 transition-colors"
         >
           <Minus size={14} />
         </button>
@@ -55,12 +55,12 @@ function StepperInput({
           placeholder={placeholder}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="w-16 h-10 bg-surface-3 border-y border-border-2 text-center text-foreground text-base font-semibold focus:outline-none focus:border-brand transition-colors appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+          className="w-14 sm:w-16 h-10 bg-surface-3 border border-border-2 rounded-lg sm:rounded-none sm:border-x-0 text-center text-foreground text-base font-semibold focus:outline-none focus:border-brand transition-colors appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
         />
         <button
           type="button"
           onClick={() => onChange(String(numVal + step))}
-          className="w-8 h-10 flex items-center justify-center bg-surface-3 rounded-r-lg border border-border-2 text-muted active:bg-surface-2 transition-colors"
+          className="hidden sm:flex w-8 h-10 items-center justify-center bg-surface-3 rounded-r-lg border border-border-2 text-muted active:bg-surface-2 transition-colors"
         >
           <Plus size={14} />
         </button>
@@ -116,8 +116,8 @@ export function SetLogger({
           <span>{progressionHint.message}</span>
         </div>
       )}
-      <div className={`flex items-center gap-3 py-3 px-3 rounded-xl transition-colors ${saved ? 'bg-brand/10 border border-brand/20' : 'bg-surface-3/50 border border-transparent'}`}>
-        <span className="text-faint text-xs font-bold w-6 shrink-0">S{setNumber}</span>
+      <div className={`flex items-center gap-1.5 sm:gap-3 py-3 px-2 sm:px-3 rounded-xl transition-colors ${saved ? 'bg-brand/10 border border-brand/20' : 'bg-surface-3/50 border border-transparent'}`}>
+        <span className="text-faint text-xs font-bold w-5 sm:w-6 shrink-0">S{setNumber}</span>
 
         <StepperInput
           label="lbs"
@@ -127,7 +127,7 @@ export function SetLogger({
           step={5}
         />
 
-        <span className="text-faint text-lg font-light mt-4">×</span>
+        <span className="text-faint text-lg font-light mt-4 hidden sm:inline">×</span>
 
         <StepperInput
           label="reps"
@@ -148,7 +148,7 @@ export function SetLogger({
 
         <button
           onClick={handleSave}
-          className={`mt-4 p-2.5 min-h-11 min-w-11 rounded-xl transition-colors flex items-center justify-center ${
+          className={`mt-4 p-2 sm:p-2.5 min-h-11 min-w-11 rounded-xl transition-colors flex items-center justify-center ${
             saved ? 'bg-brand/20 text-brand' : 'bg-surface-3 hover:bg-brand/10 text-secondary'
           }`}
         >

@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { supabase } from '../../lib/supabase';
 import {
@@ -122,6 +123,7 @@ function ToggleChip({
 
 export default function OnboardingFlow() {
   const { user, refreshProfile } = useAuth();
+  const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -341,6 +343,7 @@ export default function OnboardingFlow() {
       await generateBlock(user.id, nextBlockNumber, genProfile);
 
       await refreshProfile();
+      navigate('/', { replace: true });
     } catch {
       setError('Failed to save profile. Please try again.');
     }

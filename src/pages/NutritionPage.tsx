@@ -1,10 +1,11 @@
-import { useState, useMemo, useCallback } from 'react';
-import { Plus, Trash2, Edit3, ChevronDown, ChevronUp, Loader2, ScanBarcode } from 'lucide-react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
+import { Plus, Trash2, Edit3, ChevronDown, ChevronUp, Loader2, ScanBarcode, TrendingUp } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useNutrition } from '../hooks/useNutrition';
 import { ProteinBar, MacroCard } from '../components/MacroDashboard';
 import { FoodSearch, ManualFoodEntry } from '../components/FoodSearch';
 import { BarcodeScanner } from '../components/BarcodeScanner';
+import { supabase } from '../lib/supabase';
 import type { MealType, NutritionEntry } from '../types/database';
 
 const MEAL_ORDER: MealType[] = ['breakfast', 'lunch', 'dinner', 'snack'];
@@ -22,12 +23,40 @@ const MEAL_ICONS: Record<MealType, string> = {
 };
 
 export default function NutritionPage() {
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
   const { entries, totals, loading, addEntry, deleteEntry } = useNutrition();
   const [expandedMeal, setExpandedMeal] = useState<MealType | null>('breakfast');
   const [searchMeal, setSearchMeal] = useState<MealType | null>(null);
   const [manualMeal, setManualMeal] = useState<MealType | null>(null);
   const [barcodeMeal, setBarcodeMeal] = useState<MealType | null>(null);
+  const [weeklyAvg, setWeeklyAvg] = useState<{ protein: number; calories: number; days: number } | null>(null);
+
+  // Fetch 7-day rolling average
+  useEffect(() => {
+    if (!user) return;
+    const fetchWeekly = async () => {
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - 7);
+      const { data } = await supabase
+        .from('nutrition_entries')
+        .select('log_date, protein, calories')
+        .eq('user_id', user.id)
+        .gte('log_date', cutoff.toISOString().split('T')[0]);
+      if (!data || data.length === 0) { setWeeklyAvg(null); return; }
+      const byDate = new Map<string, { protein: number; calories: number }>();
+      for (const row of data as Array<{ log_date: string; protein: number; calories: number }>) {
+        const existing = byDate.get(row.log_date) ?? { protein: 0, calories: 0 };
+        existing.protein += Number(row.protein);
+        existing.calories += Number(row.calories);
+        byDate.set(row.log_date, existing);
+      }
+      const days = byDate.size;
+      const totalP = Array.from(byDate.values()).reduce((s, d) => s + d.protein, 0);
+      const totalC = Array.from(byDate.values()).reduce((s, d) => s + d.calories, 0);
+      setWeeklyAvg({ protein: Math.round(totalP / days), calories: Math.round(totalC / days), days });
+    };
+    fetchWeekly();
+  }, [user, entries]); // re-fetch when entries change
 
   const entriesByMeal = useMemo(() => {
     const map = new Map<MealType, NutritionEntry[]>();
@@ -149,6 +178,31 @@ export default function NutritionPage() {
         <MacroCard label="Fat" value={totals.fat} />
       </div>
 
+      {/* Weekly summary */}
+      {weeklyAvg && (
+        <div className="bg-surface-2 rounded-xl p-4 flex items-center gap-3">
+          <div className="w-9 h-9 bg-brand/15 rounded-lg flex items-center justify-center shrink-0">
+            <TrendingUp size={18} className="text-brand" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-foreground text-sm font-medium">7-Day Average</p>
+            <p className="text-faint text-xs">
+              {weeklyAvg.protein}g protein · {weeklyAvg.calories} cal/day
+              {weeklyAvg.days < 7 && ` (${weeklyAvg.days} days logged)`}
+            </p>
+          </div>
+          {profile?.protein_target_min && (
+            <div className={`px-2 py-1 rounded-lg text-xs font-medium ${
+              weeklyAvg.protein >= (profile.protein_target_min ?? 0)
+                ? 'bg-green-500/15 text-green-400'
+                : 'bg-yellow-500/15 text-yellow-400'
+            }`}>
+              {weeklyAvg.protein >= (profile.protein_target_min ?? 0) ? '✓ On Track' : 'Below Target'}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Meal sections */}
       {MEAL_ORDER.map((meal) => {
         const mealEntries = entriesByMeal.get(meal) ?? [];
@@ -203,20 +257,20 @@ export default function NutritionPage() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => setSearchMeal(meal)}
-                    className="flex-1 flex items-center justify-center gap-2 bg-surface-3 hover:bg-surface-3 text-secondary rounded-lg py-2 min-h-11 text-sm transition-colors"
+                    className="flex-1 flex items-center justify-center gap-2 bg-surface-3 hover:bg-surface-2 text-secondary rounded-lg py-2 min-h-11 text-sm transition-colors"
                   >
                     <Plus size={14} />
                     Search
                   </button>
                   <button
                     onClick={() => setBarcodeMeal(meal)}
-                    className="flex items-center justify-center gap-2 bg-surface-3 hover:bg-surface-3 text-secondary rounded-lg px-3 py-2 min-h-11 text-sm transition-colors"
+                    className="flex items-center justify-center gap-2 bg-surface-3 hover:bg-surface-2 text-secondary rounded-lg px-3 py-2 min-h-11 text-sm transition-colors"
                   >
                     <ScanBarcode size={14} />
                   </button>
                   <button
                     onClick={() => setManualMeal(meal)}
-                    className="flex-1 flex items-center justify-center gap-2 bg-surface-3 hover:bg-surface-3 text-secondary rounded-lg py-2 min-h-11 text-sm transition-colors"
+                    className="flex-1 flex items-center justify-center gap-2 bg-surface-3 hover:bg-surface-2 text-secondary rounded-lg py-2 min-h-11 text-sm transition-colors"
                   >
                     <Edit3 size={14} />
                     Manual

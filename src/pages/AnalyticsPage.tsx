@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { BarChart3, TrendingUp, Calendar, Heart, Apple, Loader2, ChevronDown, Smile } from 'lucide-react';
 import { useAnalytics } from '../hooks/useAnalytics';
 import { useWorkout } from '../hooks/useWorkout';
@@ -51,9 +51,33 @@ function useChartTheme() {
 export default function AnalyticsPage() {
   const [activeTab, setActiveTab] = useState<TabKey>('volume');
   const [loading, setLoading] = useState(false);
-  const analytics = useAnalytics();
-  const { exercises } = useWorkout();
+  const {
+    getVolumeOverTime,
+    getExerciseProgress,
+    getConsistency,
+    getRecoveryData,
+    getNutritionTrends,
+    getMoodCorrelation,
+  } = useAnalytics();
+  const { blockExercises } = useWorkout();
   const chartTheme = useChartTheme();
+
+  // Derive unique exercises from current block (not entire library)
+  const programExercises = useMemo(() => {
+    const seen = new Set<string>();
+    return blockExercises
+      .filter((be) => {
+        if (seen.has(be.exercise.id)) return false;
+        seen.add(be.exercise.id);
+        return true;
+      })
+      .map((be) => be.exercise)
+      .sort((a, b) => {
+        // Compounds first, then alphabetical
+        if (a.is_compound !== b.is_compound) return a.is_compound ? -1 : 1;
+        return a.name.localeCompare(b.name);
+      });
+  }, [blockExercises]);
 
   // Data states
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -68,11 +92,11 @@ export default function AnalyticsPage() {
   const [moodData, setMoodData] = useState<Array<Record<string, any>>>([]);
   const [selectedExercise, setSelectedExercise] = useState<string>('');
 
-  const loadTab = useCallback(async (tab: TabKey) => {
+  const loadTab = useCallback(async (tab: TabKey, exerciseOverride?: string) => {
     setLoading(true);
     switch (tab) {
       case 'volume': {
-        const data = await analytics.getVolumeOverTime(90);
+        const data = await getVolumeOverTime(90);
         setVolumeData(data.map((d) => ({
           ...d,
           date: d.date.slice(5), // MM-DD
@@ -81,8 +105,9 @@ export default function AnalyticsPage() {
         break;
       }
       case 'progression': {
-        if (selectedExercise) {
-          const data = await analytics.getExerciseProgress(selectedExercise);
+        const exId = exerciseOverride ?? selectedExercise;
+        if (exId) {
+          const data = await getExerciseProgress(exId);
           setProgressionData(data.map((d) => ({
             ...d,
             date: d.date.slice(5),
@@ -91,12 +116,12 @@ export default function AnalyticsPage() {
         break;
       }
       case 'consistency': {
-        const data = await analytics.getConsistency(12);
+        const data = await getConsistency(12);
         setConsistencyData(data);
         break;
       }
       case 'recovery': {
-        const data = await analytics.getRecoveryData(90);
+        const data = await getRecoveryData(90);
         const ratingMap: Record<string, number> = { great: 3, normal: 2, poor: 1 };
         setRecoveryData(data.map((d) => ({
           ...d,
@@ -106,7 +131,7 @@ export default function AnalyticsPage() {
         break;
       }
       case 'nutrition': {
-        const data = await analytics.getNutritionTrends(30);
+        const data = await getNutritionTrends(30);
         setNutritionData(data.map((d) => ({
           ...d,
           date: d.date.slice(5),
@@ -116,25 +141,25 @@ export default function AnalyticsPage() {
         break;
       }
       case 'mood': {
-        const data = await analytics.getMoodCorrelation(90);
+        const data = await getMoodCorrelation(90);
         setMoodData(data);
         break;
       }
     }
     setLoading(false);
-  }, [analytics, selectedExercise]);
+  }, [getVolumeOverTime, getExerciseProgress, getConsistency, getRecoveryData, getNutritionTrends, getMoodCorrelation, selectedExercise]);
 
   useEffect(() => {
     loadTab(activeTab);
   }, [activeTab, loadTab]);
 
-  // Set default exercise for progression tab
+  // Set default exercise for progression tab from program exercises
   useEffect(() => {
-    if (!selectedExercise && exercises.length > 0) {
-      const compound = exercises.find((e) => e.is_compound);
-      setSelectedExercise(compound?.id ?? exercises[0].id);
+    if (!selectedExercise && programExercises.length > 0) {
+      const compound = programExercises.find((e) => e.is_compound);
+      setSelectedExercise(compound?.id ?? programExercises[0].id);
     }
-  }, [exercises, selectedExercise]);
+  }, [programExercises, selectedExercise]);
 
   const renderChart = () => {
     if (loading) {
@@ -192,17 +217,17 @@ export default function AnalyticsPage() {
                 value={selectedExercise}
                 onChange={(e) => {
                   setSelectedExercise(e.target.value);
-                  loadTab('progression');
+                  loadTab('progression', e.target.value);
                 }}
                 className="w-full bg-surface-3 border border-border-2 rounded-lg px-3 py-3 min-h-11 text-foreground text-sm appearance-none focus:outline-none focus:border-brand"
               >
-                {exercises
+                {programExercises
                   .filter((e) => e.is_compound)
                   .map((ex) => (
                     <option key={ex.id} value={ex.id}>{ex.name}</option>
                   ))}
                 <optgroup label="Isolation">
-                  {exercises
+                  {programExercises
                     .filter((e) => !e.is_compound)
                     .map((ex) => (
                       <option key={ex.id} value={ex.id}>{ex.name}</option>

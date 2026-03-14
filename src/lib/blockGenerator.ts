@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 import { getDayLayouts } from './programGenerator';
-import type { SplitType, DayTemplate, Exercise, Database } from '../types/database';
+import type { SplitType, DayTemplate, Exercise, Database, TrainingMode } from '../types/database';
 
 type BlockExerciseInsert = Database['public']['Tables']['block_exercises']['Insert'];
 
@@ -24,6 +24,7 @@ export interface BlockGenProfile {
   equipment_available: string[];
   injuries: string[] | null;
   weeks_between_deloads: number;
+  training_mode: TrainingMode;
 }
 
 // ─── Movement pool slot definition ──────────────────────────────────────────
@@ -135,6 +136,7 @@ function pickExercise(
   equipment: string[],
   injuries: string[],
   usedIds: Set<string>,
+  trainingMode: TrainingMode = 'gym',
 ): Exercise | null {
   // Filter by equipment & injuries
   const eligible = candidates.filter((ex) => {
@@ -148,6 +150,17 @@ function pickExercise(
     }
     return true;
   });
+
+  // Smith machine mode: strongly prefer smith-compatible exercises
+  if (trainingMode === 'smith_machine') {
+    const smithEligible = eligible.filter((ex) =>
+      ex.equipment_tags.includes('smith_machine')
+    );
+    const smithUnused = smithEligible.filter((ex) => !usedIds.has(ex.id));
+    if (smithUnused.length > 0) return smithUnused[Math.floor(Math.random() * smithUnused.length)];
+    if (smithEligible.length > 0) return smithEligible[Math.floor(Math.random() * smithEligible.length)];
+    // Fall through to regular selection if no smith options
+  }
 
   // Prefer unused exercises
   const unused = eligible.filter((ex) => !usedIds.has(ex.id));
@@ -211,9 +224,22 @@ export async function generateBlock(
     const slots = getSlotsForTemplate(layout.dayTemplate);
     let slotOrder = 1;
 
-    for (const slot of slots) {
+    // Lower fatigue mode: skip the last isolation slot per day
+    const slotsToUse = profile.training_mode === 'lower_fatigue'
+      ? (() => {
+          // Find the last isolation slot and remove it
+          const lastIsoIdx = slots.map((s, i) => ({ s, i }))
+            .filter(({ s }) => s.category === 'isolation')
+            .pop()?.i;
+          return lastIsoIdx !== undefined
+            ? slots.filter((_, i) => i !== lastIsoIdx)
+            : slots;
+        })()
+      : slots;
+
+    for (const slot of slotsToUse) {
       const candidates = byPool.get(slot.movementPool) ?? [];
-      const exercise = pickExercise(candidates, equipment, injuries, usedIds);
+      const exercise = pickExercise(candidates, equipment, injuries, usedIds, profile.training_mode);
       if (!exercise) continue; // Skip if no valid exercise found
 
       usedIds.add(exercise.id);
@@ -223,6 +249,7 @@ export async function generateBlock(
       let repMin: number;
       let repMax: number;
       let rest: number;
+      let rir = profile.starting_rir;
 
       switch (slot.category) {
         case 'compound':
@@ -246,6 +273,14 @@ export async function generateBlock(
           break;
       }
 
+      // Lower fatigue mode: cap sets and raise RIR floor
+      if (profile.training_mode === 'lower_fatigue') {
+        if (slot.category === 'compound') sets = Math.min(sets, 3);
+        if (slot.category === 'secondary') sets = Math.min(sets, 2);
+        if (slot.category === 'isolation') sets = Math.min(sets, 2);
+        rir = Math.max(rir, 3);
+      }
+
       inserts.push({
         block_id: blockId,
         day_template: layout.dayTemplate as DayTemplate,
@@ -256,7 +291,7 @@ export async function generateBlock(
         rep_min: repMin,
         rep_max: repMax,
         rest_seconds: rest,
-        rir_target: profile.starting_rir,
+        rir_target: rir,
         is_anchor: slot.isAnchor,
       });
 
@@ -292,6 +327,7 @@ export function buildBlockGenProfile(profile: {
   equipment_available: string[];
   injuries: string[] | null;
   weeks_between_deloads: number;
+  training_mode?: TrainingMode | null;
 }): BlockGenProfile {
   return {
     split_type: profile.split_type,
@@ -311,5 +347,6 @@ export function buildBlockGenProfile(profile: {
     equipment_available: profile.equipment_available,
     injuries: profile.injuries,
     weeks_between_deloads: profile.weeks_between_deloads,
+    training_mode: profile.training_mode ?? 'gym',
   };
 }

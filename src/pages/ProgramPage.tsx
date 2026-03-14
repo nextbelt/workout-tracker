@@ -4,6 +4,7 @@ import { useWorkout, type BlockExerciseWithDetails } from '../hooks/useWorkout';
 import { useAuth } from '../hooks/useAuth';
 import { ExerciseSwapModal } from '../components/ExerciseSwap';
 import { supabase } from '../lib/supabase';
+import { generateBlock, buildBlockGenProfile } from '../lib/blockGenerator';
 import { getDayLayouts } from '../lib/programGenerator';
 import type { DayTemplate, TrainingMode, SplitType } from '../types/database';
 
@@ -42,6 +43,7 @@ export default function ProgramPage() {
   const [swapTarget, setSwapTarget] = useState<BlockExerciseWithDetails | null>(null);
   const [creatingBlock, setCreatingBlock] = useState(false);
   const [rotating, setRotating] = useState(false);
+  const [switchingMode, setSwitchingMode] = useState(false);
 
   const exercisesByDay = useMemo(() => {
     const map = new Map<DayTemplate, BlockExerciseWithDetails[]>();
@@ -52,13 +54,60 @@ export default function ProgramPage() {
   }, [blockExercises, dayOrder]);
 
   const handleModeChange = useCallback(async (mode: TrainingMode) => {
-    if (!profile) return;
+    if (!profile || !activeBlock || mode === profile.training_mode) return;
+    setSwitchingMode(true);
+
+    // 1. Save the new mode to profile
     await supabase
       .from('user_profiles')
       .update({ training_mode: mode })
       .eq('id', profile.id);
+
+    // 2. Deactivate the current block
+    await supabase
+      .from('training_blocks')
+      .update({ is_active: false })
+      .eq('id', activeBlock.id);
+
+    // 3. Fetch full profile for block generation params
+    const { data: profileData } = await supabase
+      .from('user_profiles')
+      .select('*')
+      .eq('id', profile.id)
+      .single();
+
+    if (profileData) {
+      const prof = profileData as unknown as Parameters<typeof buildBlockGenProfile>[0];
+      const genProfile = buildBlockGenProfile({ ...prof, training_mode: mode });
+      const nextBlockNumber = activeBlock.block_number + 1;
+      const blockId = await generateBlock(profile.id, nextBlockNumber, genProfile);
+
+      if (blockId) {
+        // Fetch the new block and its exercises
+        const { data: newBlock } = await supabase
+          .from('training_blocks')
+          .select('*')
+          .eq('id', blockId)
+          .single();
+        if (newBlock) {
+          await fetchBlockExercises(blockId);
+        }
+      }
+    }
+
     await refreshProfile();
-  }, [profile, refreshProfile]);
+    // Re-fetch active block to update UI
+    const block = await supabase
+      .from('training_blocks')
+      .select('*')
+      .eq('user_id', profile.id)
+      .eq('is_active', true)
+      .maybeSingle();
+    if (block.data) {
+      await fetchBlockExercises((block.data as unknown as { id: string }).id);
+    }
+    setSwitchingMode(false);
+  }, [profile, activeBlock, refreshProfile, fetchBlockExercises]);
 
   const handleSwap = useCallback(async (newExerciseId: string) => {
     if (!swapTarget || !activeBlock) return;
@@ -134,16 +183,23 @@ export default function ProgramPage() {
             <button
               key={mode}
               onClick={() => handleModeChange(mode)}
-              className={`flex-1 py-2 min-h-11 rounded-lg text-sm font-medium transition-colors ${
+              disabled={switchingMode}
+              className={`flex-1 py-2 min-h-11 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 ${
                 profile?.training_mode === mode
                 ? 'bg-brand/15 text-brand border border-brand/30'
-                : 'bg-surface-3 text-muted border border-border-2'
+                : 'bg-surface-3 text-muted border border-border-2 hover:text-secondary'
               }`}
             >
-              {label}
+              {switchingMode && profile?.training_mode !== mode ? label : label}
             </button>
           ))}
         </div>
+        {switchingMode && (
+          <div className="flex items-center gap-2 mt-2 text-faint text-xs">
+            <Loader2 size={12} className="animate-spin" />
+            Regenerating block for new mode…
+          </div>
+        )}
       </div>
 
       {/* Day cards */}

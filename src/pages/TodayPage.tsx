@@ -55,7 +55,6 @@ export default function TodayPage() {
   const [startingWorkout, setStartingWorkout] = useState(false);
   const [showMoodCheck, setShowMoodCheck] = useState(false);
   const [detailExercise, setDetailExercise] = useState<BlockExerciseWithDetails | null>(null);
-  const [videoExpanded, setVideoExpanded] = useState<string | null>(null);
   const [progressionHints, setProgressionHints] = useState<Map<string, { shouldIncrease: boolean; suggestedWeight: number | null; stallCount: number; message: string }>>(new Map());
   const [swappedExerciseDetails, setSwappedExerciseDetails] = useState<Map<string, BlockExerciseWithDetails['exercise']>>(new Map());
 
@@ -452,76 +451,14 @@ export default function TodayPage() {
                     </button>
                   )}
                   <button
-                    onClick={(e) => { e.stopPropagation(); setVideoExpanded(videoExpanded === be.id ? null : be.id); }}
-                    className={`p-2 min-h-11 min-w-11 hover:bg-surface-3 rounded-lg transition-colors flex items-center justify-center ${
-                      videoExpanded === be.id ? 'text-brand' : 'text-faint'
-                    }`}
+                    onClick={(e) => { e.stopPropagation(); setDetailExercise(be); }}
+                    className={`p-2 min-h-11 min-w-11 hover:bg-surface-3 rounded-lg transition-colors flex items-center justify-center text-faint`}
                   >
                     <Video size={14} />
                   </button>
                   {isExpanded ? <ChevronUp size={18} className="text-faint" /> : <ChevronDown size={18} className="text-faint" />}
                 </div>
               </button>
-
-              {/* Inline video / GIF demo */}
-              {videoExpanded === be.id && (
-                <div className="px-4 pb-3 animate-fade-in">
-                  {be.exercise.gif_url ? (
-                    <img
-                      src={be.exercise.gif_url}
-                      alt={`${be.exercise.name} demo`}
-                      className="w-full rounded-xl bg-surface-3"
-                    />
-                  ) : be.exercise.video_url ? (
-                    <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-surface-3">
-                      <iframe
-                        src={be.exercise.video_url.includes('youtube.com/watch')
-                          ? be.exercise.video_url.replace('watch?v=', 'embed/') + '?rel=0&playsinline=1'
-                          : be.exercise.video_url.includes('youtu.be/')
-                            ? `https://www.youtube.com/embed/${be.exercise.video_url.split('youtu.be/')[1]}?rel=0&playsinline=1`
-                            : be.exercise.video_url
-                        }
-                        title={`${be.exercise.name} tutorial`}
-                        className="absolute inset-0 w-full h-full"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
-                      />
-                    </div>
-                  ) : be.exercise.image_urls && be.exercise.image_urls.length > 0 ? (
-                    <div className="space-y-2">
-                      <div className="flex gap-2 overflow-x-auto">
-                        {be.exercise.image_urls.map((url, i) => (
-                          <img
-                            key={i}
-                            src={url}
-                            alt={`${be.exercise.name} ${i + 1}`}
-                            className="h-40 rounded-xl bg-surface-3 object-cover shrink-0"
-                          />
-                        ))}
-                      </div>
-                      <a
-                        href={`https://www.youtube.com/results?search_query=${encodeURIComponent(be.exercise.name + ' exercise form')}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center justify-center gap-2 w-full py-2.5 min-h-11 bg-surface-3 rounded-xl text-muted text-sm hover:text-foreground transition-colors"
-                      >
-                        <Video size={14} />
-                        Watch video tutorial on YouTube
-                      </a>
-                    </div>
-                  ) : (
-                    <a
-                      href={`https://www.youtube.com/results?search_query=${encodeURIComponent(be.exercise.name + ' exercise form')}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center justify-center gap-2 w-full py-3 min-h-11 bg-surface-3 rounded-xl text-muted text-sm hover:text-foreground transition-colors"
-                    >
-                      <Video size={14} />
-                      Search exercise tutorial on YouTube
-                    </a>
-                  )}
-                </div>
-              )}
 
               {/* Expanded set loggers */}
               {isExpanded && todaySession && (

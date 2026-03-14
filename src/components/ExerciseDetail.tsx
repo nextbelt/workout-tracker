@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Target, Info, BookOpen, Loader2, Video } from 'lucide-react';
+import { X, Target, Info, BookOpen, Loader2, Video, ThumbsUp, ThumbsDown, RefreshCw, Play } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useExerciseVideo } from '../hooks/useExerciseVideo';
 import type { Exercise, ExerciseInsight } from '../types/database';
@@ -72,19 +72,31 @@ export function ExerciseDetail({ exercise, onClose }: ExerciseDetailProps) {
         </div>
 
         {/* Exercise demo media */}
-        {exerciseVideo.video ? (
+        {exerciseVideo.loading ? (
+          <div className="px-6 pt-4 flex items-center justify-center py-8">
+            <Loader2 size={24} className="text-brand animate-spin" />
+          </div>
+        ) : exerciseVideo.video ? (
           <div className="px-6 pt-4 space-y-2">
-            {exerciseVideo.video.isEmbed ? (
-              <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-surface-3">
-                <iframe
-                  src={exerciseVideo.video.videoUrl}
-                  title={`${exercise.name} tutorial`}
-                  className="absolute inset-0 w-full h-full"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                />
-              </div>
-            ) : exerciseVideo.video.imageUrls.length > 1 ? (
+            {/* YouTube embed (liked or search result) */}
+            {exerciseVideo.video.isEmbed && (
+              <YouTubeEmbed
+                videoId={exerciseVideo.video.videoId}
+                title={exerciseVideo.video.title ?? exercise.name}
+              />
+            )}
+
+            {/* GIF display */}
+            {exerciseVideo.video.isGif && (
+              <img
+                src={exerciseVideo.video.videoUrl}
+                alt={`${exercise.name} demo`}
+                className="w-full rounded-xl bg-surface-3"
+              />
+            )}
+
+            {/* Static images (scrollable) */}
+            {exerciseVideo.video.isImage && !exerciseVideo.video.isGif && exerciseVideo.video.imageUrls.length > 1 ? (
               <div className="flex gap-2 overflow-x-auto pb-1">
                 {exerciseVideo.video.imageUrls.map((url, i) => (
                   <img
@@ -96,14 +108,70 @@ export function ExerciseDetail({ exercise, onClose }: ExerciseDetailProps) {
                   />
                 ))}
               </div>
-            ) : (
+            ) : exerciseVideo.video.isImage && !exerciseVideo.video.isGif ? (
               <img
                 src={exerciseVideo.video.videoUrl}
                 alt={`${exercise.name} demo`}
                 className="w-full rounded-xl bg-surface-3"
                 loading="lazy"
               />
+            ) : null}
+
+            {/* Video title + channel */}
+            {exerciseVideo.video.title && exerciseVideo.video.source !== 'local_gif' && (
+              <div className="px-1">
+                <p className="text-secondary text-sm font-medium truncate">{exerciseVideo.video.title}</p>
+                {exerciseVideo.video.channelName && (
+                  <p className="text-faint text-xs">{exerciseVideo.video.channelName}</p>
+                )}
+              </div>
             )}
+
+            {/* Like / Dislike buttons (for search results) */}
+            {exerciseVideo.video.source === 'search' && !exerciseVideo.hasLiked && (
+              <div className="flex gap-2">
+                <button
+                  onClick={exerciseVideo.likeVideo}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 min-h-11 bg-green-500/10 text-green-400 rounded-xl text-sm font-medium hover:bg-green-500/20 transition-colors"
+                >
+                  <ThumbsUp size={14} />
+                  Keep This
+                </button>
+                <button
+                  onClick={exerciseVideo.dislikeVideo}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 min-h-11 bg-red-500/10 text-red-400 rounded-xl text-sm font-medium hover:bg-red-500/20 transition-colors"
+                >
+                  <ThumbsDown size={14} />
+                  Next Video
+                </button>
+              </div>
+            )}
+
+            {/* Liked video indicator + change button */}
+            {exerciseVideo.hasLiked && (
+              <div className="flex items-center justify-between">
+                <span className="text-green-400 text-xs flex items-center gap-1">
+                  <ThumbsUp size={12} />
+                  Your saved demo
+                </span>
+                <button
+                  onClick={exerciseVideo.changeVideo}
+                  className="flex items-center gap-1 text-muted text-xs hover:text-foreground transition-colors min-h-11 px-2"
+                >
+                  <RefreshCw size={12} />
+                  Change Video
+                </button>
+              </div>
+            )}
+
+            {/* Search result counter */}
+            {exerciseVideo.video.source === 'search' && !exerciseVideo.hasLiked && exerciseVideo.searchResultCount > 1 && (
+              <p className="text-faint text-xs text-center">
+                Video {exerciseVideo.currentResultIndex + 1} of {exerciseVideo.searchResultCount}
+              </p>
+            )}
+
+            {/* YouTube search fallback link */}
             <a
               href={exerciseVideo.youtubeSearchUrl}
               target="_blank"
@@ -111,7 +179,7 @@ export function ExerciseDetail({ exercise, onClose }: ExerciseDetailProps) {
               className="flex items-center justify-center gap-2 w-full py-2.5 min-h-11 bg-surface-3 rounded-xl text-muted text-sm hover:text-foreground transition-colors"
             >
               <Video size={14} />
-              Watch video tutorial on YouTube
+              Browse more on YouTube
             </a>
           </div>
         ) : (
@@ -281,6 +349,44 @@ export function ExerciseDetail({ exercise, onClose }: ExerciseDetailProps) {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ─── Lite YouTube Embed ─────────────────────────────────────────────────────────
+
+function YouTubeEmbed({ videoId, title }: { videoId: string; title: string }) {
+  const [loaded, setLoaded] = useState(false);
+
+  if (!loaded) {
+    return (
+      <div
+        className="relative w-full aspect-video bg-surface-3 rounded-xl cursor-pointer overflow-hidden"
+        onClick={() => setLoaded(true)}
+      >
+        <img
+          src={`https://img.youtube.com/vi/${videoId}/hqdefault.jpg`}
+          alt={title}
+          className="w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+          <div className="w-14 h-14 bg-red-600 rounded-full flex items-center justify-center shadow-lg">
+            <Play size={24} className="text-white ml-1" fill="white" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-surface-3">
+      <iframe
+        src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1&playsinline=1`}
+        title={title}
+        className="absolute inset-0 w-full h-full"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allowFullScreen
+      />
     </div>
   );
 }

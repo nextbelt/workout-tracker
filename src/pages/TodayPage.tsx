@@ -1,9 +1,9 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { Play, CheckCircle, ChevronDown, ChevronUp, ArrowLeftRight, AlertTriangle, Loader2, Video, Info, Music, Flame, Zap, Battery, BatteryLow } from 'lucide-react';
+import { Play, CheckCircle, ChevronDown, ChevronUp, ArrowLeftRight, AlertTriangle, Loader2, Video, Info, Music, Flame, Zap, Battery, BatteryLow, Clock } from 'lucide-react';
 import { useWorkout, type BlockExerciseWithDetails } from '../hooks/useWorkout';
 import { useAuth } from '../hooks/useAuth';
 import { useRestTimerContext } from '../context/RestTimerContext';
-import { useMoodAdjustment, adjustExercises } from '../hooks/useMoodAdjustment';
+import { useMoodAdjustment, adjustExercises, trimToFitTime, estimateWorkoutMinutes } from '../hooks/useMoodAdjustment';
 import { useMicroVariation } from '../hooks/useMicroVariation';
 import { useProgression } from '../hooks/useProgression';
 import { SetLogger } from '../components/SetLogger';
@@ -78,13 +78,23 @@ export default function TodayPage() {
       });
     }
 
-    // Apply mood adjustments if set
-    if (moodEngine.adjustments) {
+    // Apply mood + time adjustments if set
+    if (moodEngine.adjustments && moodEngine.moodInput) {
+      const trimmed = trimToFitTime(
+        exercises as unknown as BlockExercise[],
+        moodEngine.moodInput.timeAvailableMinutes,
+        moodEngine.adjustments
+      );
+      // Re-attach the exercise details
+      exercises = trimmed.map((adj) => {
+        const original = blockExercises.find((be) => be.id === adj.id);
+        return original ? { ...original, ...adj } : adj as unknown as BlockExerciseWithDetails;
+      });
+    } else if (moodEngine.adjustments) {
       const adjusted = adjustExercises(
         exercises as unknown as BlockExercise[],
         moodEngine.adjustments
       );
-      // Re-attach the exercise details
       exercises = adjusted.map((adj) => {
         const original = blockExercises.find((be) => be.id === adj.id);
         return original ? { ...original, ...adj } : adj as unknown as BlockExerciseWithDetails;
@@ -92,7 +102,20 @@ export default function TodayPage() {
     }
 
     return exercises;
-  }, [blockExercises, selectedDay, weekNumber, microVar, moodEngine.adjustments]);
+  }, [blockExercises, selectedDay, weekNumber, microVar, moodEngine.adjustments, moodEngine.moodInput]);
+
+  // Estimated workout time
+  const estimatedTime = useMemo(() => {
+    return estimateWorkoutMinutes(dayExercises as unknown as BlockExercise[]);
+  }, [dayExercises]);
+
+  // Original time (before mood/time adjustments) for comparison
+  const originalTime = useMemo(() => {
+    const original = blockExercises
+      .filter((be) => be.day_template === selectedDay)
+      .sort((a, b) => a.slot_order - b.slot_order);
+    return estimateWorkoutMinutes(original as unknown as BlockExercise[]);
+  }, [blockExercises, selectedDay]);
 
   // Load progression hint when exercise is expanded during active session
   useEffect(() => {
@@ -193,13 +216,26 @@ export default function TodayPage() {
     <div className="p-4 pb-24 space-y-4">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-foreground">
-          {todaySession ? DAY_LABELS[selectedDay] : 'Today'}
-        </h1>
-        <p className="text-muted text-sm">
-          Block {activeBlock.block_number} · Week {weekNumber}
-          {isDeload && <span className="ml-2 text-yellow-400 font-medium">⚡ Deload</span>}
-        </p>
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">
+              {todaySession ? DAY_LABELS[selectedDay] : 'Today'}
+            </h1>
+            <p className="text-muted text-sm">
+              Block {activeBlock.block_number} · Week {weekNumber}
+              {isDeload && <span className="ml-2 text-yellow-400 font-medium">⚡ Deload</span>}
+            </p>
+          </div>
+          {dayExercises.length > 0 && (
+            <div className="flex items-center gap-1.5 bg-surface-2 rounded-lg px-2.5 py-1.5">
+              <Clock size={14} className={estimatedTime <= (moodEngine.moodInput?.timeAvailableMinutes ?? 999) ? 'text-green-400' : 'text-yellow-400'} />
+              <span className="text-foreground text-sm font-medium">~{estimatedTime} min</span>
+              {moodEngine.moodInput && estimatedTime < originalTime && (
+                <span className="text-faint text-xs line-through ml-1">{originalTime}</span>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Mood adjustment banner */}
@@ -221,6 +257,13 @@ export default function TodayPage() {
             <span className="text-foreground font-medium capitalize">{moodEngine.moodInput.preMood?.replace('_', ' ')}</span>
             <span className="text-faint">·</span>
             <span className="text-muted">Energy {moodEngine.moodInput.energyLevel}/5</span>
+            {moodEngine.moodInput.timeAvailableMinutes && (
+              <>
+                <span className="text-faint">·</span>
+                <Clock size={14} className="text-muted" />
+                <span className="text-muted">{moodEngine.moodInput.timeAvailableMinutes}m</span>
+              </>
+            )}
           </div>
           <a
             href="spotify://"

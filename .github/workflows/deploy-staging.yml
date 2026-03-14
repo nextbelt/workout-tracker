@@ -21,6 +21,7 @@ jobs:
 
       - name: Push migrations to staging
         run: |
+          sudo sysctl -w net.ipv6.conf.all.disable_ipv6=1
           ENCODED_PW=$(python3 -c "import urllib.parse, os; print(urllib.parse.quote(os.environ['DB_PASSWORD'], safe=''))")
           supabase db push --db-url "postgresql://postgres:${ENCODED_PW}@db.${{ secrets.SUPABASE_STAGING_PROJECT_REF }}.supabase.co:5432/postgres"
         env:

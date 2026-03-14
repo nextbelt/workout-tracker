@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './useAuth';
 
@@ -245,7 +245,7 @@ export function useAnalytics() {
     }));
   }, [user]);
 
-  return {
+  return useMemo(() => ({
     loading,
     getVolumeOverTime,
     getExerciseProgress,
@@ -253,5 +253,5 @@ export function useAnalytics() {
     getRecoveryData,
     getNutritionTrends,
     getMoodCorrelation,
-  };
+  }), [loading, getVolumeOverTime, getExerciseProgress, getConsistency, getRecoveryData, getNutritionTrends, getMoodCorrelation]);
 }

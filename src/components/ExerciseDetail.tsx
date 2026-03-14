@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Target, Info, BookOpen, Loader2, Video, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { X, Target, Info, BookOpen, Loader2, Video } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useExerciseVideo } from '../hooks/useExerciseVideo';
 import type { Exercise, ExerciseInsight } from '../types/database';
@@ -12,7 +12,7 @@ interface ExerciseDetailProps {
 export function ExerciseDetail({ exercise, onClose }: ExerciseDetailProps) {
   const [insights, setInsights] = useState<ExerciseInsight[]>([]);
   const [loading, setLoading] = useState(true);
-  const exerciseVideo = useExerciseVideo(exercise.id, exercise.name, exercise.gif_url, exercise.video_url);
+  const exerciseVideo = useExerciseVideo(exercise.id, exercise.name, exercise.gif_url, exercise.video_url, exercise.image_urls);
 
   useEffect(() => {
     async function fetchInsights() {
@@ -71,74 +71,59 @@ export function ExerciseDetail({ exercise, onClose }: ExerciseDetailProps) {
           </button>
         </div>
 
-        {/* Embedded video with like/dislike */}
-        {exerciseVideo.loading ? (
-          <div className="px-6 pt-4 flex items-center justify-center py-8">
-            <Loader2 size={20} className="text-brand animate-spin" />
-          </div>
-        ) : exerciseVideo.video ? (
+        {/* Exercise demo media */}
+        {exerciseVideo.video ? (
           <div className="px-6 pt-4 space-y-2">
-            <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-surface-3">
-              <iframe
-                src={exerciseVideo.video.videoUrl}
-                title={`${exercise.name} tutorial`}
-                className="absolute inset-0 w-full h-full"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              />
-            </div>
-            {/* Like / Dislike buttons */}
-            {exerciseVideo.video.liked === true ? (
-              <div className="flex items-center gap-2 py-1">
-                <ThumbsUp size={14} className="text-green-400" />
-                <span className="text-green-400 text-xs font-medium">Saved as your preferred demo</span>
+            {exerciseVideo.video.isEmbed ? (
+              <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-surface-3">
+                <iframe
+                  src={exerciseVideo.video.videoUrl}
+                  title={`${exercise.name} tutorial`}
+                  className="absolute inset-0 w-full h-full"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              </div>
+            ) : exerciseVideo.video.imageUrls.length > 1 ? (
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {exerciseVideo.video.imageUrls.map((url, i) => (
+                  <img
+                    key={i}
+                    src={url}
+                    alt={`${exercise.name} ${i + 1}`}
+                    className="h-44 rounded-xl bg-surface-3 object-cover shrink-0"
+                    loading="lazy"
+                  />
+                ))}
               </div>
             ) : (
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={exerciseVideo.like}
-                  className="flex-1 flex items-center justify-center gap-2 py-2.5 min-h-11 bg-green-500/10 hover:bg-green-500/20 text-green-400 rounded-xl text-sm font-medium transition-colors"
-                >
-                  <ThumbsUp size={14} />
-                  Good demo
-                </button>
-                <button
-                  onClick={exerciseVideo.dislike}
-                  className="flex-1 flex items-center justify-center gap-2 py-2.5 min-h-11 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-xl text-sm font-medium transition-colors"
-                >
-                  <ThumbsDown size={14} />
-                  Show another
-                </button>
-              </div>
-            )}
-          </div>
-        ) : exercise.video_url ? (
-          <div className="px-6 pt-4">
-            <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-surface-3">
-              <iframe
-                src={exercise.video_url.includes('youtube.com/watch')
-                  ? exercise.video_url.replace('watch?v=', 'embed/') + '?rel=0&playsinline=1'
-                  : exercise.video_url.includes('youtu.be/')
-                    ? `https://www.youtube.com/embed/${exercise.video_url.split('youtu.be/')[1]}?rel=0&playsinline=1`
-                    : exercise.video_url
-                }
-                title={`${exercise.name} tutorial`}
-                className="absolute inset-0 w-full h-full"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
+              <img
+                src={exerciseVideo.video.videoUrl}
+                alt={`${exercise.name} demo`}
+                className="w-full rounded-xl bg-surface-3"
+                loading="lazy"
               />
-            </div>
-          </div>
-        ) : (
-          <div className="px-6 pt-4">
+            )}
             <a
-              href={`https://www.youtube.com/results?search_query=${encodeURIComponent(exercise.name + ' exercise form')}`}
+              href={exerciseVideo.youtubeSearchUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-center gap-2 w-full py-2.5 min-h-11 bg-surface-3 rounded-xl text-muted text-sm hover:text-foreground transition-colors"
             >
               <Video size={14} />
               Watch video tutorial on YouTube
+            </a>
+          </div>
+        ) : (
+          <div className="px-6 pt-4">
+            <a
+              href={exerciseVideo.youtubeSearchUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 w-full py-2.5 min-h-11 bg-surface-3 rounded-xl text-muted text-sm hover:text-foreground transition-colors"
+            >
+              <Video size={14} />
+              Search exercise tutorial on YouTube
             </a>
           </div>
         )}

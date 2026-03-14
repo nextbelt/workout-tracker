@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { Play, CheckCircle, ChevronDown, ChevronUp, ArrowLeftRight, AlertTriangle, Loader2, Video, Info } from 'lucide-react';
+import { Play, CheckCircle, ChevronDown, ChevronUp, ArrowLeftRight, AlertTriangle, Loader2, Video, Info, Music, Flame, Zap, Battery, BatteryLow } from 'lucide-react';
 import { useWorkout, type BlockExerciseWithDetails } from '../hooks/useWorkout';
 import { useAuth } from '../hooks/useAuth';
 import { useRestTimerContext } from '../context/RestTimerContext';
@@ -207,6 +207,41 @@ export default function TodayPage() {
         <div className="bg-brand/10 border border-brand/20 rounded-xl p-3 flex items-start gap-2">
           <Info size={16} className="text-brand shrink-0 mt-0.5" />
           <p className="text-brand text-sm">{moodEngine.adjustments.message}</p>
+        </div>
+      )}
+
+      {/* Mood indicator during active session */}
+      {todaySession && moodEngine.moodInput && (
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 bg-surface-2 rounded-xl px-3 py-2 text-sm">
+            {moodEngine.moodInput.preMood === 'fired_up' && <Flame size={16} className="text-orange-400" />}
+            {moodEngine.moodInput.preMood === 'steady' && <Zap size={16} className="text-blue-400" />}
+            {moodEngine.moodInput.preMood === 'low' && <Battery size={16} className="text-yellow-400" />}
+            {moodEngine.moodInput.preMood === 'beat_up' && <BatteryLow size={16} className="text-red-400" />}
+            <span className="text-foreground font-medium capitalize">{moodEngine.moodInput.preMood?.replace('_', ' ')}</span>
+            <span className="text-faint">·</span>
+            <span className="text-muted">Energy {moodEngine.moodInput.energyLevel}/5</span>
+          </div>
+          <a
+            href="spotify://"
+            className="flex items-center gap-2 bg-[#1DB954]/15 text-[#1DB954] rounded-xl px-3 py-2 text-sm font-medium hover:bg-[#1DB954]/25 transition-colors"
+          >
+            <Music size={16} />
+            Spotify
+          </a>
+        </div>
+      )}
+
+      {/* Spotify launcher (no mood logged) */}
+      {todaySession && !moodEngine.moodInput && (
+        <div className="flex justify-end">
+          <a
+            href="spotify://"
+            className="flex items-center gap-2 bg-[#1DB954]/15 text-[#1DB954] rounded-xl px-3 py-2 text-sm font-medium hover:bg-[#1DB954]/25 transition-colors"
+          >
+            <Music size={16} />
+            Spotify
+          </a>
         </div>
       )}
 

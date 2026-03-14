@@ -6,7 +6,7 @@ import { RestTimerProvider } from './context/RestTimerContext';
 import { ThemeProvider } from './context/ThemeContext';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
-import OnboardingPage from './pages/OnboardingPage';
+import OnboardingFlow from './pages/Onboarding/OnboardingFlow';
 import TodayPage from './pages/TodayPage';
 import ProgramPage from './pages/ProgramPage';
 import NutritionPage from './pages/NutritionPage';
@@ -57,7 +57,7 @@ function AppShell() {
     );
   }
 
-  if (!profile) return <OnboardingPage />;
+  if (!profile || !profile.onboarding_completed) return <OnboardingFlow />;
 
   return (
     <RestTimerProvider>
@@ -72,6 +72,7 @@ function AppShell() {
           <Route path="/history"    element={<HistoryPage />}         />
           <Route path="/exercises"  element={<ExerciseLibraryPage />} />
           <Route path="/settings"   element={<SettingsPage />}        />
+          <Route path="/onboarding" element={<OnboardingFlow />}     />
         </Routes>
         </Suspense>
       </main>

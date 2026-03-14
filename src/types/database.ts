@@ -1,0 +1,452 @@
+// Placeholder types matching the Supabase schema.
+// Replace with: npx supabase gen types typescript --project-id <ref> > src/types/database.ts
+
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[];
+
+export type TrainingMode = 'gym' | 'smith_machine' | 'lower_fatigue';
+export type RecoveryRating = 'great' | 'normal' | 'poor';
+export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
+export type FoodSource = 'usda' | 'openfoodfacts' | 'manual';
+export type DayTemplate = 'upper_a' | 'lower_a' | 'upper_b' | 'lower_b';
+
+export interface Database {
+  public: {
+    Tables: {
+      user_profiles: {
+        Row: {
+          id: string;
+          display_name: string | null;
+          height_inches: number | null;
+          current_weight: number | null;
+          target_weight: number | null;
+          protein_target_min: number;
+          protein_target_max: number;
+          calorie_target: number;
+          equipment_available: string[];
+          training_mode: TrainingMode;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id: string;
+          display_name?: string | null;
+          height_inches?: number | null;
+          current_weight?: number | null;
+          target_weight?: number | null;
+          protein_target_min?: number;
+          protein_target_max?: number;
+          calorie_target?: number;
+          equipment_available?: string[];
+          training_mode?: TrainingMode;
+        };
+        Update: {
+          id?: string;
+          display_name?: string | null;
+          height_inches?: number | null;
+          current_weight?: number | null;
+          target_weight?: number | null;
+          protein_target_min?: number;
+          protein_target_max?: number;
+          calorie_target?: number;
+          equipment_available?: string[];
+          training_mode?: TrainingMode;
+        };
+        Relationships: [];
+      };
+      exercises: {
+        Row: {
+          id: string;
+          name: string;
+          movement_pool: string;
+          equipment_tags: string[];
+          is_compound: boolean;
+          default_sets: number | null;
+          default_rep_min: number | null;
+          default_rep_max: number | null;
+          default_rest_seconds: number | null;
+          default_rir: number | null;
+          smith_equivalent_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          movement_pool: string;
+          equipment_tags?: string[];
+          is_compound?: boolean;
+          default_sets?: number | null;
+          default_rep_min?: number | null;
+          default_rep_max?: number | null;
+          default_rest_seconds?: number | null;
+          default_rir?: number | null;
+          smith_equivalent_id?: string | null;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          movement_pool?: string;
+          equipment_tags?: string[];
+          is_compound?: boolean;
+          default_sets?: number | null;
+          default_rep_min?: number | null;
+          default_rep_max?: number | null;
+          default_rest_seconds?: number | null;
+          default_rir?: number | null;
+          smith_equivalent_id?: string | null;
+        };
+        Relationships: [];
+      };
+      user_exercise_prefs: {
+        Row: {
+          id: string;
+          user_id: string;
+          exercise_id: string;
+          is_favorite: boolean;
+          is_hidden: boolean;
+          notes: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          exercise_id: string;
+          is_favorite?: boolean;
+          is_hidden?: boolean;
+          notes?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          exercise_id?: string;
+          is_favorite?: boolean;
+          is_hidden?: boolean;
+          notes?: string | null;
+        };
+        Relationships: [];
+      };
+      training_blocks: {
+        Row: {
+          id: string;
+          user_id: string;
+          block_number: number;
+          start_date: string;
+          is_active: boolean;
+          rotation_notes: Json | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          block_number: number;
+          start_date: string;
+          is_active?: boolean;
+          rotation_notes?: Json | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          block_number?: number;
+          start_date?: string;
+          is_active?: boolean;
+          rotation_notes?: Json | null;
+        };
+        Relationships: [];
+      };
+      block_exercises: {
+        Row: {
+          id: string;
+          block_id: string;
+          day_template: DayTemplate;
+          slot_order: number;
+          movement_pool: string;
+          exercise_id: string;
+          sets: number;
+          rep_min: number;
+          rep_max: number;
+          rest_seconds: number;
+          rir_target: number;
+          is_anchor: boolean;
+        };
+        Insert: {
+          id?: string;
+          block_id: string;
+          day_template: DayTemplate;
+          slot_order: number;
+          movement_pool: string;
+          exercise_id: string;
+          sets: number;
+          rep_min: number;
+          rep_max: number;
+          rest_seconds: number;
+          rir_target: number;
+          is_anchor?: boolean;
+        };
+        Update: {
+          id?: string;
+          block_id?: string;
+          day_template?: DayTemplate;
+          slot_order?: number;
+          movement_pool?: string;
+          exercise_id?: string;
+          sets?: number;
+          rep_min?: number;
+          rep_max?: number;
+          rest_seconds?: number;
+          rir_target?: number;
+          is_anchor?: boolean;
+        };
+        Relationships: [];
+      };
+      workout_sessions: {
+        Row: {
+          id: string;
+          user_id: string;
+          block_id: string | null;
+          day_template: string;
+          week_number: number;
+          scheduled_date: string;
+          completed_at: string | null;
+          recovery_rating: RecoveryRating | null;
+          notes: string | null;
+          is_deload: boolean;
+          training_mode: TrainingMode | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          block_id?: string | null;
+          day_template: string;
+          week_number: number;
+          scheduled_date: string;
+          completed_at?: string | null;
+          recovery_rating?: RecoveryRating | null;
+          notes?: string | null;
+          is_deload?: boolean;
+          training_mode?: TrainingMode | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          block_id?: string | null;
+          day_template?: string;
+          week_number?: number;
+          scheduled_date?: string;
+          completed_at?: string | null;
+          recovery_rating?: RecoveryRating | null;
+          notes?: string | null;
+          is_deload?: boolean;
+          training_mode?: TrainingMode | null;
+        };
+        Relationships: [];
+      };
+      set_logs: {
+        Row: {
+          id: string;
+          session_id: string;
+          user_id: string;
+          exercise_id: string;
+          set_number: number;
+          weight: number | null;
+          reps: number | null;
+          rir: number | null;
+          notes: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          session_id: string;
+          user_id: string;
+          exercise_id: string;
+          set_number: number;
+          weight?: number | null;
+          reps?: number | null;
+          rir?: number | null;
+          notes?: string | null;
+        };
+        Update: {
+          id?: string;
+          session_id?: string;
+          user_id?: string;
+          exercise_id?: string;
+          set_number?: number;
+          weight?: number | null;
+          reps?: number | null;
+          rir?: number | null;
+          notes?: string | null;
+        };
+        Relationships: [];
+      };
+      food_cache: {
+        Row: {
+          id: string;
+          source: string;
+          external_id: string | null;
+          food_name: string;
+          serving_size: string | null;
+          calories: number | null;
+          protein: number | null;
+          carbs: number | null;
+          fat: number | null;
+          raw_response: Json | null;
+          search_terms: string[] | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          source: string;
+          external_id?: string | null;
+          food_name: string;
+          serving_size?: string | null;
+          calories?: number | null;
+          protein?: number | null;
+          carbs?: number | null;
+          fat?: number | null;
+          raw_response?: Json | null;
+          search_terms?: string[] | null;
+        };
+        Update: {
+          id?: string;
+          source?: string;
+          external_id?: string | null;
+          food_name?: string;
+          serving_size?: string | null;
+          calories?: number | null;
+          protein?: number | null;
+          carbs?: number | null;
+          fat?: number | null;
+          raw_response?: Json | null;
+          search_terms?: string[] | null;
+        };
+        Relationships: [];
+      };
+      nutrition_entries: {
+        Row: {
+          id: string;
+          user_id: string;
+          log_date: string;
+          meal_type: MealType;
+          food_name: string;
+          serving_size: string | null;
+          calories: number;
+          protein: number;
+          carbs: number;
+          fat: number;
+          food_cache_id: string | null;
+          source: FoodSource | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          log_date?: string;
+          meal_type: MealType;
+          food_name: string;
+          serving_size?: string | null;
+          calories?: number;
+          protein?: number;
+          carbs?: number;
+          fat?: number;
+          food_cache_id?: string | null;
+          source?: FoodSource | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          log_date?: string;
+          meal_type?: MealType;
+          food_name?: string;
+          serving_size?: string | null;
+          calories?: number;
+          protein?: number;
+          carbs?: number;
+          fat?: number;
+          food_cache_id?: string | null;
+          source?: FoodSource | null;
+        };
+        Relationships: [];
+      };
+      user_food_favorites: {
+        Row: {
+          id: string;
+          user_id: string;
+          food_cache_id: string | null;
+          custom_food_name: string | null;
+          custom_calories: number | null;
+          custom_protein: number | null;
+          custom_carbs: number | null;
+          custom_fat: number | null;
+          custom_serving_size: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          food_cache_id?: string | null;
+          custom_food_name?: string | null;
+          custom_calories?: number | null;
+          custom_protein?: number | null;
+          custom_carbs?: number | null;
+          custom_fat?: number | null;
+          custom_serving_size?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          food_cache_id?: string | null;
+          custom_food_name?: string | null;
+          custom_calories?: number | null;
+          custom_protein?: number | null;
+          custom_carbs?: number | null;
+          custom_fat?: number | null;
+          custom_serving_size?: string | null;
+        };
+        Relationships: [];
+      };
+      bodyweight_log: {
+        Row: {
+          id: string;
+          user_id: string;
+          log_date: string;
+          weight: number;
+          notes: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          log_date?: string;
+          weight: number;
+          notes?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          log_date?: string;
+          weight?: number;
+          notes?: string | null;
+        };
+        Relationships: [];
+      };
+    };
+    Views: Record<string, never>;
+    Functions: Record<string, never>;
+    Enums: Record<string, never>;
+  };
+}
+
+// Convenience aliases
+export type UserProfile = Database['public']['Tables']['user_profiles']['Row'];
+export type Exercise = Database['public']['Tables']['exercises']['Row'];
+export type TrainingBlock = Database['public']['Tables']['training_blocks']['Row'];
+export type BlockExercise = Database['public']['Tables']['block_exercises']['Row'];
+export type WorkoutSession = Database['public']['Tables']['workout_sessions']['Row'];
+export type SetLog = Database['public']['Tables']['set_logs']['Row'];
+export type NutritionEntry = Database['public']['Tables']['nutrition_entries']['Row'];
+export type FoodCache = Database['public']['Tables']['food_cache']['Row'];
+export type BodyweightLog = Database['public']['Tables']['bodyweight_log']['Row'];

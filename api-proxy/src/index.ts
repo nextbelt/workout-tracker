@@ -1,0 +1,36 @@
+import express from 'express';
+import cors from 'cors';
+import { rateLimit } from 'express-rate-limit';
+import { foodRouter } from './routes/food.js';
+
+const app = express();
+const PORT = process.env.PORT ?? 3001;
+const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN ?? 'http://localhost:5173';
+
+app.use(express.json());
+
+app.use(cors({
+  origin: FRONTEND_ORIGIN,
+  methods: ['GET'],
+  credentials: false,
+}));
+
+// Global rate limit: 100 req/min per IP
+const limiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests, please try again later.' },
+});
+app.use(limiter);
+
+app.use('/api/food', foodRouter);
+
+app.get('/health', (_req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+app.listen(PORT, () => {
+  console.log(`API proxy listening on port ${PORT}`);
+});

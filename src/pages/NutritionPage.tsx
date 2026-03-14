@@ -165,8 +165,8 @@ export default function NutritionPage() {
               <div className="flex items-center gap-3">
                 <span className="text-lg">{MEAL_ICONS[meal]}</span>
                 <div className="text-left">
-                  <p className="text-white font-medium">{MEAL_LABELS[meal]}</p>
-                  <p className="text-neutral-500 text-xs">
+                  <p className="text-foreground font-medium">{MEAL_LABELS[meal]}</p>
+                  <p className="text-faint text-xs">
                     {mealEntries.length === 0
                       ? 'No entries'
                       : `${Math.round(totalsForMeal.calories)} cal · ${Math.round(totalsForMeal.protein)}g protein`}
@@ -174,7 +174,7 @@ export default function NutritionPage() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                {isExpanded ? <ChevronUp size={18} className="text-neutral-500" /> : <ChevronDown size={18} className="text-neutral-500" />}
+                {isExpanded ? <ChevronUp size={18} className="text-faint" /> : <ChevronDown size={18} className="text-faint" />}
               </div>
             </button>
 
@@ -184,8 +184,8 @@ export default function NutritionPage() {
                 {mealEntries.map((entry) => (
                   <div key={entry.id} className="flex items-center justify-between bg-surface-3/50 rounded-lg p-3">
                     <div className="min-w-0 flex-1">
-                      <p className="text-white text-sm font-medium truncate">{entry.food_name}</p>
-                      <p className="text-neutral-500 text-xs">
+                      <p className="text-foreground text-sm font-medium truncate">{entry.food_name}</p>
+                      <p className="text-faint text-xs">
                         {Math.round(Number(entry.calories))} cal · {Math.round(Number(entry.protein))}g P · {Math.round(Number(entry.carbs))}g C · {Math.round(Number(entry.fat))}g F
                         {entry.serving_size && <span className="ml-1 text-neutral-600">({entry.serving_size})</span>}
                       </p>
@@ -194,7 +194,7 @@ export default function NutritionPage() {
                       onClick={() => deleteEntry(entry.id)}
                       className="p-2 min-h-11 min-w-11 hover:bg-surface-3 rounded-lg transition-colors flex items-center justify-center shrink-0"
                     >
-                      <Trash2 size={14} className="text-neutral-500" />
+                      <Trash2 size={14} className="text-faint" />
                     </button>
                   </div>
                 ))}
@@ -203,20 +203,20 @@ export default function NutritionPage() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => setSearchMeal(meal)}
-                    className="flex-1 flex items-center justify-center gap-2 bg-surface-3 hover:bg-surface-3 text-neutral-300 rounded-lg py-2 min-h-11 text-sm transition-colors"
+                    className="flex-1 flex items-center justify-center gap-2 bg-surface-3 hover:bg-surface-3 text-secondary rounded-lg py-2 min-h-11 text-sm transition-colors"
                   >
                     <Plus size={14} />
                     Search
                   </button>
                   <button
                     onClick={() => setBarcodeMeal(meal)}
-                    className="flex items-center justify-center gap-2 bg-surface-3 hover:bg-surface-3 text-neutral-300 rounded-lg px-3 py-2 min-h-11 text-sm transition-colors"
+                    className="flex items-center justify-center gap-2 bg-surface-3 hover:bg-surface-3 text-secondary rounded-lg px-3 py-2 min-h-11 text-sm transition-colors"
                   >
                     <ScanBarcode size={14} />
                   </button>
                   <button
                     onClick={() => setManualMeal(meal)}
-                    className="flex-1 flex items-center justify-center gap-2 bg-surface-3 hover:bg-surface-3 text-neutral-300 rounded-lg py-2 min-h-11 text-sm transition-colors"
+                    className="flex-1 flex items-center justify-center gap-2 bg-surface-3 hover:bg-surface-3 text-secondary rounded-lg py-2 min-h-11 text-sm transition-colors"
                   >
                     <Edit3 size={14} />
                     Manual

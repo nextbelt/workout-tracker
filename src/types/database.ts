@@ -618,6 +618,37 @@ export interface Database {
         };
         Relationships: [];
       };
+      exercise_video_feedback: {
+        Row: {
+          id: string;
+          user_id: string;
+          exercise_id: string;
+          video_url: string;
+          video_title: string | null;
+          platform: 'youtube' | 'tiktok' | 'instagram';
+          liked: boolean;
+          search_index: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          exercise_id: string;
+          video_url: string;
+          video_title?: string | null;
+          platform?: 'youtube' | 'tiktok' | 'instagram';
+          liked: boolean;
+          search_index?: number;
+        };
+        Update: {
+          id?: string;
+          liked?: boolean;
+          video_url?: string;
+          video_title?: string | null;
+          search_index?: number;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -639,3 +670,4 @@ export type CardioSession = Database['public']['Tables']['cardio_sessions']['Row
 export type ExerciseInsight = Database['public']['Tables']['exercise_insights']['Row'];
 export type ConceptTooltip = Database['public']['Tables']['concept_tooltips']['Row'];
 export type ExerciseLibraryCache = Database['public']['Tables']['exercise_library_cache']['Row'];
+export type ExerciseVideoFeedback = Database['public']['Tables']['exercise_video_feedback']['Row'];

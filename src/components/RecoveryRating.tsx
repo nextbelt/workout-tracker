@@ -20,8 +20,8 @@ export function RecoveryRatingModal({ onSubmit, onCancel }: RecoveryRatingModalP
   return (
     <div className="fixed inset-0 z-50 bg-black/60 flex items-end justify-center">
       <div className="w-full max-w-lg bg-surface-2 rounded-t-2xl p-6 animate-slide-up" style={{ paddingBottom: 'calc(1.5rem + var(--safe-bottom))' }}>
-        <h2 className="text-xl font-bold text-white mb-1">How'd It Go?</h2>
-        <p className="text-neutral-400 text-sm mb-4">Rate your recovery for today's session.</p>
+        <h2 className="text-xl font-bold text-foreground mb-1">How'd It Go?</h2>
+        <p className="text-muted text-sm mb-4">Rate your recovery for today's session.</p>
 
         <div className="space-y-2 mb-4">
           {RATINGS.map((r) => (
@@ -29,7 +29,7 @@ export function RecoveryRatingModal({ onSubmit, onCancel }: RecoveryRatingModalP
               key={r.value}
               onClick={() => setSelected(r.value)}
               className={`w-full flex items-center gap-3 p-4 min-h-14 rounded-xl border transition-all ${
-                selected === r.value ? r.color : 'bg-surface-3 border-border-2 text-neutral-300'
+                selected === r.value ? r.color : 'bg-surface-3 border-border-2 text-secondary'
               }`}
             >
               {selected === r.value && <Check size={18} />}
@@ -42,19 +42,19 @@ export function RecoveryRatingModal({ onSubmit, onCancel }: RecoveryRatingModalP
         </div>
 
         <div className="relative mb-4">
-          <MessageSquare size={16} className="absolute left-3 top-3 text-neutral-500" />
+          <MessageSquare size={16} className="absolute left-3 top-3 text-faint" />
           <textarea
             placeholder="Session notes (optional)"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            className="w-full bg-surface-3 border border-border-2 rounded-xl pl-10 pr-4 py-3 min-h-20 text-white placeholder-neutral-500 focus:outline-none focus:border-brand transition-colors resize-none"
+            className="w-full bg-surface-3 border border-border-2 rounded-xl pl-10 pr-4 py-3 min-h-20 text-foreground placeholder-neutral-500 focus:outline-none focus:border-brand transition-colors resize-none"
           />
         </div>
 
         <div className="flex gap-3">
           <button
             onClick={onCancel}
-            className="flex-1 bg-surface-3 hover:bg-surface-3 text-neutral-300 font-medium rounded-xl py-3 min-h-11 transition-colors"
+            className="flex-1 bg-surface-3 hover:bg-surface-3 text-secondary font-medium rounded-xl py-3 min-h-11 transition-colors"
           >
             Cancel
           </button>

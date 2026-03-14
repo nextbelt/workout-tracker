@@ -1,8 +1,10 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { LogOut, Save, Loader2, User as UserIcon, Scale, Target, Wrench, TrendingDown } from 'lucide-react';
+import { LogOut, Save, Loader2, User as UserIcon, Scale, Target, Wrench, TrendingDown, Bell, Sun, Moon } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../lib/supabase';
 import { BodyweightLog } from '../components/BodyweightLog';
+import { useNotifications } from '../hooks/useNotifications';
+import { useTheme } from '../context/ThemeContext';
 import type { TrainingMode } from '../types/database';
 
 const EQUIPMENT_OPTIONS = ['barbell', 'dumbbell', 'cable', 'machine', 'smith_machine', 'bodyweight', 'ez_bar', 'bands'] as const;
@@ -26,6 +28,11 @@ export default function SettingsPage() {
   const [equipment, setEquipment] = useState<string[]>(profile?.equipment_available ?? ['barbell', 'dumbbell', 'cable', 'machine']);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [restDayReminder, setRestDayReminder] = useState(true);
+  const [proteinAlert, setProteinAlert] = useState(true);
+  const [recoveryWarning, setRecoveryWarning] = useState(true);
+  const notifications = useNotifications();
+  const { theme, setTheme } = useTheme();
 
   const autoCalcInitRef = useRef(false);
   useEffect(() => {
@@ -76,52 +83,86 @@ export default function SettingsPage() {
 
   return (
     <div className="p-4 pb-24 space-y-6">
-      <h1 className="text-2xl font-bold text-white">Settings</h1>
+      <h1 className="text-2xl font-bold text-foreground">Settings</h1>
+
+      {/* Appearance */}
+      <section className="space-y-3">
+        <div className="flex items-center gap-2 text-muted">
+          <Sun size={16} />
+          <h2 className="text-sm font-medium">APPEARANCE</h2>
+        </div>
+        <div className="bg-surface-2 rounded-xl p-4">
+          <div className="flex gap-2">
+            <button
+              onClick={() => setTheme('light')}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 min-h-11 rounded-lg text-sm font-medium transition-colors ${
+                theme === 'light'
+                  ? 'bg-brand/15 text-brand border border-brand/30'
+                  : 'bg-surface-3 text-muted border border-border-2'
+              }`}
+            >
+              <Sun size={16} />
+              Light
+            </button>
+            <button
+              onClick={() => setTheme('dark')}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 min-h-11 rounded-lg text-sm font-medium transition-colors ${
+                theme === 'dark'
+                  ? 'bg-brand/15 text-brand border border-brand/30'
+                  : 'bg-surface-3 text-muted border border-border-2'
+              }`}
+            >
+              <Moon size={16} />
+              Dark
+            </button>
+          </div>
+        </div>
+      </section>
 
       {/* Profile section */}
       <section className="space-y-3">
-        <div className="flex items-center gap-2 text-neutral-400">
+        <div className="flex items-center gap-2 text-muted">
           <UserIcon size={16} />
           <h2 className="text-sm font-medium">PROFILE</h2>
         </div>
         <div className="bg-surface-2 rounded-xl p-4 space-y-3">
           <div>
-            <label className="text-neutral-500 text-xs">Display Name</label>
+            <label className="text-faint text-xs">Display Name</label>
             <input
               value={displayName}
               onChange={(e) => { setDisplayName(e.target.value); setSaved(false); }}
-              className="w-full bg-surface-3 border border-border-2 rounded-lg px-3 py-2 min-h-11 text-white focus:outline-none focus:border-brand transition-colors"
+              className="w-full bg-surface-3 border border-border-2 rounded-lg px-3 py-2 min-h-11 text-foreground focus:outline-none focus:border-brand transition-colors"
             />
           </div>
           <div>
-            <label className="text-neutral-500 text-xs">Email</label>
-            <p className="text-neutral-300 text-sm py-2">{user?.email ?? '—'}</p>
+            <label className="text-faint text-xs">Email</label>
+            <p className="text-secondary text-sm py-2">{user?.email ?? '—'}</p>
           </div>
         </div>
       </section>
 
       {/* Body Stats */}
       <section className="space-y-3">
-        <div className="flex items-center gap-2 text-neutral-400">
+        <div className="flex items-center gap-2 text-muted">
           <Scale size={16} />
           <h2 className="text-sm font-medium">BODY STATS</h2>
         </div>
         <div className="bg-surface-2 rounded-xl p-4 space-y-3">
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="text-neutral-500 text-xs">Height (in)</label>
+              <label className="text-faint text-xs">Height (in)</label>
               <input type="number" value={heightInches} onChange={(e) => { setHeightInches(e.target.value); setSaved(false); }}
-                className="w-full bg-surface-3 border border-border-2 rounded-lg px-3 py-2 min-h-11 text-white focus:outline-none focus:border-brand" />
+                className="w-full bg-surface-3 border border-border-2 rounded-lg px-3 py-2 min-h-11 text-foreground focus:outline-none focus:border-brand" />
             </div>
             <div>
-              <label className="text-neutral-500 text-xs">Weight (lbs)</label>
+              <label className="text-faint text-xs">Weight (lbs)</label>
               <input type="number" value={currentWeight} onChange={(e) => { setCurrentWeight(e.target.value); setSaved(false); }}
-                className="w-full bg-surface-3 border border-border-2 rounded-lg px-3 py-2 min-h-11 text-white focus:outline-none focus:border-brand" />
+                className="w-full bg-surface-3 border border-border-2 rounded-lg px-3 py-2 min-h-11 text-foreground focus:outline-none focus:border-brand" />
             </div>
             <div>
-              <label className="text-neutral-500 text-xs">Target (lbs)</label>
+              <label className="text-faint text-xs">Target (lbs)</label>
               <input type="number" value={targetWeight} onChange={(e) => { setTargetWeight(e.target.value); setSaved(false); }}
-                className="w-full bg-surface-3 border border-border-2 rounded-lg px-3 py-2 min-h-11 text-white focus:outline-none focus:border-brand" />
+                className="w-full bg-surface-3 border border-border-2 rounded-lg px-3 py-2 min-h-11 text-foreground focus:outline-none focus:border-brand" />
             </div>
           </div>
         </div>
@@ -129,7 +170,7 @@ export default function SettingsPage() {
 
       {/* Bodyweight Tracking */}
       <section className="space-y-3">
-        <div className="flex items-center gap-2 text-neutral-400">
+        <div className="flex items-center gap-2 text-muted">
           <TrendingDown size={16} />
           <h2 className="text-sm font-medium">BODYWEIGHT LOG</h2>
         </div>
@@ -140,27 +181,27 @@ export default function SettingsPage() {
 
       {/* Nutrition Targets */}
       <section className="space-y-3">
-        <div className="flex items-center gap-2 text-neutral-400">
+        <div className="flex items-center gap-2 text-muted">
           <Target size={16} />
           <h2 className="text-sm font-medium">NUTRITION TARGETS</h2>
         </div>
         <div className="bg-surface-2 rounded-xl p-4 space-y-3">
-          <p className="text-neutral-500 text-xs">Auto-calculated from body stats — adjust to override</p>
+          <p className="text-faint text-xs">Auto-calculated from body stats — adjust to override</p>
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="text-neutral-500 text-xs">Protein Min</label>
+              <label className="text-faint text-xs">Protein Min</label>
               <input type="number" value={proteinMin} onChange={(e) => { setProteinMin(e.target.value); setSaved(false); }}
-                className="w-full bg-surface-3 border border-border-2 rounded-lg px-3 py-2 min-h-11 text-white focus:outline-none focus:border-brand" />
+                className="w-full bg-surface-3 border border-border-2 rounded-lg px-3 py-2 min-h-11 text-foreground focus:outline-none focus:border-brand" />
             </div>
             <div>
-              <label className="text-neutral-500 text-xs">Protein Max</label>
+              <label className="text-faint text-xs">Protein Max</label>
               <input type="number" value={proteinMax} onChange={(e) => { setProteinMax(e.target.value); setSaved(false); }}
-                className="w-full bg-surface-3 border border-border-2 rounded-lg px-3 py-2 min-h-11 text-white focus:outline-none focus:border-brand" />
+                className="w-full bg-surface-3 border border-border-2 rounded-lg px-3 py-2 min-h-11 text-foreground focus:outline-none focus:border-brand" />
             </div>
             <div>
-              <label className="text-neutral-500 text-xs">Calories</label>
+              <label className="text-faint text-xs">Calories</label>
               <input type="number" value={calorieTarget} onChange={(e) => { setCalorieTarget(e.target.value); setSaved(false); }}
-                className="w-full bg-surface-3 border border-border-2 rounded-lg px-3 py-2 min-h-11 text-white focus:outline-none focus:border-brand" />
+                className="w-full bg-surface-3 border border-border-2 rounded-lg px-3 py-2 min-h-11 text-foreground focus:outline-none focus:border-brand" />
             </div>
           </div>
         </div>
@@ -168,13 +209,13 @@ export default function SettingsPage() {
 
       {/* Training Mode */}
       <section className="space-y-3">
-        <div className="flex items-center gap-2 text-neutral-400">
+        <div className="flex items-center gap-2 text-muted">
           <Wrench size={16} />
           <h2 className="text-sm font-medium">TRAINING</h2>
         </div>
         <div className="bg-surface-2 rounded-xl p-4 space-y-4">
           <div>
-            <label className="text-neutral-500 text-xs mb-2 block">Training Mode</label>
+            <label className="text-faint text-xs mb-2 block">Training Mode</label>
             <div className="flex gap-2">
               {(Object.entries(MODE_LABELS) as Array<[TrainingMode, string]>).map(([mode, label]) => (
                 <button
@@ -183,7 +224,7 @@ export default function SettingsPage() {
                   className={`flex-1 py-2 min-h-11 rounded-lg text-sm font-medium transition-colors ${
                     trainingMode === mode
                       ? 'bg-brand/15 text-brand border border-brand/30'
-                      : 'bg-surface-3 text-neutral-400 border border-border-2'
+                      : 'bg-surface-3 text-muted border border-border-2'
                   }`}
                 >
                   {label}
@@ -193,7 +234,7 @@ export default function SettingsPage() {
           </div>
 
           <div>
-            <label className="text-neutral-500 text-xs mb-2 block">Equipment Available</label>
+            <label className="text-faint text-xs mb-2 block">Equipment Available</label>
             <div className="flex flex-wrap gap-2">
               {EQUIPMENT_OPTIONS.map((item) => (
                 <button
@@ -202,7 +243,7 @@ export default function SettingsPage() {
                   className={`px-3 py-1.5 min-h-11 rounded-lg text-sm transition-colors ${
                     equipment.includes(item)
                       ? 'bg-brand/15 text-brand border border-brand/30'
-                      : 'bg-surface-3 text-neutral-500 border border-border-2'
+                      : 'bg-surface-3 text-faint border border-border-2'
                   }`}
                 >
                   {item.replace(/_/g, ' ')}
@@ -210,6 +251,51 @@ export default function SettingsPage() {
               ))}
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* Notifications */}
+      <section className="space-y-3">
+        <div className="flex items-center gap-2 text-muted">
+          <Bell size={16} />
+          <h2 className="text-sm font-medium">NOTIFICATIONS</h2>
+        </div>
+        <div className="bg-surface-2 rounded-xl p-4 space-y-3">
+          {!notifications.hasPermission && (
+            <button
+              onClick={notifications.requestPermission}
+              className="w-full py-2.5 min-h-11 bg-brand/15 text-brand rounded-lg text-sm font-medium transition-colors hover:bg-brand/25"
+            >
+              Enable Push Notifications
+            </button>
+          )}
+          <label className="flex items-center justify-between cursor-pointer min-h-11">
+            <span className="text-secondary text-sm">Rest day reminders</span>
+            <input
+              type="checkbox"
+              checked={restDayReminder}
+              onChange={(e) => { setRestDayReminder(e.target.checked); setSaved(false); }}
+              className="w-10 h-6 bg-surface-3 rounded-full appearance-none cursor-pointer relative after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:w-5 after:h-5 after:bg-neutral-400 after:rounded-full after:transition-all checked:bg-brand/30 checked:after:bg-brand checked:after:translate-x-4"
+            />
+          </label>
+          <label className="flex items-center justify-between cursor-pointer min-h-11">
+            <span className="text-secondary text-sm">Protein target alerts</span>
+            <input
+              type="checkbox"
+              checked={proteinAlert}
+              onChange={(e) => { setProteinAlert(e.target.checked); setSaved(false); }}
+              className="w-10 h-6 bg-surface-3 rounded-full appearance-none cursor-pointer relative after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:w-5 after:h-5 after:bg-neutral-400 after:rounded-full after:transition-all checked:bg-brand/30 checked:after:bg-brand checked:after:translate-x-4"
+            />
+          </label>
+          <label className="flex items-center justify-between cursor-pointer min-h-11">
+            <span className="text-secondary text-sm">Recovery warnings</span>
+            <input
+              type="checkbox"
+              checked={recoveryWarning}
+              onChange={(e) => { setRecoveryWarning(e.target.checked); setSaved(false); }}
+              className="w-10 h-6 bg-surface-3 rounded-full appearance-none cursor-pointer relative after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:w-5 after:h-5 after:bg-neutral-400 after:rounded-full after:transition-all checked:bg-brand/30 checked:after:bg-brand checked:after:translate-x-4"
+            />
+          </label>
         </div>
       </section>
 

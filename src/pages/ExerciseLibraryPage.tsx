@@ -26,6 +26,7 @@ export default function ExerciseLibraryPage({ swapMode }: ExerciseLibraryPagePro
   const [equipmentFilter, setEquipmentFilter] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
+  const [hasDemoFilter, setHasDemoFilter] = useState(false);
   const [page, setPage] = useState(0);
   const [swapping, setSwapping] = useState<string | null>(null);
   const [showPoolOnly, setShowPoolOnly] = useState(!!swapMode);
@@ -46,6 +47,14 @@ export default function ExerciseLibraryPage({ swapMode }: ExerciseLibraryPagePro
       query = query.eq('body_part', bodyPartFilter);
     }
 
+    if (equipmentFilter) {
+      query = query.contains('equipment_tags', [equipmentFilter]);
+    }
+
+    if (hasDemoFilter) {
+      query = query.or('gif_url.neq.,video_url.neq.,image_urls.neq.{}');
+    }
+
     if (swapMode && showPoolOnly) {
       query = query.eq('movement_pool', swapMode.movementPool);
       query = query.neq('id', swapMode.currentExerciseId);
@@ -58,12 +67,12 @@ export default function ExerciseLibraryPage({ swapMode }: ExerciseLibraryPagePro
       setExercises((prev) => [...prev, ...((data as unknown as Exercise[] | null) ?? [])]);
     }
     setLoading(false);
-  }, [bodyPartFilter, page, swapMode, showPoolOnly]);
+  }, [bodyPartFilter, equipmentFilter, hasDemoFilter, page, swapMode, showPoolOnly]);
 
   useEffect(() => {
     setPage(0);
     setExercises([]);
-  }, [bodyPartFilter, equipmentFilter, showPoolOnly]);
+  }, [bodyPartFilter, equipmentFilter, hasDemoFilter, showPoolOnly]);
 
   useEffect(() => {
     fetchExercises();
@@ -115,9 +124,10 @@ export default function ExerciseLibraryPage({ swapMode }: ExerciseLibraryPagePro
     setSearch('');
     setBodyPartFilter(null);
     setEquipmentFilter(null);
+    setHasDemoFilter(false);
   };
 
-  const hasFilters = search || bodyPartFilter || equipmentFilter;
+  const hasFilters = search || bodyPartFilter || equipmentFilter || hasDemoFilter;
 
   const handleSwap = useCallback(async (exerciseId: string) => {
     if (!swapMode) return;
@@ -189,7 +199,7 @@ export default function ExerciseLibraryPage({ swapMode }: ExerciseLibraryPagePro
       {swapMode ? (
         <div className="mb-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold text-white flex items-center gap-2">
+            <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
               <ArrowLeftRight size={18} className="text-brand" />
               Replace Exercise
             </h2>
@@ -197,17 +207,17 @@ export default function ExerciseLibraryPage({ swapMode }: ExerciseLibraryPagePro
               onClick={swapMode.onClose}
               className="p-2 min-h-11 min-w-11 bg-surface-3 rounded-lg flex items-center justify-center"
             >
-              <X size={18} className="text-neutral-400" />
+              <X size={18} className="text-muted" />
             </button>
           </div>
-          <p className="text-neutral-400 text-sm mt-1">
-            Replacing <span className="text-neutral-200 font-medium">{swapMode.currentExerciseName}</span>
+          <p className="text-muted text-sm mt-1">
+            Replacing <span className="text-secondary font-medium">{swapMode.currentExerciseName}</span>
           </p>
           <div className="flex gap-2 mt-3">
             <button
               onClick={() => setShowPoolOnly(true)}
               className={`flex-1 py-2 min-h-11 rounded-lg text-sm font-medium transition-colors ${
-                showPoolOnly ? 'bg-brand/15 text-brand border border-brand/30' : 'bg-surface-3 text-neutral-400 border border-border-2'
+                showPoolOnly ? 'bg-brand/15 text-brand border border-brand/30' : 'bg-surface-3 text-muted border border-border-2'
               }`}
             >
               Same Pool
@@ -215,7 +225,7 @@ export default function ExerciseLibraryPage({ swapMode }: ExerciseLibraryPagePro
             <button
               onClick={() => setShowPoolOnly(false)}
               className={`flex-1 py-2 min-h-11 rounded-lg text-sm font-medium transition-colors ${
-                !showPoolOnly ? 'bg-brand/15 text-brand border border-brand/30' : 'bg-surface-3 text-neutral-400 border border-border-2'
+                !showPoolOnly ? 'bg-brand/15 text-brand border border-brand/30' : 'bg-surface-3 text-muted border border-border-2'
               }`}
             >
               All Exercises
@@ -223,25 +233,25 @@ export default function ExerciseLibraryPage({ swapMode }: ExerciseLibraryPagePro
           </div>
         </div>
       ) : (
-        <h1 className="text-2xl font-bold text-white mb-4">Exercise Library</h1>
+        <h1 className="text-2xl font-bold text-foreground mb-4">Exercise Library</h1>
       )}
 
       {/* Search bar */}
       <div className="relative mb-3">
-        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500" />
+        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-faint" />
         <input
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search exercises, muscles, equipment..."
-          className="w-full bg-surface-2 border border-border rounded-xl pl-10 pr-10 py-3 min-h-11 text-white text-sm focus:outline-none focus:border-brand"
+          className="w-full bg-surface-2 border border-border rounded-xl pl-10 pr-10 py-3 min-h-11 text-foreground text-sm focus:outline-none focus:border-brand"
         />
         {search && (
           <button
             onClick={() => setSearch('')}
             className="absolute right-3 top-1/2 -translate-y-1/2 p-1"
           >
-            <X size={14} className="text-neutral-500" />
+            <X size={14} className="text-faint" />
           </button>
         )}
       </div>
@@ -250,7 +260,7 @@ export default function ExerciseLibraryPage({ swapMode }: ExerciseLibraryPagePro
       <div className="flex items-center justify-between mb-3">
         <button
           onClick={() => setShowFilters(!showFilters)}
-          className="flex items-center gap-1.5 text-neutral-400 text-sm hover:text-neutral-300 transition-colors min-h-11"
+          className="flex items-center gap-1.5 text-muted text-sm hover:text-secondary transition-colors min-h-11"
         >
           <Filter size={14} />
           Filters
@@ -271,7 +281,7 @@ export default function ExerciseLibraryPage({ swapMode }: ExerciseLibraryPagePro
       {showFilters && (
         <div className="space-y-3 mb-3 animate-fade-in">
           <div>
-            <label className="text-neutral-500 text-xs mb-1.5 block">Body Part</label>
+            <label className="text-faint text-xs mb-1.5 block">Body Part</label>
             <div className="flex flex-wrap gap-1.5">
               {BODY_PARTS.map((bp) => (
                 <button
@@ -280,7 +290,7 @@ export default function ExerciseLibraryPage({ swapMode }: ExerciseLibraryPagePro
                   className={`px-3 py-1.5 min-h-9 rounded-lg text-xs font-medium transition-colors ${
                     bodyPartFilter === bp
                       ? 'bg-brand text-white'
-                      : 'bg-surface-3 text-neutral-400 border border-border-2'
+                      : 'bg-surface-3 text-muted border border-border-2'
                   }`}
                 >
                   {bp}
@@ -290,7 +300,7 @@ export default function ExerciseLibraryPage({ swapMode }: ExerciseLibraryPagePro
           </div>
 
           <div>
-            <label className="text-neutral-500 text-xs mb-1.5 block">Equipment</label>
+            <label className="text-faint text-xs mb-1.5 block">Equipment</label>
             <div className="flex flex-wrap gap-1.5">
               {EQUIPMENT_TYPES.map((eq) => (
                 <button
@@ -299,7 +309,7 @@ export default function ExerciseLibraryPage({ swapMode }: ExerciseLibraryPagePro
                   className={`px-3 py-1.5 min-h-9 rounded-lg text-xs font-medium transition-colors ${
                     equipmentFilter === eq
                       ? 'bg-brand text-white'
-                      : 'bg-surface-3 text-neutral-400 border border-border-2'
+                      : 'bg-surface-3 text-muted border border-border-2'
                   }`}
                 >
                   {eq.replace(/_/g, ' ')}
@@ -307,11 +317,24 @@ export default function ExerciseLibraryPage({ swapMode }: ExerciseLibraryPagePro
               ))}
             </div>
           </div>
+
+          {/* Has Demo toggle */}
+          <button
+            onClick={() => setHasDemoFilter(!hasDemoFilter)}
+            className={`flex items-center gap-2 px-3 py-2 min-h-9 rounded-lg text-xs font-medium transition-colors ${
+              hasDemoFilter
+                ? 'bg-brand text-white'
+                : 'bg-surface-3 text-muted border border-border-2'
+            }`}
+          >
+            <Zap size={12} />
+            Has Demo
+          </button>
         </div>
       )}
 
       {/* Results count */}
-      <p className="text-neutral-500 text-xs mb-3">
+      <p className="text-faint text-xs mb-3">
         {filteredExercises.length} local exercise{filteredExercises.length !== 1 ? 's' : ''}
         {apiResults.length > 0 && (
           <span className="ml-1">+ {apiResults.length} from ExerciseDB</span>
@@ -326,7 +349,7 @@ export default function ExerciseLibraryPage({ swapMode }: ExerciseLibraryPagePro
       ) : filteredExercises.length === 0 && apiResults.length === 0 ? (
         <div className="text-center py-12">
           <Search size={32} className="text-neutral-600 mx-auto mb-2" />
-          <p className="text-neutral-500 text-sm">No exercises found.</p>
+          <p className="text-faint text-sm">No exercises found.</p>
           {swapMode && showPoolOnly && (
             <button
               onClick={() => setShowPoolOnly(false)}
@@ -356,7 +379,7 @@ export default function ExerciseLibraryPage({ swapMode }: ExerciseLibraryPagePro
             <>
               <div className="flex items-center gap-2 pt-4 pb-2">
                 <Zap size={14} className="text-brand" />
-                <p className="text-neutral-400 text-xs font-medium">From ExerciseDB (1,500+ exercises with GIFs)</p>
+                <p className="text-muted text-xs font-medium">From ExerciseDB (1,500+ exercises with GIFs)</p>
               </div>
               {apiResults.map((ex) => (
                 <ApiExerciseRow
@@ -375,7 +398,7 @@ export default function ExerciseLibraryPage({ swapMode }: ExerciseLibraryPagePro
           {exerciseSearch.loading && (
             <div className="flex items-center justify-center py-4 gap-2">
               <Loader2 size={16} className="text-brand animate-spin" />
-              <span className="text-neutral-500 text-xs">Searching ExerciseDB...</span>
+              <span className="text-faint text-xs">Searching ExerciseDB...</span>
             </div>
           )}
 
@@ -445,8 +468,8 @@ function ExerciseRow({ exercise: ex, swapMode, swapping, disabled, onSelect, onI
         </div>
       )}
       <div className="flex-1 min-w-0">
-        <p className="text-white text-sm font-medium truncate">{ex.name}</p>
-        <div className="flex items-center gap-2 text-xs text-neutral-500 mt-0.5">
+        <p className="text-foreground text-sm font-medium truncate">{ex.name}</p>
+        <div className="flex items-center gap-2 text-xs text-faint mt-0.5">
           {ex.body_part && <span>{ex.body_part}</span>}
           <span>·</span>
           <span>{ex.movement_pool.replace(/_/g, ' ')}</span>
@@ -474,7 +497,7 @@ function ExerciseRow({ exercise: ex, swapMode, swapping, disabled, onSelect, onI
           onClick={(e) => { e.stopPropagation(); onInfo(); }}
           className="p-2 min-h-11 min-w-11 shrink-0"
         >
-          <ChevronDown size={14} className="text-neutral-500" />
+          <ChevronDown size={14} className="text-faint" />
         </button>
       )}
     </button>
@@ -507,12 +530,12 @@ function ApiExerciseRow({ exercise: ex, swapMode, swapping, disabled, onSelect }
       )}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
-          <p className="text-white text-sm font-medium truncate">{ex.name}</p>
+          <p className="text-foreground text-sm font-medium truncate">{ex.name}</p>
           <span className="text-[10px] text-brand bg-brand/10 px-1.5 py-0.5 rounded font-medium shrink-0">
             ExerciseDB
           </span>
         </div>
-        <div className="flex items-center gap-2 text-xs text-neutral-500 mt-0.5">
+        <div className="flex items-center gap-2 text-xs text-faint mt-0.5">
           {ex.body_part && <span>{ex.body_part}</span>}
           {ex.equipment_tags.length > 0 && (
             <>

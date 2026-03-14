@@ -72,10 +72,10 @@ export default function OnboardingPage() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-start min-h-dvh bg-black px-6 py-8">
+    <div className="flex flex-col items-center justify-start min-h-dvh bg-bg px-6 py-8">
       <div className="w-full max-w-sm">
-        <h1 className="text-2xl font-bold text-white mb-1">Set Up Your Profile</h1>
-        <p className="text-neutral-400 text-sm mb-6">Customize targets to match your goals.</p>
+        <h1 className="text-2xl font-bold text-foreground mb-1">Set Up Your Profile</h1>
+        <p className="text-muted text-sm mb-6">Customize targets to match your goals.</p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <input
@@ -83,7 +83,7 @@ export default function OnboardingPage() {
             placeholder="Display Name"
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
-            className="w-full bg-surface-2 border border-border rounded-xl px-4 py-3 min-h-11 text-white placeholder-neutral-500 focus:outline-none focus:border-brand transition-colors"
+            className="w-full bg-surface-2 border border-border rounded-xl px-4 py-3 min-h-11 text-foreground placeholder-neutral-500 focus:outline-none focus:border-brand transition-colors"
           />
 
           <div className="grid grid-cols-2 gap-3">
@@ -92,14 +92,14 @@ export default function OnboardingPage() {
               placeholder="Height (in)"
               value={heightInches}
               onChange={(e) => setHeightInches(e.target.value)}
-              className="bg-surface-2 border border-border rounded-xl px-4 py-3 min-h-11 text-white placeholder-neutral-500 focus:outline-none focus:border-brand transition-colors"
+              className="bg-surface-2 border border-border rounded-xl px-4 py-3 min-h-11 text-foreground placeholder-neutral-500 focus:outline-none focus:border-brand transition-colors"
             />
             <input
               type="number"
               placeholder="Current lbs"
               value={currentWeight}
               onChange={(e) => setCurrentWeight(e.target.value)}
-              className="bg-surface-2 border border-border rounded-xl px-4 py-3 min-h-11 text-white placeholder-neutral-500 focus:outline-none focus:border-brand transition-colors"
+              className="bg-surface-2 border border-border rounded-xl px-4 py-3 min-h-11 text-foreground placeholder-neutral-500 focus:outline-none focus:border-brand transition-colors"
             />
           </div>
 
@@ -108,42 +108,42 @@ export default function OnboardingPage() {
             placeholder="Target Weight (lbs)"
             value={targetWeight}
             onChange={(e) => setTargetWeight(e.target.value)}
-            className="w-full bg-surface-2 border border-border rounded-xl px-4 py-3 min-h-11 text-white placeholder-neutral-500 focus:outline-none focus:border-brand transition-colors"
+              className="w-full bg-surface-2 border border-border rounded-xl px-4 py-3 min-h-11 text-foreground placeholder-neutral-500 focus:outline-none focus:border-brand transition-colors"
           />
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-neutral-400 text-xs mb-1 block">Protein Min (g)</label>
+              <label className="text-muted text-xs mb-1 block">Protein Min (g)</label>
               <input
                 type="number"
                 value={proteinMin}
                 onChange={(e) => setProteinMin(e.target.value)}
-                className="w-full bg-surface-2 border border-border rounded-xl px-4 py-3 min-h-11 text-white focus:outline-none focus:border-brand transition-colors"
+                className="w-full bg-surface-2 border border-border rounded-xl px-4 py-3 min-h-11 text-foreground focus:outline-none focus:border-brand transition-colors"
               />
             </div>
             <div>
-              <label className="text-neutral-400 text-xs mb-1 block">Protein Max (g)</label>
+              <label className="text-muted text-xs mb-1 block">Protein Max (g)</label>
               <input
                 type="number"
                 value={proteinMax}
                 onChange={(e) => setProteinMax(e.target.value)}
-                className="w-full bg-surface-2 border border-border rounded-xl px-4 py-3 min-h-11 text-white focus:outline-none focus:border-brand transition-colors"
+                className="w-full bg-surface-2 border border-border rounded-xl px-4 py-3 min-h-11 text-foreground focus:outline-none focus:border-brand transition-colors"
               />
             </div>
           </div>
 
           <div>
-            <label className="text-neutral-400 text-xs mb-1 block">Calorie Target</label>
+            <label className="text-muted text-xs mb-1 block">Calorie Target</label>
             <input
               type="number"
               value={calorieTarget}
               onChange={(e) => setCalorieTarget(e.target.value)}
-              className="w-full bg-surface-2 border border-border rounded-xl px-4 py-3 min-h-11 text-white focus:outline-none focus:border-brand transition-colors"
+              className="w-full bg-surface-2 border border-border rounded-xl px-4 py-3 min-h-11 text-foreground focus:outline-none focus:border-brand transition-colors"
             />
           </div>
 
           <div>
-            <label className="text-neutral-400 text-xs mb-2 block">Equipment Available</label>
+            <label className="text-muted text-xs mb-2 block">Equipment Available</label>
             <div className="flex flex-wrap gap-2">
               {EQUIPMENT_OPTIONS.map((opt) => (
                 <button
@@ -153,7 +153,7 @@ export default function OnboardingPage() {
                   className={`px-3 py-2 min-h-11 rounded-lg text-sm font-medium transition-colors ${
                     equipment.includes(opt.value)
                       ? 'bg-brand/15 text-brand border border-brand/30'
-                      : 'bg-surface-3 text-neutral-400 border border-border-2'
+                      : 'bg-surface-3 text-muted border border-border-2'
                   }`}
                 >
                   {opt.label}

@@ -50,15 +50,15 @@ export function ExerciseSwapModal({ currentExercise, onSwap, onClose }: Exercise
       <div className="w-full max-w-lg bg-surface-2 rounded-t-2xl p-6 max-h-[70vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h2 className="text-lg font-bold text-white flex items-center gap-2">
+            <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
               <ArrowLeftRight size={18} className="text-brand" />
               Swap Exercise
             </h2>
-            <p className="text-neutral-400 text-sm">
-              Replace <span className="text-neutral-200 font-medium">{currentExercise.name}</span>
+            <p className="text-muted text-sm">
+              Replace <span className="text-secondary font-medium">{currentExercise.name}</span>
             </p>
             {currentExercise.movement_pool && (
-              <p className="text-neutral-500 text-xs mt-0.5">
+              <p className="text-faint text-xs mt-0.5">
                 Pool: {currentExercise.movement_pool.replace(/_/g, ' ')}
               </p>
             )}
@@ -67,7 +67,7 @@ export function ExerciseSwapModal({ currentExercise, onSwap, onClose }: Exercise
             onClick={onClose}
             className="p-2 min-h-11 min-w-11 bg-surface-3 hover:bg-surface-3 rounded-lg transition-colors flex items-center justify-center"
           >
-            <X size={18} className="text-neutral-400" />
+            <X size={18} className="text-muted" />
           </button>
         </div>
 
@@ -76,7 +76,7 @@ export function ExerciseSwapModal({ currentExercise, onSwap, onClose }: Exercise
             <Loader2 size={24} className="text-brand animate-spin" />
           </div>
         ) : candidates.length === 0 ? (
-          <p className="text-neutral-500 text-center py-8">No alternatives in this movement pool.</p>
+          <p className="text-faint text-center py-8">No alternatives in this movement pool.</p>
         ) : (
           <div className="space-y-2">
             {candidates.map((ex) => (
@@ -87,15 +87,15 @@ export function ExerciseSwapModal({ currentExercise, onSwap, onClose }: Exercise
                 className="w-full flex items-center justify-between p-4 min-h-11 bg-surface-3 hover:bg-surface-3 rounded-xl border border-border-2 transition-colors disabled:opacity-50"
               >
                 <div className="text-left">
-                  <p className="text-white font-medium">{ex.name}</p>
-                  <p className="text-neutral-500 text-xs">
+                  <p className="text-foreground font-medium">{ex.name}</p>
+                  <p className="text-faint text-xs">
                     {ex.default_sets}×{ex.default_rep_min}–{ex.default_rep_max} · {ex.equipment_tags?.join(', ')}
                   </p>
                 </div>
                 {swapping === ex.id ? (
                   <Loader2 size={16} className="text-brand animate-spin" />
                 ) : (
-                  <ArrowLeftRight size={16} className="text-neutral-500" />
+                  <ArrowLeftRight size={16} className="text-faint" />
                 )}
               </button>
             ))}

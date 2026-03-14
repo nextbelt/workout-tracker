@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { X, Target, Info, BookOpen, Loader2, Video } from 'lucide-react';
+import { X, Target, Info, BookOpen, Loader2, Video, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { useExerciseVideo } from '../hooks/useExerciseVideo';
 import type { Exercise, ExerciseInsight } from '../types/database';
 
 interface ExerciseDetailProps {
@@ -11,6 +12,7 @@ interface ExerciseDetailProps {
 export function ExerciseDetail({ exercise, onClose }: ExerciseDetailProps) {
   const [insights, setInsights] = useState<ExerciseInsight[]>([]);
   const [loading, setLoading] = useState(true);
+  const exerciseVideo = useExerciseVideo(exercise.id, exercise.name, exercise.gif_url, exercise.video_url);
 
   useEffect(() => {
     async function fetchInsights() {
@@ -69,8 +71,48 @@ export function ExerciseDetail({ exercise, onClose }: ExerciseDetailProps) {
           </button>
         </div>
 
-        {/* Embedded video */}
-        {exercise.video_url && (
+        {/* Embedded video with like/dislike */}
+        {exerciseVideo.loading ? (
+          <div className="px-6 pt-4 flex items-center justify-center py-8">
+            <Loader2 size={20} className="text-brand animate-spin" />
+          </div>
+        ) : exerciseVideo.video ? (
+          <div className="px-6 pt-4 space-y-2">
+            <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-surface-3">
+              <iframe
+                src={exerciseVideo.video.videoUrl}
+                title={`${exercise.name} tutorial`}
+                className="absolute inset-0 w-full h-full"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
+            {/* Like / Dislike buttons */}
+            {exerciseVideo.video.liked === true ? (
+              <div className="flex items-center gap-2 py-1">
+                <ThumbsUp size={14} className="text-green-400" />
+                <span className="text-green-400 text-xs font-medium">Saved as your preferred demo</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={exerciseVideo.like}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 min-h-11 bg-green-500/10 hover:bg-green-500/20 text-green-400 rounded-xl text-sm font-medium transition-colors"
+                >
+                  <ThumbsUp size={14} />
+                  Good demo
+                </button>
+                <button
+                  onClick={exerciseVideo.dislike}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 min-h-11 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-xl text-sm font-medium transition-colors"
+                >
+                  <ThumbsDown size={14} />
+                  Show another
+                </button>
+              </div>
+            )}
+          </div>
+        ) : exercise.video_url ? (
           <div className="px-6 pt-4">
             <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-surface-3">
               <iframe
@@ -87,14 +129,13 @@ export function ExerciseDetail({ exercise, onClose }: ExerciseDetailProps) {
               />
             </div>
           </div>
-        )}
-        {!exercise.video_url && (
+        ) : (
           <div className="px-6 pt-4">
             <a
               href={`https://www.youtube.com/results?search_query=${encodeURIComponent(exercise.name + ' exercise form')}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 w-full py-2.5 min-h-11 bg-surface-3 rounded-xl text-neutral-400 text-sm hover:text-white transition-colors"
+              className="flex items-center justify-center gap-2 w-full py-2.5 min-h-11 bg-surface-3 rounded-xl text-muted text-sm hover:text-foreground transition-colors"
             >
               <Video size={14} />
               Watch video tutorial on YouTube
@@ -105,7 +146,7 @@ export function ExerciseDetail({ exercise, onClose }: ExerciseDetailProps) {
         <div className="p-6 space-y-5">
           {/* Title */}
           <div>
-            <h2 className="text-xl font-bold text-white">{exercise.name}</h2>
+            <h2 className="text-xl font-bold text-foreground">{exercise.name}</h2>
             <div className="flex flex-wrap gap-2 mt-2">
               {exercise.body_part && (
                 <span className="text-xs bg-brand/10 text-brand px-2 py-1 rounded-lg">
@@ -113,11 +154,11 @@ export function ExerciseDetail({ exercise, onClose }: ExerciseDetailProps) {
                 </span>
               )}
               {exercise.category && (
-                <span className="text-xs bg-surface-3 text-neutral-400 px-2 py-1 rounded-lg">
+                <span className="text-xs bg-surface-3 text-muted px-2 py-1 rounded-lg">
                   {exercise.category}
                 </span>
               )}
-              <span className="text-xs bg-surface-3 text-neutral-400 px-2 py-1 rounded-lg">
+              <span className="text-xs bg-surface-3 text-muted px-2 py-1 rounded-lg">
                 {exercise.movement_pool.replace(/_/g, ' ')}
               </span>
               {exercise.is_compound && (
@@ -126,12 +167,12 @@ export function ExerciseDetail({ exercise, onClose }: ExerciseDetailProps) {
                 </span>
               )}
               {exercise.force_type && (
-                <span className="text-xs bg-surface-3 text-neutral-400 px-2 py-1 rounded-lg capitalize">
+                <span className="text-xs bg-surface-3 text-muted px-2 py-1 rounded-lg capitalize">
                   {exercise.force_type}
                 </span>
               )}
               {exercise.difficulty && (
-                <span className="text-xs bg-surface-3 text-neutral-400 px-2 py-1 rounded-lg capitalize">
+                <span className="text-xs bg-surface-3 text-muted px-2 py-1 rounded-lg capitalize">
                   {exercise.difficulty}
                 </span>
               )}
@@ -143,7 +184,7 @@ export function ExerciseDetail({ exercise, onClose }: ExerciseDetailProps) {
             <div className="space-y-2">
               {exercise.primary_muscles && exercise.primary_muscles.length > 0 && (
                 <div>
-                  <h3 className="text-neutral-400 text-xs font-medium mb-1">Primary Muscles</h3>
+                  <h3 className="text-muted text-xs font-medium mb-1">Primary Muscles</h3>
                   <div className="flex flex-wrap gap-1.5">
                     {exercise.primary_muscles.map((m) => (
                       <span key={m} className="text-xs bg-brand/15 text-brand px-2 py-1 rounded">
@@ -155,10 +196,10 @@ export function ExerciseDetail({ exercise, onClose }: ExerciseDetailProps) {
               )}
               {exercise.secondary_muscles && exercise.secondary_muscles.length > 0 && (
                 <div>
-                  <h3 className="text-neutral-400 text-xs font-medium mb-1">Secondary Muscles</h3>
+                  <h3 className="text-muted text-xs font-medium mb-1">Secondary Muscles</h3>
                   <div className="flex flex-wrap gap-1.5">
                     {exercise.secondary_muscles.map((m) => (
-                      <span key={m} className="text-xs bg-surface-3 text-neutral-300 px-2 py-1 rounded">
+                      <span key={m} className="text-xs bg-surface-3 text-secondary px-2 py-1 rounded">
                         {m}
                       </span>
                     ))}
@@ -171,10 +212,10 @@ export function ExerciseDetail({ exercise, onClose }: ExerciseDetailProps) {
           {/* Equipment */}
           {exercise.equipment_tags.length > 0 && (
             <div>
-              <h3 className="text-neutral-400 text-xs font-medium mb-1">Equipment</h3>
+              <h3 className="text-muted text-xs font-medium mb-1">Equipment</h3>
               <div className="flex flex-wrap gap-1.5">
                 {exercise.equipment_tags.map((tag) => (
-                  <span key={tag} className="text-xs bg-surface-3 text-neutral-300 px-2 py-1 rounded">
+                  <span key={tag} className="text-xs bg-surface-3 text-secondary px-2 py-1 rounded">
                     {tag.replace(/_/g, ' ')}
                   </span>
                 ))}
@@ -184,11 +225,11 @@ export function ExerciseDetail({ exercise, onClose }: ExerciseDetailProps) {
 
           {/* Default programming */}
           <div className="bg-surface-3 rounded-xl p-4">
-            <h3 className="text-neutral-300 text-sm font-medium mb-2">Default Programming</h3>
+            <h3 className="text-secondary text-sm font-medium mb-2">Default Programming</h3>
             <div className="grid grid-cols-3 gap-3 text-center">
               <div>
                 <p className="text-brand text-lg font-bold">{exercise.default_sets ?? '–'}</p>
-                <p className="text-neutral-500 text-xs">Sets</p>
+                <p className="text-faint text-xs">Sets</p>
               </div>
               <div>
                 <p className="text-brand text-lg font-bold">
@@ -196,13 +237,13 @@ export function ExerciseDetail({ exercise, onClose }: ExerciseDetailProps) {
                     ? `${exercise.default_rep_min}–${exercise.default_rep_max}`
                     : '–'}
                 </p>
-                <p className="text-neutral-500 text-xs">Reps</p>
+                <p className="text-faint text-xs">Reps</p>
               </div>
               <div>
                 <p className="text-brand text-lg font-bold">
                   {exercise.default_rest_seconds ? `${Math.round(exercise.default_rest_seconds / 60)}:${String(exercise.default_rest_seconds % 60).padStart(2, '0')}` : '–'}
                 </p>
-                <p className="text-neutral-500 text-xs">Rest</p>
+                <p className="text-faint text-xs">Rest</p>
               </div>
             </div>
           </div>
@@ -210,14 +251,14 @@ export function ExerciseDetail({ exercise, onClose }: ExerciseDetailProps) {
           {/* Instructions */}
           {exercise.instructions && exercise.instructions.length > 0 && (
             <div>
-              <h3 className="text-neutral-300 text-sm font-medium mb-2 flex items-center gap-1.5">
+              <h3 className="text-secondary text-sm font-medium mb-2 flex items-center gap-1.5">
                 <BookOpen size={14} /> Instructions
               </h3>
               <ol className="space-y-2">
                 {exercise.instructions.map((step, i) => (
                   <li key={i} className="flex gap-2 text-sm">
                     <span className="text-brand font-bold shrink-0">{i + 1}.</span>
-                    <span className="text-neutral-300">{step}</span>
+                    <span className="text-secondary">{step}</span>
                   </li>
                 ))}
               </ol>
@@ -226,7 +267,7 @@ export function ExerciseDetail({ exercise, onClose }: ExerciseDetailProps) {
 
           {/* Science Tips */}
           <div>
-            <h3 className="text-neutral-300 text-sm font-medium mb-2 flex items-center gap-1.5">
+            <h3 className="text-secondary text-sm font-medium mb-2 flex items-center gap-1.5">
               <Info size={14} /> Training Tips
             </h3>
             {loading ? (
@@ -234,17 +275,17 @@ export function ExerciseDetail({ exercise, onClose }: ExerciseDetailProps) {
                 <Loader2 size={20} className="text-brand animate-spin" />
               </div>
             ) : insights.length === 0 ? (
-              <p className="text-neutral-500 text-sm py-2">No tips available yet.</p>
+              <p className="text-faint text-sm py-2">No tips available yet.</p>
             ) : (
               <div className="space-y-2">
                 {insights.map((insight) => (
                   <div key={insight.id} className="bg-surface-3 rounded-lg p-3">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs font-medium text-neutral-400">
+                      <span className="text-xs font-medium text-muted">
                         {categoryLabel(insight.tip_category)}
                       </span>
                     </div>
-                    <p className="text-neutral-300 text-sm">{insight.tip_text}</p>
+                    <p className="text-secondary text-sm">{insight.tip_text}</p>
                     {insight.source_citation && (
                       <p className="text-neutral-600 text-xs mt-1">{insight.source_citation}</p>
                     )}

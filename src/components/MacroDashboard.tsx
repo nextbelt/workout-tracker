@@ -29,8 +29,8 @@ export function ProteinBar({ current, min, max }: ProteinBarProps) {
     <div className="bg-surface-2 rounded-xl p-4">
       <div className="flex items-baseline justify-between mb-2">
         <div className="flex items-baseline gap-2">
-          <span className="text-3xl font-bold text-white">{Math.round(current)}g</span>
-          <span className="text-neutral-400 text-sm">protein</span>
+          <span className="text-3xl font-bold text-foreground">{Math.round(current)}g</span>
+          <span className="text-muted text-sm">protein</span>
         </div>
         <span className={`text-sm font-medium ${colorClass.replace('bg-', 'text-')}`}>{label}</span>
       </div>
@@ -40,7 +40,7 @@ export function ProteinBar({ current, min, max }: ProteinBarProps) {
           style={{ width: `${percentage}%` }}
         />
       </div>
-      <p className="text-neutral-500 text-xs mt-1">Target: {min}–{max}g</p>
+      <p className="text-faint text-xs mt-1">Target: {min}–{max}g</p>
     </div>
   );
 }
@@ -56,12 +56,12 @@ interface MacroCardProps {
 export function MacroCard({ label, value, unit = 'g', target }: MacroCardProps) {
   return (
     <div className="bg-surface-2 rounded-xl p-3 flex-1">
-      <p className="text-neutral-400 text-xs mb-0.5">{label}</p>
-      <p className="text-white text-xl font-bold">
-        {Math.round(value)}<span className="text-sm font-normal text-neutral-500">{unit}</span>
+      <p className="text-muted text-xs mb-0.5">{label}</p>
+      <p className="text-foreground text-xl font-bold">
+        {Math.round(value)}<span className="text-sm font-normal text-faint">{unit}</span>
       </p>
       {target !== undefined && (
-        <p className="text-neutral-500 text-xs">/ {target}</p>
+        <p className="text-faint text-xs">/ {target}</p>
       )}
     </div>
   );

@@ -1,14 +1,18 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Play, CheckCircle, ChevronDown, ChevronUp, ArrowLeftRight, AlertTriangle, Loader2, Video, Info } from 'lucide-react';
 import { useWorkout, type BlockExerciseWithDetails } from '../hooks/useWorkout';
+import { useAuth } from '../hooks/useAuth';
 import { useRestTimerContext } from '../context/RestTimerContext';
 import { useMoodAdjustment, adjustExercises } from '../hooks/useMoodAdjustment';
+import { useMicroVariation } from '../hooks/useMicroVariation';
+import { useProgression } from '../hooks/useProgression';
 import { SetLogger } from '../components/SetLogger';
 import { RestTimerButton } from '../components/RestTimer';
 import { RecoveryRatingModal } from '../components/RecoveryRating';
 import ExerciseLibraryPage from './ExerciseLibraryPage';
 import { MoodCheck } from '../components/MoodCheck';
 import { ExerciseDetail } from '../components/ExerciseDetail';
+import { ScienceTooltip } from '../components/ScienceTooltip';
 import { CardioLogger } from '../components/CardioLogger';
 import { supabase } from '../lib/supabase';
 import type { RecoveryRating, DayTemplate, PreMood, BlockExercise } from '../types/database';
@@ -23,6 +27,7 @@ const DAY_LABELS: Record<DayTemplate, string> = {
 const DAY_ORDER: DayTemplate[] = ['upper_a', 'lower_a', 'upper_b', 'lower_b'];
 
 export default function TodayPage() {
+  const { user } = useAuth();
   const {
     activeBlock,
     blockExercises,
@@ -38,6 +43,8 @@ export default function TodayPage() {
   } = useWorkout();
   const restTimer = useRestTimerContext();
   const moodEngine = useMoodAdjustment();
+  const microVar = useMicroVariation();
+  const { checkProgression } = useProgression();
 
   const [selectedDay, setSelectedDay] = useState<DayTemplate>('upper_a');
   const [weekNumber, setWeekNumber] = useState(1);
@@ -49,11 +56,27 @@ export default function TodayPage() {
   const [showMoodCheck, setShowMoodCheck] = useState(false);
   const [detailExercise, setDetailExercise] = useState<BlockExerciseWithDetails | null>(null);
   const [videoExpanded, setVideoExpanded] = useState<string | null>(null);
+  const [progressionHints, setProgressionHints] = useState<Map<string, { shouldIncrease: boolean; suggestedWeight: number | null; stallCount: number; message: string }>>(new Map());
 
   const dayExercises = useMemo(() => {
     let exercises = blockExercises
       .filter((be) => be.day_template === selectedDay)
       .sort((a, b) => a.slot_order - b.slot_order);
+
+    // Apply micro-variation for non-anchor exercises
+    const overrides = microVar.applyVariation(
+      exercises as unknown as BlockExercise[],
+      weekNumber
+    );
+    if (overrides.size > 0) {
+      exercises = exercises.map((be) => {
+        const newId = overrides.get(be.id);
+        if (!newId) return be;
+        // Find the substitute exercise from blockExercises context
+        const substitute = blockExercises.find((b) => b.exercise_id === newId);
+        return substitute ? { ...be, exercise_id: newId, exercise: substitute.exercise } : be;
+      });
+    }
 
     // Apply mood adjustments if set
     if (moodEngine.adjustments) {
@@ -69,7 +92,18 @@ export default function TodayPage() {
     }
 
     return exercises;
-  }, [blockExercises, selectedDay, moodEngine.adjustments]);
+  }, [blockExercises, selectedDay, weekNumber, microVar, moodEngine.adjustments]);
+
+  // Load progression hint when exercise is expanded during active session
+  useEffect(() => {
+    if (!expandedExercise || !todaySession || !user) return;
+    const be = dayExercises.find((e) => e.id === expandedExercise);
+    if (!be || progressionHints.has(be.exercise_id)) return;
+
+    checkProgression(user.id, be.exercise_id, be.exercise, be.rep_max).then((hint) => {
+      setProgressionHints((prev) => new Map(prev).set(be.exercise_id, hint));
+    });
+  }, [expandedExercise, todaySession, user, dayExercises, checkProgression, progressionHints]);
 
   const exerciseSets = useMemo(() => {
     const map = new Map<string, typeof sessionSets>();
@@ -138,8 +172,8 @@ export default function TodayPage() {
     return (
       <div className="p-4 flex flex-col items-center justify-center h-full gap-4">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-white mb-2">Ready to Train</h1>
-          <p className="text-neutral-400">No active training block. Create Block 1 to get started.</p>
+          <h1 className="text-2xl font-bold text-foreground mb-2">Ready to Train</h1>
+          <p className="text-muted">No active training block. Create Block 1 to get started.</p>
         </div>
         <button
           onClick={handleCreateBlock}
@@ -159,10 +193,10 @@ export default function TodayPage() {
     <div className="p-4 pb-24 space-y-4">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-white">
+        <h1 className="text-2xl font-bold text-foreground">
           {todaySession ? DAY_LABELS[selectedDay] : 'Today'}
         </h1>
-        <p className="text-neutral-400 text-sm">
+        <p className="text-muted text-sm">
           Block {activeBlock.block_number} · Week {weekNumber}
           {isDeload && <span className="ml-2 text-yellow-400 font-medium">⚡ Deload</span>}
         </p>
@@ -187,7 +221,7 @@ export default function TodayPage() {
                 className={`flex-1 py-2 min-h-11 rounded-lg text-sm font-medium transition-colors ${
                   selectedDay === day
                     ? 'bg-brand/15 text-brand border border-brand/30'
-                    : 'bg-surface-3 text-neutral-400 border border-border-2'
+                    : 'bg-surface-3 text-muted border border-border-2'
                 }`}
               >
                 {DAY_LABELS[day]}
@@ -197,7 +231,7 @@ export default function TodayPage() {
 
           {/* Week selector */}
           <div className="flex items-center gap-2">
-            <span className="text-neutral-500 text-sm">Week:</span>
+            <span className="text-faint text-sm">Week:</span>
             {[1, 2, 3, 4, 5, 6, 7].map((w) => (
               <button
                 key={w}
@@ -207,7 +241,7 @@ export default function TodayPage() {
                     ? 'bg-brand text-white'
                     : w === 7
                       ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
-                      : 'bg-surface-3 text-neutral-400'
+                      : 'bg-surface-3 text-muted'
                 }`}
               >
                 {w}
@@ -221,6 +255,12 @@ export default function TodayPage() {
               <p className="text-yellow-400 text-sm">Deload week — reduce volume by ~40%</p>
             </div>
           )}
+
+          {/* Pre-workout mood prompt */}
+          <div className="bg-surface-2 border border-border rounded-xl p-4 space-y-2">
+            <p className="text-foreground text-sm font-medium">How are you feeling today?</p>
+            <p className="text-faint text-xs">Tap start to log your mood, energy & time — we&apos;ll auto-adjust your workout.</p>
+          </div>
 
           {/* Start workout button */}
           <button
@@ -252,15 +292,15 @@ export default function TodayPage() {
               >
                 <div className="text-left flex-1">
                   <div className="flex items-center gap-2">
-                    <p className="text-white font-medium">{be.exercise.name}</p>
+                    <p className="text-foreground font-medium">{be.exercise.name}</p>
                     {be.is_anchor && (
                       <span className="text-[10px] text-brand bg-brand/10 px-1.5 py-0.5 rounded font-medium">
                         ANCHOR
                       </span>
                     )}
                   </div>
-                  <p className="text-neutral-500 text-xs mt-0.5">
-                    {totalSets}×{be.rep_min}–{be.rep_max} · RIR {be.rir_target}
+                  <p className="text-faint text-xs mt-0.5">
+                    {totalSets}×{be.rep_min}–{be.rep_max} · <ScienceTooltip term="RIR"><span>RIR</span></ScienceTooltip> {be.rir_target}
                     {completedSets > 0 && (
                       <span className="ml-2 text-brand">{completedSets}/{totalSets} done</span>
                     )}
@@ -271,25 +311,25 @@ export default function TodayPage() {
                     onClick={(e) => { e.stopPropagation(); setDetailExercise(be); }}
                     className="p-2 min-h-11 min-w-11 hover:bg-surface-3 rounded-lg transition-colors flex items-center justify-center"
                   >
-                    <Info size={14} className="text-neutral-500" />
+                    <Info size={14} className="text-faint" />
                   </button>
                   {!todaySession && (
                     <button
                       onClick={(e) => { e.stopPropagation(); setSwapTarget(be); }}
                       className="p-2 min-h-11 min-w-11 hover:bg-surface-3 rounded-lg transition-colors flex items-center justify-center"
                     >
-                      <ArrowLeftRight size={14} className="text-neutral-500" />
+                      <ArrowLeftRight size={14} className="text-faint" />
                     </button>
                   )}
                   <button
                     onClick={(e) => { e.stopPropagation(); setVideoExpanded(videoExpanded === be.id ? null : be.id); }}
                     className={`p-2 min-h-11 min-w-11 hover:bg-surface-3 rounded-lg transition-colors flex items-center justify-center ${
-                      videoExpanded === be.id ? 'text-brand' : 'text-neutral-500'
+                      videoExpanded === be.id ? 'text-brand' : 'text-faint'
                     }`}
                   >
                     <Video size={14} />
                   </button>
-                  {isExpanded ? <ChevronUp size={18} className="text-neutral-500" /> : <ChevronDown size={18} className="text-neutral-500" />}
+                  {isExpanded ? <ChevronUp size={18} className="text-faint" /> : <ChevronDown size={18} className="text-faint" />}
                 </div>
               </button>
 
@@ -333,7 +373,7 @@ export default function TodayPage() {
                         href={`https://www.youtube.com/results?search_query=${encodeURIComponent(be.exercise.name + ' exercise form')}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center justify-center gap-2 w-full py-2.5 min-h-11 bg-surface-3 rounded-xl text-neutral-400 text-sm hover:text-white transition-colors"
+                        className="flex items-center justify-center gap-2 w-full py-2.5 min-h-11 bg-surface-3 rounded-xl text-muted text-sm hover:text-foreground transition-colors"
                       >
                         <Video size={14} />
                         Watch video tutorial on YouTube
@@ -344,7 +384,7 @@ export default function TodayPage() {
                       href={`https://www.youtube.com/results?search_query=${encodeURIComponent(be.exercise.name + ' exercise form')}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center justify-center gap-2 w-full py-3 min-h-11 bg-surface-3 rounded-xl text-neutral-400 text-sm hover:text-white transition-colors"
+                      className="flex items-center justify-center gap-2 w-full py-3 min-h-11 bg-surface-3 rounded-xl text-muted text-sm hover:text-foreground transition-colors"
                     >
                       <Video size={14} />
                       Search exercise tutorial on YouTube
@@ -357,7 +397,7 @@ export default function TodayPage() {
               {isExpanded && todaySession && (
                 <div className="px-4 pb-4 space-y-1">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-neutral-500 text-xs">
+                    <span className="text-faint text-xs">
                       {be.exercise.movement_pool.replace(/_/g, ' ')}
                     </span>
                     <RestTimerButton
@@ -367,7 +407,7 @@ export default function TodayPage() {
                   </div>
                   {lastSet?.weight && (
                     <div className="flex items-center gap-2 py-1.5 mb-1 border-b border-border">
-                      <span className="text-neutral-500 text-xs">Last session:</span>
+                      <span className="text-faint text-xs">Last session:</span>
                       <span className="text-brand text-xs font-medium">
                         {lastSet.weight} lbs × {lastSet.reps ?? '?'} reps
                       </span>
@@ -386,6 +426,7 @@ export default function TodayPage() {
                         previousReps={existingSet?.reps}
                         lastWeight={lastSet?.weight}
                         lastReps={lastSet?.reps}
+                        progressionHint={progressionHints.get(be.exercise_id) ?? null}
                         onLog={async (weight, reps, rir) => {
                           await logSet(todaySession.id, be.exercise_id, i + 1, weight, reps, rir);
                           restTimer.start(be.rest_seconds);

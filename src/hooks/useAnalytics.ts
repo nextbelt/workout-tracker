@@ -36,6 +36,14 @@ interface NutritionTrend {
   fat: number;
 }
 
+interface MoodCorrelationPoint {
+  date: string;
+  mood: string;
+  moodNum: number;
+  totalVolume: number;
+  energy: number;
+}
+
 export function useAnalytics() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
@@ -194,6 +202,49 @@ export function useAnalytics() {
     return Array.from(byDate.entries()).map(([date, totals]) => ({ date, ...totals }));
   }, [user]);
 
+  const getMoodCorrelation = useCallback(async (days = 90): Promise<MoodCorrelationPoint[]> => {
+    if (!user) return [];
+
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - days);
+
+    const { data: sessions } = await supabase
+      .from('workout_sessions')
+      .select('id, scheduled_date, pre_mood, energy_level')
+      .eq('user_id', user.id)
+      .not('completed_at', 'is', null)
+      .not('pre_mood', 'is', null)
+      .gte('scheduled_date', cutoff.toISOString().split('T')[0])
+      .order('scheduled_date');
+
+    if (!sessions || sessions.length === 0) return [];
+
+    type MoodSession = { id: string; scheduled_date: string; pre_mood: string; energy_level: number | null };
+    const typed = sessions as unknown as MoodSession[];
+    const sessionIds = typed.map((s) => s.id);
+
+    const { data: sets } = await supabase
+      .from('set_logs')
+      .select('session_id, weight, reps')
+      .eq('user_id', user.id)
+      .in('session_id', sessionIds);
+
+    const volBySession = new Map<string, number>();
+    for (const s of (sets ?? []) as Array<{ session_id: string; weight: number | null; reps: number | null }>) {
+      volBySession.set(s.session_id, (volBySession.get(s.session_id) ?? 0) + ((s.weight ?? 0) * (s.reps ?? 0)));
+    }
+
+    const moodMap: Record<string, number> = { fired_up: 4, steady: 3, low: 2, beat_up: 1 };
+
+    return typed.map((s) => ({
+      date: s.scheduled_date.slice(5),
+      mood: s.pre_mood,
+      moodNum: moodMap[s.pre_mood] ?? 2,
+      totalVolume: volBySession.get(s.id) ?? 0,
+      energy: s.energy_level ?? 3,
+    }));
+  }, [user]);
+
   return {
     loading,
     getVolumeOverTime,
@@ -201,5 +252,6 @@ export function useAnalytics() {
     getConsistency,
     getRecoveryData,
     getNutritionTrends,
+    getMoodCorrelation,
   };
 }

@@ -40,7 +40,7 @@ const FEATURES = [
 
 export default function LandingPage({ onGetStarted }: LandingPageProps) {
   return (
-    <div className="min-h-dvh bg-black text-white overflow-y-auto">
+    <div className="min-h-dvh bg-bg text-foreground overflow-y-auto">
       {/* Hero */}
       <section className="relative flex flex-col items-center justify-center min-h-dvh px-6 py-20">
         {/* Background glow */}
@@ -54,7 +54,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
             <WorkInLogo size="xl" />
           </div>
 
-          <p className="text-neutral-400 text-xs tracking-[0.4em] uppercase mb-8 animate-fade-in" style={{ animationDelay: '0.1s' }}>
+          <p className="text-muted text-xs tracking-[0.4em] uppercase mb-8 animate-fade-in" style={{ animationDelay: '0.1s' }}>
             AI-Powered Training
           </p>
 
@@ -64,7 +64,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
             <span className="text-brand">Start WorkIN.</span>
           </h1>
 
-          <p className="text-neutral-400 text-lg leading-relaxed mb-10 max-w-md animate-fade-in" style={{ animationDelay: '0.3s' }}>
+          <p className="text-muted text-lg leading-relaxed mb-10 max-w-md animate-fade-in" style={{ animationDelay: '0.3s' }}>
             Hypertrophy programming that adapts to you. Track lifts, macros, and recovery — 
             all powered by insights from AI.
           </p>
@@ -82,7 +82,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
         {/* Scroll indicator */}
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 animate-fade-in" style={{ animationDelay: '0.6s' }}>
           <span className="text-neutral-600 text-xs uppercase tracking-widest">Explore</span>
-          <div className="w-5 h-8 rounded-full border-2 border-neutral-700 flex items-start justify-center p-1">
+          <div className="w-5 h-8 rounded-full border-2 border-border flex items-start justify-center p-1">
             <div className="w-1 h-2 bg-brand rounded-full animate-bounce" />
           </div>
         </div>
@@ -92,12 +92,12 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
       <section className="px-6 py-24 bg-surface">
         <div className="max-w-3xl mx-auto text-center">
           <h2 className="text-3xl sm:text-4xl font-black mb-6">
-            It&apos;s not a work<span className="text-neutral-500">out</span>.
+            It&apos;s not a work<span className="text-faint">out</span>.
             <br />
             It&apos;s a Work<span className="text-brand">IN</span>.
           </h2>
-          <p className="text-neutral-400 text-lg leading-relaxed max-w-xl mx-auto">
-            WorkIN means working out with <span className="text-white font-semibold">IN</span>sight. 
+          <p className="text-muted text-lg leading-relaxed max-w-xl mx-auto">
+            WorkIN means working out with <span className="text-foreground font-semibold">IN</span>sight. 
             Every rep is tracked, every pattern analyzed, every session smarter than the last. 
             Your training journal meets AI coaching.
           </p>
@@ -108,7 +108,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
       <section className="px-6 py-24">
         <div className="max-w-4xl mx-auto">
           <h2 className="text-2xl font-black text-center mb-4">Built for lifters who mean business</h2>
-          <p className="text-neutral-500 text-center mb-12">Everything you need. Nothing you don&apos;t.</p>
+          <p className="text-faint text-center mb-12">Everything you need. Nothing you don&apos;t.</p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {FEATURES.map((feature, i) => (
@@ -119,8 +119,8 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
                 <div className="w-12 h-12 bg-brand/10 text-brand rounded-xl flex items-center justify-center mb-4 group-hover:bg-brand/20 transition-colors">
                   {feature.icon}
                 </div>
-                <h3 className="text-white font-bold mb-2">{feature.title}</h3>
-                <p className="text-neutral-500 text-sm leading-relaxed">{feature.description}</p>
+                <h3 className="text-foreground font-bold mb-2">{feature.title}</h3>
+                <p className="text-faint text-sm leading-relaxed">{feature.description}</p>
               </div>
             ))}
           </div>
@@ -132,7 +132,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
         <div className="max-w-xl mx-auto text-center">
           <WorkInLogo size="md" className="justify-center mb-6" />
           <h2 className="text-2xl font-black mb-4">Ready to level up?</h2>
-          <p className="text-neutral-400 mb-8">
+          <p className="text-muted mb-8">
             Free. No credit card. Just start lifting smarter.
           </p>
           <button

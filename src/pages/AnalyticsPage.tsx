@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { BarChart3, TrendingUp, Calendar, Heart, Apple, Loader2, ChevronDown } from 'lucide-react';
+import { BarChart3, TrendingUp, Calendar, Heart, Apple, Loader2, ChevronDown, Smile } from 'lucide-react';
 import { useAnalytics } from '../hooks/useAnalytics';
 import { useWorkout } from '../hooks/useWorkout';
 import {
@@ -14,9 +14,12 @@ import {
   CartesianGrid,
   AreaChart,
   Area,
+  ScatterChart,
+  Scatter,
+  ZAxis,
 } from 'recharts';
 
-type TabKey = 'volume' | 'progression' | 'consistency' | 'recovery' | 'nutrition';
+type TabKey = 'volume' | 'progression' | 'consistency' | 'recovery' | 'nutrition' | 'mood';
 
 const TABS: Array<{ key: TabKey; label: string; Icon: typeof BarChart3 }> = [
   { key: 'volume', label: 'Volume', Icon: BarChart3 },
@@ -24,6 +27,7 @@ const TABS: Array<{ key: TabKey; label: string; Icon: typeof BarChart3 }> = [
   { key: 'consistency', label: 'Streak', Icon: Calendar },
   { key: 'recovery', label: 'Recovery', Icon: Heart },
   { key: 'nutrition', label: 'Nutrition', Icon: Apple },
+  { key: 'mood', label: 'Mood', Icon: Smile },
 ];
 
 const CHART_COLORS = {
@@ -53,6 +57,8 @@ export default function AnalyticsPage() {
   const [consistencyData, setConsistencyData] = useState<Array<Record<string, any>>>([]);
   const [recoveryData, setRecoveryData] = useState<Array<Record<string, unknown>>>([]);
   const [nutritionData, setNutritionData] = useState<Array<Record<string, unknown>>>([]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [moodData, setMoodData] = useState<Array<Record<string, any>>>([]);
   const [selectedExercise, setSelectedExercise] = useState<string>('');
 
   const loadTab = useCallback(async (tab: TabKey) => {
@@ -100,6 +106,11 @@ export default function AnalyticsPage() {
           protein: Math.round(d.protein),
           calories: Math.round(d.calories),
         })));
+        break;
+      }
+      case 'mood': {
+        const data = await analytics.getMoodCorrelation(90);
+        setMoodData(data);
         break;
       }
     }
@@ -176,7 +187,7 @@ export default function AnalyticsPage() {
                   setSelectedExercise(e.target.value);
                   loadTab('progression');
                 }}
-                className="w-full bg-surface-3 border border-border-2 rounded-lg px-3 py-3 min-h-11 text-white text-sm appearance-none focus:outline-none focus:border-brand"
+                className="w-full bg-surface-3 border border-border-2 rounded-lg px-3 py-3 min-h-11 text-foreground text-sm appearance-none focus:outline-none focus:border-brand"
               >
                 {exercises
                   .filter((e) => e.is_compound)
@@ -191,7 +202,7 @@ export default function AnalyticsPage() {
                     ))}
                 </optgroup>
               </select>
-              <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 pointer-events-none" />
+              <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-faint pointer-events-none" />
             </div>
             {progressionData.length === 0 ? (
               <EmptyState message="No data for this exercise yet." />
@@ -257,7 +268,7 @@ export default function AnalyticsPage() {
             </div>
             {/* Recovery heatmap (simple grid) */}
             <div>
-              <h3 className="text-neutral-400 text-xs font-medium mb-2">Recovery by Day of Week</h3>
+              <h3 className="text-muted text-xs font-medium mb-2">Recovery by Day of Week</h3>
               <div className="grid grid-cols-7 gap-1">
                 {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => {
                   const dayRatings = (recoveryData as Array<{ dayOfWeek: number; ratingNum: number }>).filter((r) => r.dayOfWeek === i);
@@ -267,8 +278,8 @@ export default function AnalyticsPage() {
                   const bg = avg >= 2.5 ? 'bg-green-500/30' : avg >= 1.5 ? 'bg-yellow-500/30' : avg > 0 ? 'bg-red-500/30' : 'bg-surface-3';
                   return (
                     <div key={i} className={`${bg} rounded-lg p-2 text-center`}>
-                      <span className="text-neutral-400 text-xs">{d}</span>
-                      {avg > 0 && <p className="text-white text-xs font-medium mt-0.5">{avg.toFixed(1)}</p>}
+                      <span className="text-muted text-xs">{d}</span>
+                      {avg > 0 && <p className="text-foreground text-xs font-medium mt-0.5">{avg.toFixed(1)}</p>}
                     </div>
                   );
                 })}
@@ -312,12 +323,102 @@ export default function AnalyticsPage() {
             </div>
           </div>
         );
+
+      case 'mood':
+        return moodData.length === 0 ? (
+          <EmptyState message="Log your pre-workout mood to see correlations." />
+        ) : (
+          <div className="space-y-4">
+            {/* Mood vs Volume scatter */}
+            <div>
+              <h3 className="text-muted text-xs font-medium mb-2">Mood vs Total Volume</h3>
+              <div className="h-52">
+                <ResponsiveContainer width="100%" height="100%">
+                  <ScatterChart>
+                    <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.border} />
+                    <XAxis
+                      dataKey="moodNum"
+                      type="number"
+                      domain={[0.5, 4.5]}
+                      ticks={[1, 2, 3, 4]}
+                      tickFormatter={(v: number) => ['', 'Beat Up', 'Low', 'Steady', 'Fired Up'][v] ?? ''}
+                      tick={{ fontSize: 9, fill: CHART_COLORS.text }}
+                      name="Mood"
+                    />
+                    <YAxis
+                      dataKey="totalVolume"
+                      tick={{ fontSize: 10, fill: CHART_COLORS.text }}
+                      name="Volume"
+                    />
+                    <ZAxis dataKey="energy" range={[40, 200]} name="Energy" />
+                    <Tooltip
+                      contentStyle={{ backgroundColor: CHART_COLORS.surface, border: `1px solid ${CHART_COLORS.border}`, borderRadius: '8px' }}
+                      labelStyle={{ color: '#fff' }}
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      formatter={((value: any, name: any) => {
+                        if (name === 'Mood') {
+                          const labels = ['', 'Beat Up', 'Low', 'Steady', 'Fired Up'];
+                          return labels[Number(value)] ?? value;
+                        }
+                        return name === 'Volume' ? `${Number(value).toLocaleString()} lbs` : value;
+                      }) as never}
+                    />
+                    <Scatter data={moodData} fill={CHART_COLORS.brand} />
+                  </ScatterChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+            {/* Mood over time */}
+            <div>
+              <h3 className="text-muted text-xs font-medium mb-2">Mood Over Time</h3>
+              <div className="h-40">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={moodData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.border} />
+                    <XAxis dataKey="date" tick={{ fontSize: 10, fill: CHART_COLORS.text }} />
+                    <YAxis
+                      domain={[0.5, 4.5]}
+                      ticks={[1, 2, 3, 4]}
+                      tickFormatter={(v: number) => ['', '😫', '😐', '💪', '🔥'][v] ?? ''}
+                      tick={{ fontSize: 12, fill: CHART_COLORS.text }}
+                    />
+                    <Tooltip
+                      contentStyle={{ backgroundColor: CHART_COLORS.surface, border: `1px solid ${CHART_COLORS.border}`, borderRadius: '8px' }}
+                      labelStyle={{ color: '#fff' }}
+                    />
+                    <Line type="monotone" dataKey="moodNum" stroke={CHART_COLORS.brand} strokeWidth={2} dot={{ fill: CHART_COLORS.brand }} name="Mood" />
+                    <Line type="monotone" dataKey="energy" stroke={CHART_COLORS.blue} strokeWidth={2} dot={{ fill: CHART_COLORS.blue }} name="Energy" />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+            {/* Mood summary cards */}
+            <div className="grid grid-cols-4 gap-2">
+              {(['fired_up', 'steady', 'low', 'beat_up'] as const).map((m) => {
+                const moodLabels: Record<string, string> = { fired_up: '🔥', steady: '💪', low: '😐', beat_up: '😫' };
+                const count = (moodData as Array<{ mood: string }>).filter((d) => d.mood === m).length;
+                const avgVol = count > 0
+                  ? Math.round((moodData as Array<{ mood: string; totalVolume: number }>)
+                      .filter((d) => d.mood === m)
+                      .reduce((s, d) => s + d.totalVolume, 0) / count)
+                  : 0;
+                return (
+                  <div key={m} className="bg-surface-3 rounded-lg p-2 text-center">
+                    <span className="text-lg">{moodLabels[m]}</span>
+                    <p className="text-foreground text-xs font-medium mt-1">{count}×</p>
+                    {avgVol > 0 && <p className="text-faint text-[10px]">{avgVol.toLocaleString()} avg</p>}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
     }
   };
 
   return (
     <div className="p-4 pb-24 space-y-4">
-      <h1 className="text-2xl font-bold text-white">Analytics</h1>
+      <h1 className="text-2xl font-bold text-foreground">Analytics</h1>
 
       {/* Tab bar */}
       <div className="flex gap-1 bg-surface rounded-xl p-1 overflow-x-auto">
@@ -328,7 +429,7 @@ export default function AnalyticsPage() {
             className={`flex items-center gap-1.5 px-3 py-2 min-h-11 rounded-lg text-xs font-medium transition-colors whitespace-nowrap ${
               activeTab === key
                 ? 'bg-brand/15 text-brand'
-                : 'text-neutral-400 hover:text-neutral-300'
+                : 'text-muted hover:text-secondary'
             }`}
           >
             <Icon size={14} />
@@ -349,7 +450,7 @@ function EmptyState({ message }: { message: string }) {
   return (
     <div className="flex flex-col items-center justify-center h-48 text-center">
       <BarChart3 size={32} className="text-neutral-600 mb-2" />
-      <p className="text-neutral-500 text-sm">{message}</p>
+      <p className="text-faint text-sm">{message}</p>
     </div>
   );
 }

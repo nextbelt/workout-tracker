@@ -70,16 +70,16 @@ export function ScienceTooltip({ term, children }: ScienceTooltipProps) {
           <div className="bg-surface-3 border border-border-2 rounded-xl p-3 shadow-xl animate-fade-in">
             <p className="text-brand text-xs font-semibold mb-1">{term}</p>
             {loading ? (
-              <p className="text-neutral-500 text-xs">Loading...</p>
+              <p className="text-faint text-xs">Loading...</p>
             ) : tooltip ? (
               <>
-                <p className="text-neutral-300 text-xs leading-relaxed">{tooltip.definition}</p>
+                <p className="text-secondary text-xs leading-relaxed">{tooltip.definition}</p>
                 {tooltip.citation && (
                   <p className="text-neutral-600 text-[10px] mt-1.5">{tooltip.citation}</p>
                 )}
               </>
             ) : (
-              <p className="text-neutral-500 text-xs">No definition available.</p>
+              <p className="text-faint text-xs">No definition available.</p>
             )}
             {/* Arrow */}
             <div className="absolute top-full left-1/2 -translate-x-1/2 w-2 h-2 bg-surface-3 border-r border-b border-border-2 rotate-45 -mt-1" />

@@ -31,14 +31,14 @@ export function RestTimerWidget() {
         </svg>
         {isComplete
           ? <Flame size={16} className="absolute text-brand animate-pulse" />
-          : <Timer size={16} className="absolute text-neutral-300" />
+          : <Timer size={16} className="absolute text-secondary" />
         }
       </div>
       <div className="flex-1">
-        <p className={`text-2xl font-mono font-bold ${isComplete ? 'text-brand' : 'text-white'}`}>
+        <p className={`text-2xl font-mono font-bold ${isComplete ? 'text-brand' : 'text-foreground'}`}>
           {mins}:{secs.toString().padStart(2, '0')}
         </p>
-        <p className={`text-xs font-medium ${isComplete ? 'text-brand' : 'text-neutral-400'}`}>
+        <p className={`text-xs font-medium ${isComplete ? 'text-brand' : 'text-muted'}`}>
           {isComplete ? "Let's keep WorkIN! 💪" : 'Resting...'}
         </p>
       </div>
@@ -49,13 +49,13 @@ export function RestTimerWidget() {
             className="p-2 min-h-11 min-w-11 bg-surface-3 hover:bg-neutral-600 rounded-lg transition-colors flex items-center justify-center"
             title="+30s"
           >
-            <Plus size={16} className="text-neutral-300" />
+            <Plus size={16} className="text-secondary" />
           </button>
         )}
         <button
           onClick={dismiss}
           className={`p-2 min-h-11 min-w-11 rounded-lg transition-colors flex items-center justify-center ${
-            isComplete ? 'bg-brand hover:bg-brand-dark text-white' : 'bg-surface-3 hover:bg-neutral-600 text-neutral-300'
+            isComplete ? 'bg-brand hover:bg-brand-dark text-white' : 'bg-surface-3 hover:bg-neutral-600 text-secondary'
           }`}
           title={isComplete ? 'Next Set' : 'Dismiss'}
         >
@@ -75,7 +75,7 @@ export function RestTimerButton({ restSeconds, onStart }: RestTimerButtonProps) 
   return (
     <button
       onClick={() => onStart(restSeconds)}
-      className="flex items-center gap-1 px-2 py-1 text-xs text-neutral-400 hover:text-neutral-200 transition-colors"
+      className="flex items-center gap-1 px-2 py-1 text-xs text-muted hover:text-secondary transition-colors"
     >
       <Timer size={12} />
       <span>{Math.floor(restSeconds / 60)}:{(restSeconds % 60).toString().padStart(2, '0')}</span>

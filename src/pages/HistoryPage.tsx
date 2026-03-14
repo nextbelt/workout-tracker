@@ -95,15 +95,15 @@ export default function HistoryPage() {
     return (
       <div className="p-4 flex flex-col items-center justify-center h-full gap-3 text-center">
         <Dumbbell size={40} className="text-neutral-600" />
-        <h2 className="text-xl font-bold text-white">No History Yet</h2>
-        <p className="text-neutral-400">Complete a workout to see it here.</p>
+        <h2 className="text-xl font-bold text-foreground">No History Yet</h2>
+        <p className="text-muted">Complete a workout to see it here.</p>
       </div>
     );
   }
 
   return (
     <div className="p-4 pb-24 space-y-3">
-      <h1 className="text-2xl font-bold text-white mb-4">History</h1>
+      <h1 className="text-2xl font-bold text-foreground mb-4">History</h1>
 
       {sessions.map((session) => {
         const isExpanded = expandedSession === session.id;
@@ -128,11 +128,11 @@ export default function HistoryPage() {
             >
               <div className="text-left">
                 <div className="flex items-center gap-2">
-                  <p className="text-white font-medium">
+                  <p className="text-foreground font-medium">
                     {DAY_LABELS[session.day_template] ?? session.day_template}
                   </p>
                   {session.recovery_rating && (
-                    <span className={`text-xs font-medium capitalize ${RECOVERY_COLORS[session.recovery_rating] ?? 'text-neutral-400'}`}>
+                    <span className={`text-xs font-medium capitalize ${RECOVERY_COLORS[session.recovery_rating] ?? 'text-muted'}`}>
                       {session.recovery_rating}
                     </span>
                   )}
@@ -140,7 +140,7 @@ export default function HistoryPage() {
                     <span className="text-xs text-yellow-400 bg-yellow-500/15 px-1.5 py-0.5 rounded">Deload</span>
                   )}
                 </div>
-                <div className="flex items-center gap-2 text-neutral-500 text-xs mt-0.5">
+                <div className="flex items-center gap-2 text-faint text-xs mt-0.5">
                   <Calendar size={11} />
                   <span>{completedDate}</span>
                   <span>·</span>
@@ -149,24 +149,24 @@ export default function HistoryPage() {
                   <span>{session.sets.length} sets</span>
                 </div>
               </div>
-              {isExpanded ? <ChevronUp size={18} className="text-neutral-500" /> : <ChevronDown size={18} className="text-neutral-500" />}
+              {isExpanded ? <ChevronUp size={18} className="text-faint" /> : <ChevronDown size={18} className="text-faint" />}
             </button>
 
             {isExpanded && (
               <div className="px-4 pb-4 space-y-3">
                 {session.notes && (
-                  <p className="text-neutral-400 text-sm italic bg-surface-3/50 rounded-lg p-2">{session.notes}</p>
+                  <p className="text-muted text-sm italic bg-surface-3/50 rounded-lg p-2">{session.notes}</p>
                 )}
 
                 {Array.from(exerciseGroups.entries()).map(([exId, sets]) => (
                   <div key={exId} className="space-y-1">
-                    <p className="text-neutral-300 text-sm font-medium">{sets[0]?.exercise_name ?? 'Unknown'}</p>
+                    <p className="text-secondary text-sm font-medium">{sets[0]?.exercise_name ?? 'Unknown'}</p>
                     {sets.map((set) => (
-                      <div key={set.id} className="flex items-center gap-3 text-neutral-500 text-xs bg-surface-3/30 rounded px-2 py-1.5">
+                      <div key={set.id} className="flex items-center gap-3 text-faint text-xs bg-surface-3/30 rounded px-2 py-1.5">
                         <span className="text-neutral-600 w-6">S{set.set_number}</span>
-                        <span className="text-neutral-300">{set.weight ?? '–'} lbs</span>
+                        <span className="text-secondary">{set.weight ?? '–'} lbs</span>
                         <span>×</span>
-                        <span className="text-neutral-300">{set.reps ?? '–'} reps</span>
+                        <span className="text-secondary">{set.reps ?? '–'} reps</span>
                         {set.rir !== null && set.rir !== undefined && (
                           <span className="ml-auto">RIR {set.rir}</span>
                         )}

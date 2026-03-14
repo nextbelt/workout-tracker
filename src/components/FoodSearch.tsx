@@ -64,45 +64,45 @@ export function FoodSearch({ mealType, onAdd, searchFood, recentFoods = [], onCl
     <div className="fixed inset-0 z-50 bg-black/60 flex items-end justify-center">
       <div className="w-full max-w-lg bg-surface-2 rounded-t-2xl p-4 max-h-[80vh] flex flex-col" style={{ paddingBottom: 'calc(1rem + var(--safe-bottom))' }}>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-bold text-white capitalize">Add to {mealType}</h2>
+          <h2 className="text-lg font-bold text-foreground capitalize">Add to {mealType}</h2>
           <button onClick={onClose} className="p-2 min-h-11 min-w-11 bg-surface-3 rounded-lg flex items-center justify-center">
-            <X size={18} className="text-neutral-400" />
+            <X size={18} className="text-muted" />
           </button>
         </div>
 
         {/* Search bar */}
         <div className="relative mb-3">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500" />
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-faint" />
           <input
             type="text"
             placeholder="Search foods..."
             value={query}
             onChange={(e) => handleSearch(e.target.value)}
             autoFocus
-            className="w-full bg-surface-3 border border-border-2 rounded-xl pl-10 pr-4 py-3 min-h-11 text-white placeholder-neutral-500 focus:outline-none focus:border-brand transition-colors"
+            className="w-full bg-surface-3 border border-border-2 rounded-xl pl-10 pr-4 py-3 min-h-11 text-foreground placeholder-neutral-500 focus:outline-none focus:border-brand transition-colors"
           />
         </div>
 
         {/* Selected food detail */}
         {selectedFood && (
           <div className="bg-surface-3 rounded-xl p-4 mb-3 border border-brand/20">
-            <p className="text-white font-medium">{selectedFood.name}</p>
-            {selectedFood.brand && <p className="text-neutral-500 text-xs">{selectedFood.brand}</p>}
+            <p className="text-foreground font-medium">{selectedFood.name}</p>
+            {selectedFood.brand && <p className="text-faint text-xs">{selectedFood.brand}</p>}
             <div className="flex items-center gap-3 mt-2">
-              <label className="text-neutral-400 text-sm">Servings:</label>
+              <label className="text-muted text-sm">Servings:</label>
               <input
                 type="number"
                 step="0.5"
                 min="0.25"
                 value={servings}
                 onChange={(e) => setServings(e.target.value)}
-                className="w-16 bg-surface-3 border border-neutral-600 rounded-lg px-2 py-1 min-h-11 text-center text-white focus:outline-none focus:border-brand"
+                className="w-16 bg-surface-3 border border-neutral-600 rounded-lg px-2 py-1 min-h-11 text-center text-foreground focus:outline-none focus:border-brand"
               />
-              <span className="text-neutral-500 text-xs">
+              <span className="text-faint text-xs">
                 ({selectedFood.serving_description ?? `${servingGrams}g`})
               </span>
             </div>
-            <div className="flex gap-3 mt-2 text-xs text-neutral-400">
+            <div className="flex gap-3 mt-2 text-xs text-muted">
               <span>{Math.round(selectedFood.calories_per_100g * multiplier)} cal</span>
               <span>{Math.round(selectedFood.protein_per_100g * multiplier)}g P</span>
               <span>{Math.round(selectedFood.carbs_per_100g * multiplier)}g C</span>
@@ -129,7 +129,7 @@ export function FoodSearch({ mealType, onAdd, searchFood, recentFoods = [], onCl
 
           {!loading && results.length === 0 && query.length < 2 && recentFoods.length > 0 && (
             <>
-              <p className="text-neutral-500 text-xs font-medium px-1 mb-1">Recent</p>
+              <p className="text-faint text-xs font-medium px-1 mb-1">Recent</p>
               {recentFoods.slice(0, 5).map((food, idx) => (
                 <FoodResultRow key={`recent-${idx}`} food={food} onSelect={setSelectedFood} />
               ))}
@@ -141,7 +141,7 @@ export function FoodSearch({ mealType, onAdd, searchFood, recentFoods = [], onCl
           ))}
 
           {!loading && results.length === 0 && query.length >= 2 && (
-            <p className="text-neutral-500 text-center py-6 text-sm">No results found.</p>
+            <p className="text-faint text-center py-6 text-sm">No results found.</p>
           )}
         </div>
       </div>
@@ -155,9 +155,9 @@ function FoodResultRow({ food, onSelect }: { food: FoodResult; onSelect: (f: Foo
       onClick={() => onSelect(food)}
       className="w-full text-left p-3 min-h-11 bg-surface-3/50 hover:bg-surface-3 rounded-xl transition-colors"
     >
-      <p className="text-white text-sm font-medium truncate">{food.name}</p>
+      <p className="text-foreground text-sm font-medium truncate">{food.name}</p>
       <div className="flex items-center gap-2 mt-0.5">
-        {food.brand && <span className="text-neutral-500 text-xs">{food.brand}</span>}
+        {food.brand && <span className="text-faint text-xs">{food.brand}</span>}
         <span className="text-neutral-600 text-xs">
           {Math.round(food.calories_per_100g * (food.serving_grams ?? 100) / 100)} cal · {Math.round(food.protein_per_100g * (food.serving_grams ?? 100) / 100)}g P
         </span>
@@ -197,9 +197,9 @@ export function ManualFoodEntry({ mealType, onAdd, onClose }: ManualEntryProps) 
     <div className="fixed inset-0 z-50 bg-black/60 flex items-end justify-center">
       <div className="w-full max-w-lg bg-surface-2 rounded-t-2xl p-6" style={{ paddingBottom: 'calc(1.5rem + var(--safe-bottom))' }}>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-white capitalize">Manual Entry – {mealType}</h2>
+          <h2 className="text-lg font-bold text-foreground capitalize">Manual Entry – {mealType}</h2>
           <button onClick={onClose} className="p-2 min-h-11 min-w-11 bg-surface-3 rounded-lg flex items-center justify-center">
-            <X size={18} className="text-neutral-400" />
+            <X size={18} className="text-muted" />
           </button>
         </div>
 
@@ -208,28 +208,28 @@ export function ManualFoodEntry({ mealType, onAdd, onClose }: ManualEntryProps) 
             placeholder="Food name"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full bg-surface-3 border border-border-2 rounded-xl px-4 py-3 min-h-11 text-white placeholder-neutral-500 focus:outline-none focus:border-brand"
+            className="w-full bg-surface-3 border border-border-2 rounded-xl px-4 py-3 min-h-11 text-foreground placeholder-neutral-500 focus:outline-none focus:border-brand"
           />
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-neutral-500 text-xs">Calories</label>
+              <label className="text-faint text-xs">Calories</label>
               <input type="number" value={calories} onChange={(e) => setCalories(e.target.value)}
-                className="w-full bg-surface-3 border border-border-2 rounded-xl px-4 py-3 min-h-11 text-white focus:outline-none focus:border-brand" />
+                className="w-full bg-surface-3 border border-border-2 rounded-xl px-4 py-3 min-h-11 text-foreground focus:outline-none focus:border-brand" />
             </div>
             <div>
-              <label className="text-neutral-500 text-xs">Protein (g)</label>
+              <label className="text-faint text-xs">Protein (g)</label>
               <input type="number" value={protein} onChange={(e) => setProtein(e.target.value)}
-                className="w-full bg-surface-3 border border-border-2 rounded-xl px-4 py-3 min-h-11 text-white focus:outline-none focus:border-brand" />
+                className="w-full bg-surface-3 border border-border-2 rounded-xl px-4 py-3 min-h-11 text-foreground focus:outline-none focus:border-brand" />
             </div>
             <div>
-              <label className="text-neutral-500 text-xs">Carbs (g)</label>
+              <label className="text-faint text-xs">Carbs (g)</label>
               <input type="number" value={carbs} onChange={(e) => setCarbs(e.target.value)}
-                className="w-full bg-surface-3 border border-border-2 rounded-xl px-4 py-3 min-h-11 text-white focus:outline-none focus:border-brand" />
+                className="w-full bg-surface-3 border border-border-2 rounded-xl px-4 py-3 min-h-11 text-foreground focus:outline-none focus:border-brand" />
             </div>
             <div>
-              <label className="text-neutral-500 text-xs">Fat (g)</label>
+              <label className="text-faint text-xs">Fat (g)</label>
               <input type="number" value={fat} onChange={(e) => setFat(e.target.value)}
-                className="w-full bg-surface-3 border border-border-2 rounded-xl px-4 py-3 min-h-11 text-white focus:outline-none focus:border-brand" />
+                className="w-full bg-surface-3 border border-border-2 rounded-xl px-4 py-3 min-h-11 text-foreground focus:outline-none focus:border-brand" />
             </div>
           </div>
           <button

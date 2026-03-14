@@ -34,8 +34,8 @@ export function MoodCheck({ onSubmit, onSkip }: MoodCheckProps) {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-xl font-bold text-white">Pre-Workout Check</h2>
-            <p className="text-neutral-400 text-sm">
+            <h2 className="text-xl font-bold text-foreground">Pre-Workout Check</h2>
+            <p className="text-muted text-sm">
               {step === 'mood' && 'How are you feeling?'}
               {step === 'energy' && 'Energy level?'}
               {step === 'time' && 'Time available?'}
@@ -45,7 +45,7 @@ export function MoodCheck({ onSubmit, onSkip }: MoodCheckProps) {
             onClick={onSkip}
             className="p-2 min-h-11 min-w-11 hover:bg-surface-3 rounded-lg transition-colors flex items-center justify-center"
           >
-            <X size={18} className="text-neutral-400" />
+            <X size={18} className="text-muted" />
           </button>
         </div>
 
@@ -77,8 +77,8 @@ export function MoodCheck({ onSubmit, onSkip }: MoodCheckProps) {
                   }`}
                 >
                   <Icon size={28} className={opt.color} />
-                  <span className="text-white font-medium text-sm">{opt.label}</span>
-                  <span className="text-neutral-500 text-xs text-center">{opt.desc}</span>
+                  <span className="text-foreground font-medium text-sm">{opt.label}</span>
+                  <span className="text-faint text-xs text-center">{opt.desc}</span>
                 </button>
               );
             })}
@@ -98,14 +98,14 @@ export function MoodCheck({ onSubmit, onSkip }: MoodCheckProps) {
                       ? 'bg-brand text-white scale-110'
                       : energy > level
                         ? 'bg-brand/20 text-brand'
-                        : 'bg-surface-3 text-neutral-500'
+                        : 'bg-surface-3 text-faint'
                   }`}
                 >
                   {level}
                 </button>
               ))}
             </div>
-            <div className="flex justify-between text-xs text-neutral-500">
+            <div className="flex justify-between text-xs text-faint">
               <span>Exhausted</span>
               <span>Peak</span>
             </div>
@@ -123,7 +123,7 @@ export function MoodCheck({ onSubmit, onSkip }: MoodCheckProps) {
                   className={`flex items-center gap-1.5 px-4 py-3 min-h-11 rounded-xl text-sm font-medium transition-all ${
                     timeMinutes === mins
                       ? 'bg-brand text-white'
-                      : 'bg-surface-3 text-neutral-400 border border-border-2'
+                      : 'bg-surface-3 text-muted border border-border-2'
                   }`}
                 >
                   <Clock size={14} />
@@ -139,7 +139,7 @@ export function MoodCheck({ onSubmit, onSkip }: MoodCheckProps) {
           {step !== 'mood' && (
             <button
               onClick={() => setStep(step === 'time' ? 'energy' : 'mood')}
-              className="flex-1 py-3 min-h-11 rounded-xl bg-surface-3 text-neutral-300 font-medium transition-colors hover:bg-surface-3/80"
+              className="flex-1 py-3 min-h-11 rounded-xl bg-surface-3 text-secondary font-medium transition-colors hover:bg-surface-3/80"
             >
               Back
             </button>
@@ -157,7 +157,7 @@ export function MoodCheck({ onSubmit, onSkip }: MoodCheckProps) {
         {/* Skip link */}
         <button
           onClick={onSkip}
-          className="w-full text-center text-neutral-500 text-sm hover:text-neutral-300 transition-colors min-h-11 flex items-center justify-center"
+          className="w-full text-center text-faint text-sm hover:text-secondary transition-colors min-h-11 flex items-center justify-center"
         >
           Skip check & run standard program
         </button>

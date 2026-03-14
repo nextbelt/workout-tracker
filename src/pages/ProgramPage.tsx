@@ -79,8 +79,8 @@ export default function ProgramPage() {
     return (
       <div className="p-4 flex flex-col items-center justify-center h-full gap-4">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-white mb-2">No Active Program</h1>
-          <p className="text-neutral-400">Create your first training block to see the program overview.</p>
+          <h1 className="text-2xl font-bold text-foreground mb-2">No Active Program</h1>
+          <p className="text-muted">Create your first training block to see the program overview.</p>
         </div>
         <button
           onClick={handleCreateBlock}
@@ -99,13 +99,13 @@ export default function ProgramPage() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Program</h1>
-          <p className="text-neutral-400 text-sm">Block {activeBlock.block_number} · {blockExercises.length} exercises</p>
+          <h1 className="text-2xl font-bold text-foreground">Program</h1>
+          <p className="text-muted text-sm">Block {activeBlock.block_number} · {blockExercises.length} exercises</p>
         </div>
         <button
           onClick={handleRotateBlock}
           disabled={rotating}
-          className="bg-surface-3 hover:bg-surface-3 text-neutral-300 font-medium rounded-xl px-4 py-2 min-h-11 transition-colors disabled:opacity-50 flex items-center gap-2 text-sm border border-border-2"
+          className="bg-surface-3 hover:bg-surface-3 text-secondary font-medium rounded-xl px-4 py-2 min-h-11 transition-colors disabled:opacity-50 flex items-center gap-2 text-sm border border-border-2"
         >
           {rotating ? <Loader2 size={16} className="animate-spin" /> : <RotateCw size={16} />}
           Next Block
@@ -114,7 +114,7 @@ export default function ProgramPage() {
 
       {/* Training mode selector */}
       <div className="bg-surface-2 rounded-xl p-3">
-        <p className="text-neutral-500 text-xs mb-2 font-medium">TRAINING MODE</p>
+        <p className="text-faint text-xs mb-2 font-medium">TRAINING MODE</p>
         <div className="flex gap-2">
           {(Object.entries(MODE_LABELS) as Array<[TrainingMode, string]>).map(([mode, label]) => (
             <button
@@ -123,7 +123,7 @@ export default function ProgramPage() {
               className={`flex-1 py-2 min-h-11 rounded-lg text-sm font-medium transition-colors ${
                 profile?.training_mode === mode
                 ? 'bg-brand/15 text-brand border border-brand/30'
-                : 'bg-surface-3 text-neutral-400 border border-border-2'
+                : 'bg-surface-3 text-muted border border-border-2'
               }`}
             >
               {label}
@@ -147,11 +147,11 @@ export default function ProgramPage() {
               <div className="flex items-center gap-3">
                 <div className={`w-2 h-2 rounded-full ${isUpper ? 'bg-blue-400' : 'bg-orange-400'}`} />
                 <div className="text-left">
-                  <p className="text-white font-semibold">{DAY_LABELS[day]}</p>
-                  <p className="text-neutral-500 text-xs">{exercises.length} exercises</p>
+                  <p className="text-foreground font-semibold">{DAY_LABELS[day]}</p>
+                  <p className="text-faint text-xs">{exercises.length} exercises</p>
                 </div>
               </div>
-              {isExpanded ? <ChevronUp size={18} className="text-neutral-500" /> : <ChevronDown size={18} className="text-neutral-500" />}
+              {isExpanded ? <ChevronUp size={18} className="text-faint" /> : <ChevronDown size={18} className="text-faint" />}
             </button>
 
             {isExpanded && (
@@ -162,10 +162,10 @@ export default function ProgramPage() {
                       <span className="text-neutral-600 text-xs font-mono w-5">{idx + 1}</span>
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5">
-                          <p className="text-white text-sm font-medium truncate">{be.exercise.name}</p>
+                          <p className="text-foreground text-sm font-medium truncate">{be.exercise.name}</p>
                           {be.is_anchor && <Anchor size={10} className="text-brand shrink-0" />}
                         </div>
-                        <p className="text-neutral-500 text-xs">
+                        <p className="text-faint text-xs">
                           {be.sets}×{be.rep_min}–{be.rep_max} · Rest {Math.floor(be.rest_seconds / 60)}:{(be.rest_seconds % 60).toString().padStart(2, '0')} · RIR {be.rir_target}
                         </p>
                       </div>
@@ -175,7 +175,7 @@ export default function ProgramPage() {
                         onClick={() => setSwapTarget(be)}
                         className="p-2 min-h-11 min-w-11 hover:bg-surface-3 rounded-lg transition-colors flex items-center justify-center shrink-0"
                       >
-                        <ArrowLeftRight size={14} className="text-neutral-500" />
+                        <ArrowLeftRight size={14} className="text-faint" />
                       </button>
                     )}
                   </div>

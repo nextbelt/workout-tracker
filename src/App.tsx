@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom';
 import { Dumbbell, CalendarDays, Apple, History, Settings, BarChart3, BookOpen, Loader2 } from 'lucide-react';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import { RestTimerProvider } from './context/RestTimerContext';
+import { ThemeProvider } from './context/ThemeContext';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import OnboardingPage from './pages/OnboardingPage';
@@ -30,13 +31,13 @@ const MORE_PAGES = [
 ] as const;
 
 function AppShell() {
-  const { user, profile, loading } = useAuth();
+  const { user, profile, loading, profileLoading } = useAuth();
   const [showLanding, setShowLanding] = useState(true);
   const [showMore, setShowMore] = useState(false);
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-dvh bg-black">
+      <div className="flex items-center justify-center h-dvh bg-bg">
         <Loader2 size={32} className="text-brand animate-spin" />
       </div>
     );
@@ -46,11 +47,21 @@ function AppShell() {
     return <LandingPage onGetStarted={() => setShowLanding(false)} />;
   }
   if (!user) return <LoginPage />;
+
+  // Wait for profile fetch to finish before deciding onboarding vs main app
+  if (profileLoading) {
+    return (
+      <div className="flex items-center justify-center h-dvh bg-bg">
+        <Loader2 size={32} className="text-brand animate-spin" />
+      </div>
+    );
+  }
+
   if (!profile) return <OnboardingPage />;
 
   return (
     <RestTimerProvider>
-    <div className="flex flex-col h-dvh bg-black text-white overflow-hidden" style={{ paddingTop: 'var(--safe-top)', paddingLeft: 'var(--safe-left)', paddingRight: 'var(--safe-right)' }}>
+    <div className="flex flex-col h-dvh bg-bg text-foreground overflow-hidden mx-auto w-full max-w-3xl" style={{ paddingTop: 'var(--safe-top)', paddingLeft: 'var(--safe-left)', paddingRight: 'var(--safe-right)' }}>
       <main className="flex-1 overflow-y-auto">
         <Suspense fallback={<div className="flex items-center justify-center h-full"><Loader2 size={28} className="text-brand animate-spin" /></div>}>
         <Routes>
@@ -74,7 +85,7 @@ function AppShell() {
                 end={to === '/'}
                 className={({ isActive }) =>
                   `flex flex-col items-center justify-center h-16 min-w-11 gap-0.5 transition-colors duration-200 ${
-                    isActive ? 'text-brand' : 'text-neutral-400'
+                    isActive ? 'text-brand' : 'text-muted'
                   }`
                 }
               >
@@ -87,7 +98,7 @@ function AppShell() {
             <button
               onClick={() => setShowMore((v) => !v)}
               className={`flex flex-col items-center justify-center h-16 w-full min-w-11 gap-0.5 transition-colors duration-200 ${
-                showMore ? 'text-brand' : 'text-neutral-400'
+                showMore ? 'text-brand' : 'text-muted'
               }`}
             >
               <Settings size={22} />
@@ -102,7 +113,7 @@ function AppShell() {
                     onClick={() => setShowMore(false)}
                     className={({ isActive }) =>
                       `flex items-center gap-3 px-4 py-3 min-h-11 transition-colors ${
-                        isActive ? 'text-brand bg-surface-2' : 'text-neutral-300 hover:bg-surface-2'
+                        isActive ? 'text-brand bg-surface-2' : 'text-secondary hover:bg-surface-2'
                       }`
                     }
                   >
@@ -122,11 +133,13 @@ function AppShell() {
 
 export function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <AppShell />
-      </BrowserRouter>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <BrowserRouter>
+          <AppShell />
+        </BrowserRouter>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 

@@ -6,19 +6,48 @@
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-left: env(safe-area-inset-left, 0px);
   --safe-right: env(safe-area-inset-right, 0px);
+  color-scheme: light;
+}
+html {
+  background-color: var(--color-bg);
+}
+.dark {
+  color-scheme: dark;
 }
 
 @theme {
+  /* Brand (theme-invariant) */
   --color-brand: #FF6B35;
   --color-brand-light: #FF8F66;
   --color-brand-dark: #E55A2B;
   --color-brand-glow: rgba(255, 107, 53, 0.15);
   --color-brand-subtle: rgba(255, 107, 53, 0.08);
+
+  /* Light-mode defaults — overridden by .dark below */
+  --color-bg: #f4f4f5;
+  --color-surface: #ffffff;
+  --color-surface-2: #f5f5f5;
+  --color-surface-3: #ebebeb;
+  --color-border: #e0e0e0;
+  --color-border-2: #d0d0d0;
+  --color-foreground: #18181b;
+  --color-secondary: #3f3f46;
+  --color-muted: #71717a;
+  --color-faint: #a1a1aa;
+}
+
+/* Dark theme overrides */
+.dark {
+  --color-bg: #000000;
   --color-surface: #111111;
   --color-surface-2: #1a1a1a;
   --color-surface-3: #222222;
   --color-border: #2a2a2a;
   --color-border-2: #333333;
+  --color-foreground: #ffffff;
+  --color-secondary: #d4d4d8;
+  --color-muted: #a1a1aa;
+  --color-faint: #71717a;
 }
 
 @keyframes slide-up {
@@ -71,6 +100,6 @@
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #333;
+  background: var(--color-border-2);
   border-radius: 2px;
 }

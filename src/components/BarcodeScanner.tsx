@@ -99,7 +99,7 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
       <div className="w-full max-w-lg bg-surface-2 rounded-2xl overflow-hidden mx-4">
         {/* Header */}
         <div className="flex items-center justify-between p-4">
-          <h2 className="text-lg font-bold text-white flex items-center gap-2">
+          <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
             <ScanBarcode size={20} className="text-brand" />
             Scan Barcode
           </h2>
@@ -107,12 +107,12 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
             onClick={onClose}
             className="p-2 min-h-11 min-w-11 bg-surface-3 hover:bg-surface-3 rounded-lg transition-colors flex items-center justify-center"
           >
-            <X size={18} className="text-neutral-400" />
+            <X size={18} className="text-muted" />
           </button>
         </div>
 
         {/* Camera viewfinder */}
-        <div className="relative bg-black aspect-4/3">
+        <div className="relative bg-bg aspect-4/3">
           <video
             ref={videoRef}
             className="w-full h-full object-cover"
@@ -141,14 +141,14 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
             <div className="absolute inset-0 flex items-center justify-center p-6">
               <div className="text-center">
                 <Camera size={32} className="text-neutral-600 mx-auto mb-2" />
-                <p className="text-neutral-400 text-sm">{error}</p>
+                <p className="text-muted text-sm">{error}</p>
               </div>
             </div>
           )}
 
           {!('BarcodeDetector' in window) && !error && (
             <div className="absolute bottom-2 left-0 right-0 text-center">
-              <p className="text-neutral-400 text-xs bg-black/50 inline-block px-3 py-1 rounded-full">
+              <p className="text-muted text-xs bg-black/50 inline-block px-3 py-1 rounded-full">
                 Point camera at barcode or enter manually
               </p>
             </div>
@@ -165,7 +165,7 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
               value={manualCode}
               onChange={(e) => setManualCode(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') handleManualSubmit(); }}
-              className="flex-1 bg-surface-3 border border-border-2 rounded-lg px-3 py-2 min-h-11 text-white placeholder-neutral-500 focus:outline-none focus:border-brand transition-colors"
+              className="flex-1 bg-surface-3 border border-border-2 rounded-lg px-3 py-2 min-h-11 text-foreground placeholder-neutral-500 focus:outline-none focus:border-brand transition-colors"
             />
             <button
               onClick={handleManualSubmit}

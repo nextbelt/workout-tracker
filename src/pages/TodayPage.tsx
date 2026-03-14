@@ -16,7 +16,7 @@ import { MoodCheck } from '../components/MoodCheck';
 import { ExerciseDetail } from '../components/ExerciseDetail';
 import { ScienceTooltip } from '../components/ScienceTooltip';
 import { CardioLogger } from '../components/CardioLogger';
-import { SpotifyMoodPlaylist } from '../components/SpotifyMoodPlaylist';
+import { SpotifyMoodPlaylist, type SpotifyMood } from '../components/SpotifyMoodPlaylist';
 import { useSpotify } from '../hooks/useSpotify';
 import { supabase } from '../lib/supabase';
 import type { RecoveryRating, DayTemplate, PreMood, BlockExercise, SplitType } from '../types/database';
@@ -365,7 +365,7 @@ export default function TodayPage() {
       {todaySession && spotify.isConnected && (spotify.tracks.length > 0 || spotify.loadingTracks) && (
         <SpotifyMoodPlaylist
           tracks={spotify.tracks}
-          mood={(moodEngine.moodInput?.preMood as PreMood) ?? 'steady'}
+          mood={((): SpotifyMood => { const p = moodEngine.moodInput?.preMood; return p === 'energized' ? 'fired_up' : p === 'low_energy' ? 'low' : 'steady'; })()}
           loading={spotify.loadingTracks}
           error={spotify.error}
           onRefresh={spotify.fetchRecommendations}

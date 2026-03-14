@@ -1,24 +1,25 @@
 import { useState } from 'react';
 import { Music, ExternalLink, Loader2, ChevronDown, ChevronUp, RefreshCw } from 'lucide-react';
 import type { SpotifyTrack } from '../hooks/useSpotify';
-import type { PreMood } from '../types/database';
+
+export type SpotifyMood = 'fired_up' | 'steady' | 'low' | 'beat_up';
 
 interface SpotifyMoodPlaylistProps {
   tracks: SpotifyTrack[];
-  mood: PreMood;
+  mood: SpotifyMood;
   loading: boolean;
   error: string | null;
-  onRefresh: (mood: PreMood) => void;
+  onRefresh: (mood: SpotifyMood) => void;
 }
 
-const MOOD_LABELS: Record<PreMood, string> = {
+const MOOD_LABELS: Record<SpotifyMood, string> = {
   fired_up: '🔥 Fired Up',
   steady: '💪 Steady',
   low: '😐 Low Energy',
   beat_up: '🧊 Recovery',
 };
 
-const MOOD_DESCRIPTIONS: Record<PreMood, string> = {
+const MOOD_DESCRIPTIONS: Record<SpotifyMood, string> = {
   fired_up: 'High energy bangers to match your intensity',
   steady: 'Solid tempo tracks to keep you locked in',
   low: 'Chill beats to ease into the session',

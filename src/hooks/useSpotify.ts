@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './useAuth';
-import type { PreMood } from '../types/database';
+import type { SpotifyMood } from '../components/SpotifyMoodPlaylist';
 
 const API_BASE = import.meta.env.VITE_API_URL as string ?? 'http://localhost:3001';
 
@@ -182,7 +182,7 @@ export function useSpotify() {
   }, [connection, user]);
 
   // Fetch mood-based recommendations
-  const fetchRecommendations = useCallback(async (mood: PreMood) => {
+  const fetchRecommendations = useCallback(async (mood: SpotifyMood) => {
     if (!connection) return;
     setLoadingTracks(true);
     setError(null);

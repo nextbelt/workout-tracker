@@ -1,4 +1,4 @@
-// Placeholder types matching the Supabase schema.
+// Types matching the Supabase schema (initial + v6 enhancements).
 // Replace with: npx supabase gen types typescript --project-id <ref> > src/types/database.ts
 
 export type Json =
@@ -14,6 +14,14 @@ export type RecoveryRating = 'great' | 'normal' | 'poor';
 export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
 export type FoodSource = 'usda' | 'openfoodfacts' | 'manual';
 export type DayTemplate = 'upper_a' | 'lower_a' | 'upper_b' | 'lower_b';
+export type PreMood = 'fired_up' | 'steady' | 'low' | 'beat_up';
+export type CardioType = 'walking' | 'running' | 'cycling' | 'swimming' | 'rowing' | 'elliptical' | 'stairmaster' | 'hiit' | 'jump_rope' | 'other';
+export type CardioIntensity = 'low' | 'moderate' | 'high' | 'max';
+export type DistanceUnit = 'miles' | 'km' | 'meters';
+export type ExerciseCategory = 'strength' | 'stretching' | 'plyometrics' | 'strongman' | 'powerlifting' | 'cardio' | 'olympic_weightlifting';
+export type ExerciseSource = 'seed' | 'free_exercise_db' | 'exercisedb_api' | 'user';
+export type TipCategory = 'form_cue' | 'hypertrophy_tip' | 'common_mistake' | 'muscle_activation' | 'breathing' | 'progression';
+export type TooltipCategory = 'training' | 'nutrition' | 'recovery' | 'anatomy';
 
 export interface Database {
   public: {
@@ -72,6 +80,15 @@ export interface Database {
           default_rest_seconds: number | null;
           default_rir: number | null;
           smith_equivalent_id: string | null;
+          body_part: string | null;
+          category: ExerciseCategory | null;
+          instructions: string[] | null;
+          primary_muscles: string[] | null;
+          secondary_muscles: string[] | null;
+          image_urls: string[] | null;
+          gif_url: string | null;
+          external_id: string | null;
+          source: ExerciseSource | null;
           created_at: string;
         };
         Insert: {
@@ -86,6 +103,15 @@ export interface Database {
           default_rest_seconds?: number | null;
           default_rir?: number | null;
           smith_equivalent_id?: string | null;
+          body_part?: string | null;
+          category?: ExerciseCategory | null;
+          instructions?: string[] | null;
+          primary_muscles?: string[] | null;
+          secondary_muscles?: string[] | null;
+          image_urls?: string[] | null;
+          gif_url?: string | null;
+          external_id?: string | null;
+          source?: ExerciseSource | null;
         };
         Update: {
           id?: string;
@@ -99,6 +125,15 @@ export interface Database {
           default_rest_seconds?: number | null;
           default_rir?: number | null;
           smith_equivalent_id?: string | null;
+          body_part?: string | null;
+          category?: ExerciseCategory | null;
+          instructions?: string[] | null;
+          primary_muscles?: string[] | null;
+          secondary_muscles?: string[] | null;
+          image_urls?: string[] | null;
+          gif_url?: string | null;
+          external_id?: string | null;
+          source?: ExerciseSource | null;
         };
         Relationships: [];
       };
@@ -171,6 +206,8 @@ export interface Database {
           rest_seconds: number;
           rir_target: number;
           is_anchor: boolean;
+          variant_pool: Json | null;
+          current_variant: string | null;
         };
         Insert: {
           id?: string;
@@ -185,6 +222,8 @@ export interface Database {
           rest_seconds: number;
           rir_target: number;
           is_anchor?: boolean;
+          variant_pool?: Json | null;
+          current_variant?: string | null;
         };
         Update: {
           id?: string;
@@ -199,6 +238,8 @@ export interface Database {
           rest_seconds?: number;
           rir_target?: number;
           is_anchor?: boolean;
+          variant_pool?: Json | null;
+          current_variant?: string | null;
         };
         Relationships: [];
       };
@@ -215,6 +256,10 @@ export interface Database {
           notes: string | null;
           is_deload: boolean;
           training_mode: TrainingMode | null;
+          pre_mood: PreMood | null;
+          energy_level: number | null;
+          time_available_minutes: number | null;
+          mood_adjusted: boolean;
           created_at: string;
         };
         Insert: {
@@ -229,6 +274,10 @@ export interface Database {
           notes?: string | null;
           is_deload?: boolean;
           training_mode?: TrainingMode | null;
+          pre_mood?: PreMood | null;
+          energy_level?: number | null;
+          time_available_minutes?: number | null;
+          mood_adjusted?: boolean;
         };
         Update: {
           id?: string;
@@ -242,6 +291,10 @@ export interface Database {
           notes?: string | null;
           is_deload?: boolean;
           training_mode?: TrainingMode | null;
+          pre_mood?: PreMood | null;
+          energy_level?: number | null;
+          time_available_minutes?: number | null;
+          mood_adjusted?: boolean;
         };
         Relationships: [];
       };
@@ -433,6 +486,123 @@ export interface Database {
         };
         Relationships: [];
       };
+      cardio_sessions: {
+        Row: {
+          id: string;
+          user_id: string;
+          session_date: string;
+          cardio_type: CardioType;
+          duration_minutes: number;
+          distance: number | null;
+          distance_unit: DistanceUnit;
+          calories_burned: number | null;
+          avg_heart_rate: number | null;
+          intensity: CardioIntensity | null;
+          notes: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          session_date?: string;
+          cardio_type: CardioType;
+          duration_minutes: number;
+          distance?: number | null;
+          distance_unit?: DistanceUnit;
+          calories_burned?: number | null;
+          avg_heart_rate?: number | null;
+          intensity?: CardioIntensity | null;
+          notes?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          session_date?: string;
+          cardio_type?: CardioType;
+          duration_minutes?: number;
+          distance?: number | null;
+          distance_unit?: DistanceUnit;
+          calories_burned?: number | null;
+          avg_heart_rate?: number | null;
+          intensity?: CardioIntensity | null;
+          notes?: string | null;
+        };
+        Relationships: [];
+      };
+      exercise_insights: {
+        Row: {
+          id: string;
+          exercise_id: string;
+          tip_text: string;
+          tip_category: TipCategory;
+          source_citation: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          exercise_id: string;
+          tip_text: string;
+          tip_category: TipCategory;
+          source_citation?: string | null;
+        };
+        Update: {
+          id?: string;
+          exercise_id?: string;
+          tip_text?: string;
+          tip_category?: TipCategory;
+          source_citation?: string | null;
+        };
+        Relationships: [];
+      };
+      concept_tooltips: {
+        Row: {
+          id: string;
+          term: string;
+          definition: string;
+          source_citation: string | null;
+          category: TooltipCategory | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          term: string;
+          definition: string;
+          source_citation?: string | null;
+          category?: TooltipCategory | null;
+        };
+        Update: {
+          id?: string;
+          term?: string;
+          definition?: string;
+          source_citation?: string | null;
+          category?: TooltipCategory | null;
+        };
+        Relationships: [];
+      };
+      exercise_library_cache: {
+        Row: {
+          id: string;
+          external_id: string;
+          source: string;
+          data: Json;
+          fetched_at: string;
+        };
+        Insert: {
+          id?: string;
+          external_id: string;
+          source: string;
+          data: Json;
+          fetched_at?: string;
+        };
+        Update: {
+          id?: string;
+          external_id?: string;
+          source?: string;
+          data?: Json;
+          fetched_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -450,3 +620,7 @@ export type SetLog = Database['public']['Tables']['set_logs']['Row'];
 export type NutritionEntry = Database['public']['Tables']['nutrition_entries']['Row'];
 export type FoodCache = Database['public']['Tables']['food_cache']['Row'];
 export type BodyweightLog = Database['public']['Tables']['bodyweight_log']['Row'];
+export type CardioSession = Database['public']['Tables']['cardio_sessions']['Row'];
+export type ExerciseInsight = Database['public']['Tables']['exercise_insights']['Row'];
+export type ConceptTooltip = Database['public']['Tables']['concept_tooltips']['Row'];
+export type ExerciseLibraryCache = Database['public']['Tables']['exercise_library_cache']['Row'];

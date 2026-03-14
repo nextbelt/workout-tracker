@@ -12,7 +12,7 @@ const DAY_LABELS: Record<string, string> = {
 };
 
 const RECOVERY_COLORS: Record<string, string> = {
-  great: 'text-emerald-400',
+  great: 'text-brand',
   normal: 'text-blue-400',
   poor: 'text-red-400',
 };
@@ -86,7 +86,7 @@ export default function HistoryPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
-        <Loader2 size={28} className="text-emerald-400 animate-spin" />
+        <Loader2 size={28} className="text-brand animate-spin" />
       </div>
     );
   }
@@ -94,16 +94,16 @@ export default function HistoryPage() {
   if (sessions.length === 0) {
     return (
       <div className="p-4 flex flex-col items-center justify-center h-full gap-3 text-center">
-        <Dumbbell size={40} className="text-zinc-600" />
-        <h2 className="text-xl font-bold text-zinc-100">No History Yet</h2>
-        <p className="text-zinc-400">Complete a workout to see it here.</p>
+        <Dumbbell size={40} className="text-neutral-600" />
+        <h2 className="text-xl font-bold text-white">No History Yet</h2>
+        <p className="text-neutral-400">Complete a workout to see it here.</p>
       </div>
     );
   }
 
   return (
     <div className="p-4 pb-24 space-y-3">
-      <h1 className="text-2xl font-bold text-zinc-100 mb-4">History</h1>
+      <h1 className="text-2xl font-bold text-white mb-4">History</h1>
 
       {sessions.map((session) => {
         const isExpanded = expandedSession === session.id;
@@ -121,18 +121,18 @@ export default function HistoryPage() {
         }
 
         return (
-          <div key={session.id} className="bg-zinc-900 rounded-xl overflow-hidden">
+          <div key={session.id} className="bg-surface-2 rounded-xl overflow-hidden">
             <button
               onClick={() => setExpandedSession(isExpanded ? null : session.id)}
               className="w-full flex items-center justify-between p-4 min-h-11"
             >
               <div className="text-left">
                 <div className="flex items-center gap-2">
-                  <p className="text-zinc-100 font-medium">
+                  <p className="text-white font-medium">
                     {DAY_LABELS[session.day_template] ?? session.day_template}
                   </p>
                   {session.recovery_rating && (
-                    <span className={`text-xs font-medium capitalize ${RECOVERY_COLORS[session.recovery_rating] ?? 'text-zinc-400'}`}>
+                    <span className={`text-xs font-medium capitalize ${RECOVERY_COLORS[session.recovery_rating] ?? 'text-neutral-400'}`}>
                       {session.recovery_rating}
                     </span>
                   )}
@@ -140,7 +140,7 @@ export default function HistoryPage() {
                     <span className="text-xs text-yellow-400 bg-yellow-500/15 px-1.5 py-0.5 rounded">Deload</span>
                   )}
                 </div>
-                <div className="flex items-center gap-2 text-zinc-500 text-xs mt-0.5">
+                <div className="flex items-center gap-2 text-neutral-500 text-xs mt-0.5">
                   <Calendar size={11} />
                   <span>{completedDate}</span>
                   <span>·</span>
@@ -149,24 +149,24 @@ export default function HistoryPage() {
                   <span>{session.sets.length} sets</span>
                 </div>
               </div>
-              {isExpanded ? <ChevronUp size={18} className="text-zinc-500" /> : <ChevronDown size={18} className="text-zinc-500" />}
+              {isExpanded ? <ChevronUp size={18} className="text-neutral-500" /> : <ChevronDown size={18} className="text-neutral-500" />}
             </button>
 
             {isExpanded && (
               <div className="px-4 pb-4 space-y-3">
                 {session.notes && (
-                  <p className="text-zinc-400 text-sm italic bg-zinc-800/50 rounded-lg p-2">{session.notes}</p>
+                  <p className="text-neutral-400 text-sm italic bg-surface-3/50 rounded-lg p-2">{session.notes}</p>
                 )}
 
                 {Array.from(exerciseGroups.entries()).map(([exId, sets]) => (
                   <div key={exId} className="space-y-1">
-                    <p className="text-zinc-300 text-sm font-medium">{sets[0]?.exercise_name ?? 'Unknown'}</p>
+                    <p className="text-neutral-300 text-sm font-medium">{sets[0]?.exercise_name ?? 'Unknown'}</p>
                     {sets.map((set) => (
-                      <div key={set.id} className="flex items-center gap-3 text-zinc-500 text-xs bg-zinc-800/30 rounded px-2 py-1.5">
-                        <span className="text-zinc-600 w-6">S{set.set_number}</span>
-                        <span className="text-zinc-300">{set.weight ?? '–'} lbs</span>
+                      <div key={set.id} className="flex items-center gap-3 text-neutral-500 text-xs bg-surface-3/30 rounded px-2 py-1.5">
+                        <span className="text-neutral-600 w-6">S{set.set_number}</span>
+                        <span className="text-neutral-300">{set.weight ?? '–'} lbs</span>
                         <span>×</span>
-                        <span className="text-zinc-300">{set.reps ?? '–'} reps</span>
+                        <span className="text-neutral-300">{set.reps ?? '–'} reps</span>
                         {set.rir !== null && set.rir !== undefined && (
                           <span className="ml-auto">RIR {set.rir}</span>
                         )}

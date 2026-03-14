@@ -12,13 +12,14 @@ export interface SessionWithSets extends WorkoutSession {
 }
 
 export function useWorkout() {
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
   const [activeBlock, setActiveBlock] = useState<TrainingBlock | null>(null);
   const [blockExercises, setBlockExercises] = useState<BlockExerciseWithDetails[]>([]);
   const [todaySession, setTodaySession] = useState<WorkoutSession | null>(null);
   const [sessionSets, setSessionSets] = useState<SetLog[]>([]);
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [loading, setLoading] = useState(true);
+  const [lastSets, setLastSets] = useState<Map<string, { weight: number | null; reps: number | null }>>(new Map());
 
   const fetchExercises = useCallback(async () => {
     const { data } = await supabase.from('exercises').select('*').order('name');
@@ -32,7 +33,7 @@ export function useWorkout() {
       .select('*')
       .eq('user_id', user.id)
       .eq('is_active', true)
-      .single();
+      .maybeSingle();
     const block = data as unknown as TrainingBlock | null;
     setActiveBlock(block);
     return block;
@@ -78,6 +79,33 @@ export function useWorkout() {
     setSessionSets((data as unknown as SetLog[] | null) ?? []);
   }, []);
 
+  const fetchLastSets = useCallback(async () => {
+    if (!user) return;
+    const { data: sessData } = await supabase
+      .from('workout_sessions')
+      .select('id')
+      .eq('user_id', user.id)
+      .not('completed_at', 'is', null)
+      .order('completed_at', { ascending: false })
+      .limit(5);
+    if (!sessData || sessData.length === 0) return;
+    const sessionIds = (sessData as Array<{ id: string }>).map((s) => s.id);
+    const { data } = await supabase
+      .from('set_logs')
+      .select('exercise_id, weight, reps, created_at')
+      .eq('user_id', user.id)
+      .in('session_id', sessionIds)
+      .order('created_at', { ascending: false });
+    if (!data) return;
+    const map = new Map<string, { weight: number | null; reps: number | null }>();
+    for (const row of data as Array<{ exercise_id: string; weight: number | null; reps: number | null }>) {
+      if (!map.has(row.exercise_id)) {
+        map.set(row.exercise_id, { weight: row.weight, reps: row.reps });
+      }
+    }
+    setLastSets(map);
+  }, [user]);
+
   const logSet = useCallback(async (
     sessionId: string,
     exerciseId: string,
@@ -98,7 +126,7 @@ export function useWorkout() {
     };
     const { error } = await supabase
       .from('set_logs')
-      .upsert(payload as never, { onConflict: 'id' })
+      .insert(payload as never)
       .select()
       .single();
     if (!error) {
@@ -116,7 +144,6 @@ export function useWorkout() {
       week_number: weekNumber,
       scheduled_date: today,
       is_deload: weekNumber >= 7,
-      training_mode: profile?.training_mode ?? 'gym',
     };
     const { data, error } = await supabase
       .from('workout_sessions')
@@ -127,7 +154,7 @@ export function useWorkout() {
       setTodaySession(data as unknown as WorkoutSession);
     }
     return data as unknown as WorkoutSession | null;
-  }, [user, activeBlock, profile]);
+  }, [user, activeBlock]);
 
   const completeWorkout = useCallback(async (sessionId: string, recoveryRating: 'great' | 'normal' | 'poor', notes?: string) => {
     const payload = {
@@ -142,9 +169,10 @@ export function useWorkout() {
     if (!error) {
       setTodaySession(null);
       setSessionSets([]);
+      await fetchLastSets();
     }
     return { error };
-  }, []);
+  }, [fetchLastSets]);
 
   const createBlock1 = useCallback(async () => {
     if (!user) return;
@@ -311,10 +339,11 @@ export function useWorkout() {
       const block = await fetchActiveBlock();
       if (block) await fetchBlockExercises(block.id);
       await fetchTodaySession();
+      await fetchLastSets();
       setLoading(false);
     };
     if (user) load();
-  }, [user, fetchExercises, fetchActiveBlock, fetchBlockExercises, fetchTodaySession]);
+  }, [user, fetchExercises, fetchActiveBlock, fetchBlockExercises, fetchTodaySession, fetchLastSets]);
 
   return {
     activeBlock,
@@ -323,6 +352,7 @@ export function useWorkout() {
     sessionSets,
     exercises,
     loading,
+    lastSets,
     logSet,
     startWorkout,
     completeWorkout,

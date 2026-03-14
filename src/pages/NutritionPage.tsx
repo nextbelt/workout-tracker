@@ -128,7 +128,7 @@ export default function NutritionPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
-        <Loader2 size={28} className="text-emerald-400 animate-spin" />
+        <Loader2 size={28} className="text-brand animate-spin" />
       </div>
     );
   }
@@ -156,7 +156,7 @@ export default function NutritionPage() {
         const isExpanded = expandedMeal === meal;
 
         return (
-          <div key={meal} className="bg-zinc-900 rounded-xl overflow-hidden">
+          <div key={meal} className="bg-surface-2 rounded-xl overflow-hidden">
             {/* Meal header */}
             <button
               onClick={() => setExpandedMeal(isExpanded ? null : meal)}
@@ -165,8 +165,8 @@ export default function NutritionPage() {
               <div className="flex items-center gap-3">
                 <span className="text-lg">{MEAL_ICONS[meal]}</span>
                 <div className="text-left">
-                  <p className="text-zinc-100 font-medium">{MEAL_LABELS[meal]}</p>
-                  <p className="text-zinc-500 text-xs">
+                  <p className="text-white font-medium">{MEAL_LABELS[meal]}</p>
+                  <p className="text-neutral-500 text-xs">
                     {mealEntries.length === 0
                       ? 'No entries'
                       : `${Math.round(totalsForMeal.calories)} cal · ${Math.round(totalsForMeal.protein)}g protein`}
@@ -174,7 +174,7 @@ export default function NutritionPage() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                {isExpanded ? <ChevronUp size={18} className="text-zinc-500" /> : <ChevronDown size={18} className="text-zinc-500" />}
+                {isExpanded ? <ChevronUp size={18} className="text-neutral-500" /> : <ChevronDown size={18} className="text-neutral-500" />}
               </div>
             </button>
 
@@ -182,19 +182,19 @@ export default function NutritionPage() {
             {isExpanded && (
               <div className="px-4 pb-4 space-y-2">
                 {mealEntries.map((entry) => (
-                  <div key={entry.id} className="flex items-center justify-between bg-zinc-800/50 rounded-lg p-3">
+                  <div key={entry.id} className="flex items-center justify-between bg-surface-3/50 rounded-lg p-3">
                     <div className="min-w-0 flex-1">
-                      <p className="text-zinc-100 text-sm font-medium truncate">{entry.food_name}</p>
-                      <p className="text-zinc-500 text-xs">
+                      <p className="text-white text-sm font-medium truncate">{entry.food_name}</p>
+                      <p className="text-neutral-500 text-xs">
                         {Math.round(Number(entry.calories))} cal · {Math.round(Number(entry.protein))}g P · {Math.round(Number(entry.carbs))}g C · {Math.round(Number(entry.fat))}g F
-                        {entry.serving_size && <span className="ml-1 text-zinc-600">({entry.serving_size})</span>}
+                        {entry.serving_size && <span className="ml-1 text-neutral-600">({entry.serving_size})</span>}
                       </p>
                     </div>
                     <button
                       onClick={() => deleteEntry(entry.id)}
-                      className="p-2 min-h-11 min-w-11 hover:bg-zinc-700 rounded-lg transition-colors flex items-center justify-center shrink-0"
+                      className="p-2 min-h-11 min-w-11 hover:bg-surface-3 rounded-lg transition-colors flex items-center justify-center shrink-0"
                     >
-                      <Trash2 size={14} className="text-zinc-500" />
+                      <Trash2 size={14} className="text-neutral-500" />
                     </button>
                   </div>
                 ))}
@@ -203,20 +203,20 @@ export default function NutritionPage() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => setSearchMeal(meal)}
-                    className="flex-1 flex items-center justify-center gap-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg py-2 min-h-11 text-sm transition-colors"
+                    className="flex-1 flex items-center justify-center gap-2 bg-surface-3 hover:bg-surface-3 text-neutral-300 rounded-lg py-2 min-h-11 text-sm transition-colors"
                   >
                     <Plus size={14} />
                     Search
                   </button>
                   <button
                     onClick={() => setBarcodeMeal(meal)}
-                    className="flex items-center justify-center gap-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg px-3 py-2 min-h-11 text-sm transition-colors"
+                    className="flex items-center justify-center gap-2 bg-surface-3 hover:bg-surface-3 text-neutral-300 rounded-lg px-3 py-2 min-h-11 text-sm transition-colors"
                   >
                     <ScanBarcode size={14} />
                   </button>
                   <button
                     onClick={() => setManualMeal(meal)}
-                    className="flex-1 flex items-center justify-center gap-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg py-2 min-h-11 text-sm transition-colors"
+                    className="flex-1 flex items-center justify-center gap-2 bg-surface-3 hover:bg-surface-3 text-neutral-300 rounded-lg py-2 min-h-11 text-sm transition-colors"
                   >
                     <Edit3 size={14} />
                     Manual

@@ -1,5 +1,18 @@
 @import 'tailwindcss';
 
+@theme {
+  --color-brand: #FF6B35;
+  --color-brand-light: #FF8F66;
+  --color-brand-dark: #E55A2B;
+  --color-brand-glow: rgba(255, 107, 53, 0.15);
+  --color-brand-subtle: rgba(255, 107, 53, 0.08);
+  --color-surface: #111111;
+  --color-surface-2: #1a1a1a;
+  --color-surface-3: #222222;
+  --color-border: #2a2a2a;
+  --color-border-2: #333333;
+}
+
 @keyframes slide-up {
   from {
     transform: translateY(100%);
@@ -11,6 +24,45 @@
   }
 }
 
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(255, 107, 53, 0.3); }
+  50% { box-shadow: 0 0 40px rgba(255, 107, 53, 0.6); }
+}
+
+@keyframes timer-flash {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 .animate-slide-up {
   animation: slide-up 0.3s ease-out;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 1.5s ease-in-out infinite;
+}
+
+.animate-timer-flash {
+  animation: timer-flash 0.5s ease-in-out 3;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.6s ease-out both;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 2px;
 }

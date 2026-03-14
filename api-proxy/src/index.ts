@@ -5,7 +5,7 @@ import { foodRouter } from './routes/food.js';
 
 const app = express();
 const PORT = process.env.PORT ?? 3001;
-const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN ?? 'http://localhost:5173';
+const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN ?? 'http://localhost:7000';
 
 app.use(express.json());
 

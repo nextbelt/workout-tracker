@@ -96,18 +96,18 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
 
   return (
     <div className="fixed inset-0 z-50 bg-black/80 flex flex-col items-center justify-center">
-      <div className="w-full max-w-lg bg-zinc-900 rounded-2xl overflow-hidden mx-4">
+      <div className="w-full max-w-lg bg-surface-2 rounded-2xl overflow-hidden mx-4">
         {/* Header */}
         <div className="flex items-center justify-between p-4">
-          <h2 className="text-lg font-bold text-zinc-100 flex items-center gap-2">
-            <ScanBarcode size={20} className="text-emerald-400" />
+          <h2 className="text-lg font-bold text-white flex items-center gap-2">
+            <ScanBarcode size={20} className="text-brand" />
             Scan Barcode
           </h2>
           <button
             onClick={onClose}
-            className="p-2 min-h-11 min-w-11 bg-zinc-800 hover:bg-zinc-700 rounded-lg transition-colors flex items-center justify-center"
+            className="p-2 min-h-11 min-w-11 bg-surface-3 hover:bg-surface-3 rounded-lg transition-colors flex items-center justify-center"
           >
-            <X size={18} className="text-zinc-400" />
+            <X size={18} className="text-neutral-400" />
           </button>
         </div>
 
@@ -123,32 +123,32 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
 
           {/* Scanning overlay */}
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-64 h-32 border-2 border-emerald-400/60 rounded-xl relative">
-              <div className="absolute top-0 left-0 w-6 h-6 border-t-2 border-l-2 border-emerald-400 rounded-tl-lg" />
-              <div className="absolute top-0 right-0 w-6 h-6 border-t-2 border-r-2 border-emerald-400 rounded-tr-lg" />
-              <div className="absolute bottom-0 left-0 w-6 h-6 border-b-2 border-l-2 border-emerald-400 rounded-bl-lg" />
-              <div className="absolute bottom-0 right-0 w-6 h-6 border-b-2 border-r-2 border-emerald-400 rounded-br-lg" />
+            <div className="w-64 h-32 border-2 border-brand/60 rounded-xl relative">
+              <div className="absolute top-0 left-0 w-6 h-6 border-t-2 border-l-2 border-brand rounded-tl-lg" />
+              <div className="absolute top-0 right-0 w-6 h-6 border-t-2 border-r-2 border-brand rounded-tr-lg" />
+              <div className="absolute bottom-0 left-0 w-6 h-6 border-b-2 border-l-2 border-brand rounded-bl-lg" />
+              <div className="absolute bottom-0 right-0 w-6 h-6 border-b-2 border-r-2 border-brand rounded-br-lg" />
             </div>
           </div>
 
           {scanning && (
             <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-              <Loader2 size={32} className="text-emerald-400 animate-spin" />
+              <Loader2 size={32} className="text-brand animate-spin" />
             </div>
           )}
 
           {error && (
             <div className="absolute inset-0 flex items-center justify-center p-6">
               <div className="text-center">
-                <Camera size={32} className="text-zinc-600 mx-auto mb-2" />
-                <p className="text-zinc-400 text-sm">{error}</p>
+                <Camera size={32} className="text-neutral-600 mx-auto mb-2" />
+                <p className="text-neutral-400 text-sm">{error}</p>
               </div>
             </div>
           )}
 
           {!('BarcodeDetector' in window) && !error && (
             <div className="absolute bottom-2 left-0 right-0 text-center">
-              <p className="text-zinc-400 text-xs bg-black/50 inline-block px-3 py-1 rounded-full">
+              <p className="text-neutral-400 text-xs bg-black/50 inline-block px-3 py-1 rounded-full">
                 Point camera at barcode or enter manually
               </p>
             </div>
@@ -165,12 +165,12 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
               value={manualCode}
               onChange={(e) => setManualCode(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') handleManualSubmit(); }}
-              className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 min-h-11 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-emerald-500 transition-colors"
+              className="flex-1 bg-surface-3 border border-border-2 rounded-lg px-3 py-2 min-h-11 text-white placeholder-neutral-500 focus:outline-none focus:border-brand transition-colors"
             />
             <button
               onClick={handleManualSubmit}
               disabled={scanning || !manualCode.trim()}
-              className="bg-emerald-500 hover:bg-emerald-600 text-white font-medium rounded-lg px-4 py-2 min-h-11 transition-colors disabled:opacity-50"
+              className="bg-brand hover:bg-brand-dark text-white font-medium rounded-lg px-4 py-2 min-h-11 transition-colors disabled:opacity-50"
             >
               Look up
             </button>

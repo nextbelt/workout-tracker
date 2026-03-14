@@ -1,6 +1,9 @@
+import { useState, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom';
-import { Dumbbell, CalendarDays, Apple, History, Settings, Loader2 } from 'lucide-react';
+import { Dumbbell, CalendarDays, Apple, History, Settings, BarChart3, BookOpen, Loader2 } from 'lucide-react';
 import { AuthProvider, useAuth } from './hooks/useAuth';
+import { RestTimerProvider } from './context/RestTimerContext';
+import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import OnboardingPage from './pages/OnboardingPage';
 import TodayPage from './pages/TodayPage';
@@ -10,41 +13,59 @@ import HistoryPage from './pages/HistoryPage';
 import SettingsPage from './pages/SettingsPage';
 import { RestTimerWidget } from './components/RestTimer';
 
+const AnalyticsPage = lazy(() => import('./pages/AnalyticsPage'));
+const ExerciseLibraryPage = lazy(() => import('./pages/ExerciseLibraryPage'));
+
 const NAV_ITEMS = [
-  { to: '/',          label: 'Today',     Icon: Dumbbell     },
-  { to: '/program',   label: 'Program',   Icon: CalendarDays },
-  { to: '/nutrition', label: 'Nutrition', Icon: Apple        },
-  { to: '/history',   label: 'History',   Icon: History      },
-  { to: '/settings',  label: 'Settings',  Icon: Settings     },
+  { to: '/',           label: 'Today',     Icon: Dumbbell     },
+  { to: '/program',    label: 'Program',   Icon: CalendarDays },
+  { to: '/nutrition',  label: 'Nutrition', Icon: Apple        },
+  { to: '/analytics',  label: 'Analytics', Icon: BarChart3    },
+] as const;
+
+const MORE_PAGES = [
+  { to: '/history',   label: 'History',   Icon: History   },
+  { to: '/exercises', label: 'Exercises', Icon: BookOpen  },
+  { to: '/settings',  label: 'Settings',  Icon: Settings  },
 ] as const;
 
 function AppShell() {
   const { user, profile, loading } = useAuth();
+  const [showLanding, setShowLanding] = useState(true);
+  const [showMore, setShowMore] = useState(false);
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-dvh bg-zinc-950">
-        <Loader2 size={32} className="text-emerald-400 animate-spin" />
+      <div className="flex items-center justify-center h-dvh bg-black">
+        <Loader2 size={32} className="text-brand animate-spin" />
       </div>
     );
   }
 
+  if (!user && showLanding) {
+    return <LandingPage onGetStarted={() => setShowLanding(false)} />;
+  }
   if (!user) return <LoginPage />;
   if (!profile) return <OnboardingPage />;
 
   return (
-    <div className="flex flex-col h-dvh bg-zinc-950 text-zinc-100 overflow-hidden">
+    <RestTimerProvider>
+    <div className="flex flex-col h-dvh bg-black text-white overflow-hidden">
       <main className="flex-1 overflow-y-auto">
+        <Suspense fallback={<div className="flex items-center justify-center h-full"><Loader2 size={28} className="text-brand animate-spin" /></div>}>
         <Routes>
-          <Route path="/"          element={<TodayPage />}     />
-          <Route path="/program"   element={<ProgramPage />}   />
-          <Route path="/nutrition" element={<NutritionPage />} />
-          <Route path="/history"   element={<HistoryPage />}   />
-          <Route path="/settings"  element={<SettingsPage />}  />
+          <Route path="/"           element={<TodayPage />}           />
+          <Route path="/program"    element={<ProgramPage />}         />
+          <Route path="/nutrition"  element={<NutritionPage />}       />
+          <Route path="/analytics"  element={<AnalyticsPage />}       />
+          <Route path="/history"    element={<HistoryPage />}         />
+          <Route path="/exercises"  element={<ExerciseLibraryPage />} />
+          <Route path="/settings"   element={<SettingsPage />}        />
         </Routes>
+        </Suspense>
       </main>
       <RestTimerWidget />
-      <nav className="shrink-0 bg-zinc-900 border-t border-zinc-800">
+      <nav className="shrink-0 bg-surface border-t border-border">
         <ul className="flex justify-around items-center h-16">
           {NAV_ITEMS.map(({ to, label, Icon }) => (
             <li key={to} className="flex-1">
@@ -53,7 +74,7 @@ function AppShell() {
                 end={to === '/'}
                 className={({ isActive }) =>
                   `flex flex-col items-center justify-center h-16 min-w-11 gap-0.5 transition-colors duration-200 ${
-                    isActive ? 'text-emerald-400' : 'text-zinc-400'
+                    isActive ? 'text-brand' : 'text-neutral-400'
                   }`
                 }
               >
@@ -62,9 +83,40 @@ function AppShell() {
               </NavLink>
             </li>
           ))}
+          <li className="flex-1 relative">
+            <button
+              onClick={() => setShowMore((v) => !v)}
+              className={`flex flex-col items-center justify-center h-16 w-full min-w-11 gap-0.5 transition-colors duration-200 ${
+                showMore ? 'text-brand' : 'text-neutral-400'
+              }`}
+            >
+              <Settings size={22} />
+              <span className="text-xs font-medium">More</span>
+            </button>
+            {showMore && (
+              <div className="absolute bottom-full right-0 mb-2 w-44 bg-surface border border-border rounded-xl shadow-lg overflow-hidden z-50">
+                {MORE_PAGES.map(({ to, label, Icon }) => (
+                  <NavLink
+                    key={to}
+                    to={to}
+                    onClick={() => setShowMore(false)}
+                    className={({ isActive }) =>
+                      `flex items-center gap-3 px-4 py-3 min-h-11 transition-colors ${
+                        isActive ? 'text-brand bg-surface-2' : 'text-neutral-300 hover:bg-surface-2'
+                      }`
+                    }
+                  >
+                    <Icon size={18} />
+                    <span className="text-sm font-medium">{label}</span>
+                  </NavLink>
+                ))}
+              </div>
+            )}
+          </li>
         </ul>
       </nav>
     </div>
+    </RestTimerProvider>
   );
 }
 

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../lib/supabase';
 import { Loader2 } from 'lucide-react';
@@ -24,6 +24,20 @@ export default function OnboardingPage() {
   const [equipment, setEquipment] = useState<string[]>(['barbell', 'dumbbell', 'smith_machine', 'cable', 'machine', 'bodyweight']);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const w = parseFloat(currentWeight);
+    if (!w || w <= 0) return;
+    const t = parseFloat(targetWeight) || w;
+    const pMin = Math.round((w * 0.82) / 5) * 5;
+    const pMax = Math.round(w / 5) * 5;
+    const diff = t - w;
+    const calsPerLb = diff < -5 ? 13 : diff > 5 ? 17 : 15;
+    const cals = Math.round((w * calsPerLb) / 50) * 50;
+    setProteinMin(String(pMin));
+    setProteinMax(String(pMax));
+    setCalorieTarget(String(cals));
+  }, [currentWeight, targetWeight]);
 
   const toggleEquipment = (val: string) => {
     setEquipment((prev) =>
@@ -58,10 +72,10 @@ export default function OnboardingPage() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-start min-h-dvh bg-zinc-950 px-6 py-8">
+    <div className="flex flex-col items-center justify-start min-h-dvh bg-black px-6 py-8">
       <div className="w-full max-w-sm">
-        <h1 className="text-2xl font-bold text-zinc-100 mb-1">Set Up Your Profile</h1>
-        <p className="text-zinc-400 text-sm mb-6">Customize targets to match your goals.</p>
+        <h1 className="text-2xl font-bold text-white mb-1">Set Up Your Profile</h1>
+        <p className="text-neutral-400 text-sm mb-6">Customize targets to match your goals.</p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <input
@@ -69,7 +83,7 @@ export default function OnboardingPage() {
             placeholder="Display Name"
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
-            className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 min-h-11 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-emerald-500 transition-colors"
+            className="w-full bg-surface-2 border border-border rounded-xl px-4 py-3 min-h-11 text-white placeholder-neutral-500 focus:outline-none focus:border-brand transition-colors"
           />
 
           <div className="grid grid-cols-2 gap-3">
@@ -78,14 +92,14 @@ export default function OnboardingPage() {
               placeholder="Height (in)"
               value={heightInches}
               onChange={(e) => setHeightInches(e.target.value)}
-              className="bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 min-h-11 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-emerald-500 transition-colors"
+              className="bg-surface-2 border border-border rounded-xl px-4 py-3 min-h-11 text-white placeholder-neutral-500 focus:outline-none focus:border-brand transition-colors"
             />
             <input
               type="number"
               placeholder="Current lbs"
               value={currentWeight}
               onChange={(e) => setCurrentWeight(e.target.value)}
-              className="bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 min-h-11 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-emerald-500 transition-colors"
+              className="bg-surface-2 border border-border rounded-xl px-4 py-3 min-h-11 text-white placeholder-neutral-500 focus:outline-none focus:border-brand transition-colors"
             />
           </div>
 
@@ -94,42 +108,42 @@ export default function OnboardingPage() {
             placeholder="Target Weight (lbs)"
             value={targetWeight}
             onChange={(e) => setTargetWeight(e.target.value)}
-            className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 min-h-11 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-emerald-500 transition-colors"
+            className="w-full bg-surface-2 border border-border rounded-xl px-4 py-3 min-h-11 text-white placeholder-neutral-500 focus:outline-none focus:border-brand transition-colors"
           />
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-zinc-400 text-xs mb-1 block">Protein Min (g)</label>
+              <label className="text-neutral-400 text-xs mb-1 block">Protein Min (g)</label>
               <input
                 type="number"
                 value={proteinMin}
                 onChange={(e) => setProteinMin(e.target.value)}
-                className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 min-h-11 text-zinc-100 focus:outline-none focus:border-emerald-500 transition-colors"
+                className="w-full bg-surface-2 border border-border rounded-xl px-4 py-3 min-h-11 text-white focus:outline-none focus:border-brand transition-colors"
               />
             </div>
             <div>
-              <label className="text-zinc-400 text-xs mb-1 block">Protein Max (g)</label>
+              <label className="text-neutral-400 text-xs mb-1 block">Protein Max (g)</label>
               <input
                 type="number"
                 value={proteinMax}
                 onChange={(e) => setProteinMax(e.target.value)}
-                className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 min-h-11 text-zinc-100 focus:outline-none focus:border-emerald-500 transition-colors"
+                className="w-full bg-surface-2 border border-border rounded-xl px-4 py-3 min-h-11 text-white focus:outline-none focus:border-brand transition-colors"
               />
             </div>
           </div>
 
           <div>
-            <label className="text-zinc-400 text-xs mb-1 block">Calorie Target</label>
+            <label className="text-neutral-400 text-xs mb-1 block">Calorie Target</label>
             <input
               type="number"
               value={calorieTarget}
               onChange={(e) => setCalorieTarget(e.target.value)}
-              className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 min-h-11 text-zinc-100 focus:outline-none focus:border-emerald-500 transition-colors"
+              className="w-full bg-surface-2 border border-border rounded-xl px-4 py-3 min-h-11 text-white focus:outline-none focus:border-brand transition-colors"
             />
           </div>
 
           <div>
-            <label className="text-zinc-400 text-xs mb-2 block">Equipment Available</label>
+            <label className="text-neutral-400 text-xs mb-2 block">Equipment Available</label>
             <div className="flex flex-wrap gap-2">
               {EQUIPMENT_OPTIONS.map((opt) => (
                 <button
@@ -138,8 +152,8 @@ export default function OnboardingPage() {
                   onClick={() => toggleEquipment(opt.value)}
                   className={`px-3 py-2 min-h-11 rounded-lg text-sm font-medium transition-colors ${
                     equipment.includes(opt.value)
-                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
-                      : 'bg-zinc-800 text-zinc-400 border border-zinc-700'
+                      ? 'bg-brand/15 text-brand border border-brand/30'
+                      : 'bg-surface-3 text-neutral-400 border border-border-2'
                   }`}
                 >
                   {opt.label}
@@ -153,7 +167,7 @@ export default function OnboardingPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-semibold rounded-xl py-3 min-h-11 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            className="w-full bg-brand hover:bg-brand-dark text-white font-semibold rounded-xl py-3 min-h-11 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {loading && <Loader2 size={18} className="animate-spin" />}
             Save &amp; Start Training

@@ -1,11 +1,11 @@
 {
-  "name": "Workout Tracker",
-  "short_name": "Workout",
-  "description": "Hypertrophy-focused workout tracker with macro logging",
+  "name": "WorkIn.ai",
+  "short_name": "WorkIn",
+  "description": "It's not a workout. It's a WorkIN — training with INsights from AI.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#09090b",
-  "theme_color": "#09090b",
+  "background_color": "#0a0a0a",
+  "theme_color": "#FF6B35",
   "orientation": "portrait",
   "icons": [
     {

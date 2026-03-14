@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { LogOut, Save, Loader2, User as UserIcon, Scale, Target, Wrench, TrendingDown } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../lib/supabase';
@@ -26,6 +26,23 @@ export default function SettingsPage() {
   const [equipment, setEquipment] = useState<string[]>(profile?.equipment_available ?? ['barbell', 'dumbbell', 'cable', 'machine']);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+
+  const autoCalcInitRef = useRef(false);
+  useEffect(() => {
+    if (!autoCalcInitRef.current) { autoCalcInitRef.current = true; return; }
+    const w = parseFloat(currentWeight);
+    if (!w || w <= 0) return;
+    const t = parseFloat(targetWeight) || w;
+    const pMin = Math.round((w * 0.82) / 5) * 5;
+    const pMax = Math.round(w / 5) * 5;
+    const diff = t - w;
+    const calsPerLb = diff < -5 ? 13 : diff > 5 ? 17 : 15;
+    const cals = Math.round((w * calsPerLb) / 50) * 50;
+    setProteinMin(String(pMin));
+    setProteinMax(String(pMax));
+    setCalorieTarget(String(cals));
+    setSaved(false);
+  }, [currentWeight, targetWeight]);
 
   const toggleEquipment = useCallback((item: string) => {
     setEquipment((prev) =>
@@ -59,52 +76,52 @@ export default function SettingsPage() {
 
   return (
     <div className="p-4 pb-24 space-y-6">
-      <h1 className="text-2xl font-bold text-zinc-100">Settings</h1>
+      <h1 className="text-2xl font-bold text-white">Settings</h1>
 
       {/* Profile section */}
       <section className="space-y-3">
-        <div className="flex items-center gap-2 text-zinc-400">
+        <div className="flex items-center gap-2 text-neutral-400">
           <UserIcon size={16} />
           <h2 className="text-sm font-medium">PROFILE</h2>
         </div>
-        <div className="bg-zinc-900 rounded-xl p-4 space-y-3">
+        <div className="bg-surface-2 rounded-xl p-4 space-y-3">
           <div>
-            <label className="text-zinc-500 text-xs">Display Name</label>
+            <label className="text-neutral-500 text-xs">Display Name</label>
             <input
               value={displayName}
               onChange={(e) => { setDisplayName(e.target.value); setSaved(false); }}
-              className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 min-h-11 text-zinc-100 focus:outline-none focus:border-emerald-500 transition-colors"
+              className="w-full bg-surface-3 border border-border-2 rounded-lg px-3 py-2 min-h-11 text-white focus:outline-none focus:border-brand transition-colors"
             />
           </div>
           <div>
-            <label className="text-zinc-500 text-xs">Email</label>
-            <p className="text-zinc-300 text-sm py-2">{user?.email ?? '—'}</p>
+            <label className="text-neutral-500 text-xs">Email</label>
+            <p className="text-neutral-300 text-sm py-2">{user?.email ?? '—'}</p>
           </div>
         </div>
       </section>
 
       {/* Body Stats */}
       <section className="space-y-3">
-        <div className="flex items-center gap-2 text-zinc-400">
+        <div className="flex items-center gap-2 text-neutral-400">
           <Scale size={16} />
           <h2 className="text-sm font-medium">BODY STATS</h2>
         </div>
-        <div className="bg-zinc-900 rounded-xl p-4 space-y-3">
+        <div className="bg-surface-2 rounded-xl p-4 space-y-3">
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="text-zinc-500 text-xs">Height (in)</label>
+              <label className="text-neutral-500 text-xs">Height (in)</label>
               <input type="number" value={heightInches} onChange={(e) => { setHeightInches(e.target.value); setSaved(false); }}
-                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 min-h-11 text-zinc-100 focus:outline-none focus:border-emerald-500" />
+                className="w-full bg-surface-3 border border-border-2 rounded-lg px-3 py-2 min-h-11 text-white focus:outline-none focus:border-brand" />
             </div>
             <div>
-              <label className="text-zinc-500 text-xs">Weight (lbs)</label>
+              <label className="text-neutral-500 text-xs">Weight (lbs)</label>
               <input type="number" value={currentWeight} onChange={(e) => { setCurrentWeight(e.target.value); setSaved(false); }}
-                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 min-h-11 text-zinc-100 focus:outline-none focus:border-emerald-500" />
+                className="w-full bg-surface-3 border border-border-2 rounded-lg px-3 py-2 min-h-11 text-white focus:outline-none focus:border-brand" />
             </div>
             <div>
-              <label className="text-zinc-500 text-xs">Target (lbs)</label>
+              <label className="text-neutral-500 text-xs">Target (lbs)</label>
               <input type="number" value={targetWeight} onChange={(e) => { setTargetWeight(e.target.value); setSaved(false); }}
-                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 min-h-11 text-zinc-100 focus:outline-none focus:border-emerald-500" />
+                className="w-full bg-surface-3 border border-border-2 rounded-lg px-3 py-2 min-h-11 text-white focus:outline-none focus:border-brand" />
             </div>
           </div>
         </div>
@@ -112,37 +129,38 @@ export default function SettingsPage() {
 
       {/* Bodyweight Tracking */}
       <section className="space-y-3">
-        <div className="flex items-center gap-2 text-zinc-400">
+        <div className="flex items-center gap-2 text-neutral-400">
           <TrendingDown size={16} />
           <h2 className="text-sm font-medium">BODYWEIGHT LOG</h2>
         </div>
-        <div className="bg-zinc-900 rounded-xl p-4">
+        <div className="bg-surface-2 rounded-xl p-4">
           <BodyweightLog />
         </div>
       </section>
 
       {/* Nutrition Targets */}
       <section className="space-y-3">
-        <div className="flex items-center gap-2 text-zinc-400">
+        <div className="flex items-center gap-2 text-neutral-400">
           <Target size={16} />
           <h2 className="text-sm font-medium">NUTRITION TARGETS</h2>
         </div>
-        <div className="bg-zinc-900 rounded-xl p-4 space-y-3">
+        <div className="bg-surface-2 rounded-xl p-4 space-y-3">
+          <p className="text-neutral-500 text-xs">Auto-calculated from body stats — adjust to override</p>
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="text-zinc-500 text-xs">Protein Min</label>
+              <label className="text-neutral-500 text-xs">Protein Min</label>
               <input type="number" value={proteinMin} onChange={(e) => { setProteinMin(e.target.value); setSaved(false); }}
-                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 min-h-11 text-zinc-100 focus:outline-none focus:border-emerald-500" />
+                className="w-full bg-surface-3 border border-border-2 rounded-lg px-3 py-2 min-h-11 text-white focus:outline-none focus:border-brand" />
             </div>
             <div>
-              <label className="text-zinc-500 text-xs">Protein Max</label>
+              <label className="text-neutral-500 text-xs">Protein Max</label>
               <input type="number" value={proteinMax} onChange={(e) => { setProteinMax(e.target.value); setSaved(false); }}
-                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 min-h-11 text-zinc-100 focus:outline-none focus:border-emerald-500" />
+                className="w-full bg-surface-3 border border-border-2 rounded-lg px-3 py-2 min-h-11 text-white focus:outline-none focus:border-brand" />
             </div>
             <div>
-              <label className="text-zinc-500 text-xs">Calories</label>
+              <label className="text-neutral-500 text-xs">Calories</label>
               <input type="number" value={calorieTarget} onChange={(e) => { setCalorieTarget(e.target.value); setSaved(false); }}
-                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 min-h-11 text-zinc-100 focus:outline-none focus:border-emerald-500" />
+                className="w-full bg-surface-3 border border-border-2 rounded-lg px-3 py-2 min-h-11 text-white focus:outline-none focus:border-brand" />
             </div>
           </div>
         </div>
@@ -150,13 +168,13 @@ export default function SettingsPage() {
 
       {/* Training Mode */}
       <section className="space-y-3">
-        <div className="flex items-center gap-2 text-zinc-400">
+        <div className="flex items-center gap-2 text-neutral-400">
           <Wrench size={16} />
           <h2 className="text-sm font-medium">TRAINING</h2>
         </div>
-        <div className="bg-zinc-900 rounded-xl p-4 space-y-4">
+        <div className="bg-surface-2 rounded-xl p-4 space-y-4">
           <div>
-            <label className="text-zinc-500 text-xs mb-2 block">Training Mode</label>
+            <label className="text-neutral-500 text-xs mb-2 block">Training Mode</label>
             <div className="flex gap-2">
               {(Object.entries(MODE_LABELS) as Array<[TrainingMode, string]>).map(([mode, label]) => (
                 <button
@@ -164,8 +182,8 @@ export default function SettingsPage() {
                   onClick={() => { setTrainingMode(mode); setSaved(false); }}
                   className={`flex-1 py-2 min-h-11 rounded-lg text-sm font-medium transition-colors ${
                     trainingMode === mode
-                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
-                      : 'bg-zinc-800 text-zinc-400 border border-zinc-700'
+                      ? 'bg-brand/15 text-brand border border-brand/30'
+                      : 'bg-surface-3 text-neutral-400 border border-border-2'
                   }`}
                 >
                   {label}
@@ -175,7 +193,7 @@ export default function SettingsPage() {
           </div>
 
           <div>
-            <label className="text-zinc-500 text-xs mb-2 block">Equipment Available</label>
+            <label className="text-neutral-500 text-xs mb-2 block">Equipment Available</label>
             <div className="flex flex-wrap gap-2">
               {EQUIPMENT_OPTIONS.map((item) => (
                 <button
@@ -183,8 +201,8 @@ export default function SettingsPage() {
                   onClick={() => toggleEquipment(item)}
                   className={`px-3 py-1.5 min-h-11 rounded-lg text-sm transition-colors ${
                     equipment.includes(item)
-                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
-                      : 'bg-zinc-800 text-zinc-500 border border-zinc-700'
+                      ? 'bg-brand/15 text-brand border border-brand/30'
+                      : 'bg-surface-3 text-neutral-500 border border-border-2'
                   }`}
                 >
                   {item.replace(/_/g, ' ')}
@@ -201,8 +219,8 @@ export default function SettingsPage() {
         disabled={saving}
         className={`w-full font-semibold rounded-xl py-3 min-h-11 transition-colors flex items-center justify-center gap-2 ${
           saved
-            ? 'bg-emerald-600 text-white'
-            : 'bg-emerald-500 hover:bg-emerald-600 text-white'
+            ? 'bg-brand-dark text-white'
+            : 'bg-brand hover:bg-brand-dark text-white'
         } disabled:opacity-50`}
       >
         {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
@@ -212,7 +230,7 @@ export default function SettingsPage() {
       {/* Sign out */}
       <button
         onClick={signOut}
-        className="w-full bg-zinc-900 hover:bg-zinc-800 text-red-400 font-medium rounded-xl py-3 min-h-11 transition-colors flex items-center justify-center gap-2"
+        className="w-full bg-surface-2 hover:bg-surface-3 text-red-400 font-medium rounded-xl py-3 min-h-11 transition-colors flex items-center justify-center gap-2"
       >
         <LogOut size={18} />
         Sign Out

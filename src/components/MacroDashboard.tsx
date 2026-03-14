@@ -18,7 +18,7 @@ export function ProteinBar({ current, min, max }: ProteinBarProps) {
     colorClass = 'bg-yellow-500';
     label = 'Almost';
   } else if (current <= max) {
-    colorClass = 'bg-emerald-500';
+    colorClass = 'bg-brand';
     label = 'On Target';
   } else {
     colorClass = 'bg-blue-500';
@@ -26,21 +26,21 @@ export function ProteinBar({ current, min, max }: ProteinBarProps) {
   }
 
   return (
-    <div className="bg-zinc-900 rounded-xl p-4">
+    <div className="bg-surface-2 rounded-xl p-4">
       <div className="flex items-baseline justify-between mb-2">
         <div className="flex items-baseline gap-2">
-          <span className="text-3xl font-bold text-zinc-100">{Math.round(current)}g</span>
-          <span className="text-zinc-400 text-sm">protein</span>
+          <span className="text-3xl font-bold text-white">{Math.round(current)}g</span>
+          <span className="text-neutral-400 text-sm">protein</span>
         </div>
         <span className={`text-sm font-medium ${colorClass.replace('bg-', 'text-')}`}>{label}</span>
       </div>
-      <div className="w-full h-3 bg-zinc-800 rounded-full overflow-hidden">
+      <div className="w-full h-3 bg-surface-3 rounded-full overflow-hidden">
         <div
           className={`h-full rounded-full transition-all duration-500 ${colorClass}`}
           style={{ width: `${percentage}%` }}
         />
       </div>
-      <p className="text-zinc-500 text-xs mt-1">Target: {min}–{max}g</p>
+      <p className="text-neutral-500 text-xs mt-1">Target: {min}–{max}g</p>
     </div>
   );
 }
@@ -55,13 +55,13 @@ interface MacroCardProps {
 
 export function MacroCard({ label, value, unit = 'g', target }: MacroCardProps) {
   return (
-    <div className="bg-zinc-900 rounded-xl p-3 flex-1">
-      <p className="text-zinc-400 text-xs mb-0.5">{label}</p>
-      <p className="text-zinc-100 text-xl font-bold">
-        {Math.round(value)}<span className="text-sm font-normal text-zinc-500">{unit}</span>
+    <div className="bg-surface-2 rounded-xl p-3 flex-1">
+      <p className="text-neutral-400 text-xs mb-0.5">{label}</p>
+      <p className="text-white text-xl font-bold">
+        {Math.round(value)}<span className="text-sm font-normal text-neutral-500">{unit}</span>
       </p>
       {target !== undefined && (
-        <p className="text-zinc-500 text-xs">/ {target}</p>
+        <p className="text-neutral-500 text-xs">/ {target}</p>
       )}
     </div>
   );

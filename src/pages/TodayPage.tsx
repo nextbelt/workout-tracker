@@ -6,7 +6,7 @@ import { useMoodAdjustment, adjustExercises } from '../hooks/useMoodAdjustment';
 import { SetLogger } from '../components/SetLogger';
 import { RestTimerButton } from '../components/RestTimer';
 import { RecoveryRatingModal } from '../components/RecoveryRating';
-import { ExerciseSwapModal } from '../components/ExerciseSwap';
+import ExerciseLibraryPage from './ExerciseLibraryPage';
 import { MoodCheck } from '../components/MoodCheck';
 import { ExerciseDetail } from '../components/ExerciseDetail';
 import { CardioLogger } from '../components/CardioLogger';
@@ -378,10 +378,14 @@ export default function TodayPage() {
       )}
 
       {swapTarget && (
-        <ExerciseSwapModal
-          currentExercise={swapTarget.exercise}
-          onSwap={handleSwap}
-          onClose={() => setSwapTarget(null)}
+        <ExerciseLibraryPage
+          swapMode={{
+            currentExerciseId: swapTarget.exercise.id,
+            currentExerciseName: swapTarget.exercise.name,
+            movementPool: swapTarget.exercise.movement_pool,
+            onSwap: handleSwap,
+            onClose: () => setSwapTarget(null),
+          }}
         />
       )}
 

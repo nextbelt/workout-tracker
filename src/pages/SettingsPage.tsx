@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { LogOut, Save, Loader2, User as UserIcon, Scale, Target, Wrench, TrendingDown, Bell, Sun, Moon } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { LogOut, Save, Loader2, User as UserIcon, Scale, Target, Wrench, TrendingDown, Bell, Sun, Moon, RotateCcw } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../lib/supabase';
 import { BodyweightLog } from '../components/BodyweightLog';
@@ -16,6 +17,7 @@ const MODE_LABELS: Record<TrainingMode, string> = {
 
 export default function SettingsPage() {
   const { user, profile, signOut, refreshProfile } = useAuth();
+  const navigate = useNavigate();
 
   const [displayName, setDisplayName] = useState(profile?.display_name ?? '');
   const [heightInches, setHeightInches] = useState(profile?.height_inches?.toString() ?? '');
@@ -311,6 +313,27 @@ export default function SettingsPage() {
       >
         {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
         {saved ? 'Saved!' : 'Save Changes'}
+      </button>
+
+      {/* Redo Onboarding */}
+      <button
+        onClick={async () => {
+          if (!profile) return;
+          const confirmed = window.confirm(
+            'This will regenerate your program from scratch based on new answers. Continue?'
+          );
+          if (!confirmed) return;
+          await supabase
+            .from('user_profiles')
+            .update({ onboarding_completed: false } as never)
+            .eq('id', profile.id);
+          await refreshProfile();
+          navigate('/onboarding');
+        }}
+        className="w-full bg-surface-2 hover:bg-surface-3 text-brand font-medium rounded-xl py-3 min-h-11 transition-colors flex items-center justify-center gap-2"
+      >
+        <RotateCcw size={18} />
+        Redo Onboarding
       </button>
 
       {/* Sign out */}

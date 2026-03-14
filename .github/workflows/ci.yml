@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main, staging]
+
+jobs:
+  lint-and-typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript check
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build (catch any build errors)
+        run: npm run build
+
+  api-proxy-check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: api-proxy
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: api-proxy/package-lock.json
+
+      - name: Install api-proxy dependencies
+        run: npm ci
+
+      - name: TypeScript check
+        run: npx tsc --noEmit
+
+      - name: Build
+        run: npm run build
+
+  migration-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Start local Supabase
+        run: supabase start -x realtime,storage,imgproxy,edge-runtime,logflare,vector,studio
+
+      - name: Verify migrations apply cleanly
+        run: supabase db reset
+
+      - name: Check for schema drift (types freshness)
+        run: |
+          supabase gen types typescript --local > /tmp/fresh_types.ts
+          if ! diff -q src/types/database.ts /tmp/fresh_types.ts > /dev/null 2>&1; then
+            echo "::warning::database.ts is out of sync with migrations. Run: npx supabase gen types typescript --local > src/types/database.ts"
+          fi
+
+      - name: Stop Supabase
+        run: supabase stop

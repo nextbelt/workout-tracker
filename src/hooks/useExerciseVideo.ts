@@ -22,7 +22,7 @@ interface YouTubeResult {
   thumbnailUrl: string;
 }
 
-const API_BASE = import.meta.env.VITE_API_URL ?? '';
+const API_BASE = import.meta.env.VITE_API_PROXY_URL ?? 'http://localhost:3001';
 
 /**
  * YouTube like/dislike cycling video system.

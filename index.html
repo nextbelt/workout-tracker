@@ -3,7 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#0a0a0a" />
+    <meta name="theme-color" content="#f4f4f5" />
+    <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -19,7 +20,30 @@
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js');
+          navigator.serviceWorker.register('/sw.js').then((reg) => {
+            // Check for updates every 60 seconds
+            setInterval(() => reg.update(), 60 * 1000);
+
+            // When a new SW is installed and waiting, activate it and reload
+            reg.addEventListener('updatefound', () => {
+              const newSW = reg.installing;
+              if (!newSW) return;
+              newSW.addEventListener('statechange', () => {
+                if (newSW.state === 'activated') {
+                  // New version active — reload to pick it up
+                  window.location.reload();
+                }
+              });
+            });
+          });
+
+          // If a new SW took over (via clients.claim), reload the page
+          let refreshing = false;
+          navigator.serviceWorker.addEventListener('controllerchange', () => {
+            if (refreshing) return;
+            refreshing = true;
+            window.location.reload();
+          });
         });
       }
     </script>

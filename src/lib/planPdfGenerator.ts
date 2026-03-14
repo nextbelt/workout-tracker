@@ -38,21 +38,21 @@ function addPageFooter(doc: jsPDF, pageNum: number) {
 
 function sectionTitle(doc: jsPDF, y: number, title: string): number {
   setColor(doc, BRAND);
-  doc.setFontSize(14);
+  doc.setFontSize(13);
   doc.setFont('helvetica', 'bold');
   doc.text(title, 20, y);
   doc.setDrawColor(BRAND.r, BRAND.g, BRAND.b);
   doc.setLineWidth(0.5);
   doc.line(20, y + 2, 190, y + 2);
-  return y + 10;
+  return y + 8;
 }
 
 function subSectionTitle(doc: jsPDF, y: number, title: string): number {
   setColor(doc, DARK);
-  doc.setFontSize(11);
+  doc.setFontSize(10);
   doc.setFont('helvetica', 'bold');
   doc.text(title, 25, y);
-  return y + 7;
+  return y + 6;
 }
 
 function labelValue(doc: jsPDF, y: number, label: string, value: string): number {
@@ -61,9 +61,9 @@ function labelValue(doc: jsPDF, y: number, label: string, value: string): number
   doc.setFont('helvetica', 'normal');
   doc.text(label, 25, y);
   setColor(doc, DARK);
-  doc.setFontSize(10);
+  doc.setFontSize(9);
   doc.text(value, 90, y);
-  return y + 7;
+  return y + 6;
 }
 
 function bodyText(doc: jsPDF, y: number, text: string, maxWidth = 165): number {
@@ -72,7 +72,7 @@ function bodyText(doc: jsPDF, y: number, text: string, maxWidth = 165): number {
   doc.setFont('helvetica', 'normal');
   const lines = doc.splitTextToSize(text, maxWidth);
   doc.text(lines, 25, y);
-  return y + (lines as string[]).length * 4.5 + 2;
+  return y + (lines as string[]).length * 4 + 1;
 }
 
 function bulletPoint(doc: jsPDF, y: number, text: string, maxWidth = 160): number {
@@ -82,11 +82,11 @@ function bulletPoint(doc: jsPDF, y: number, text: string, maxWidth = 160): numbe
   const lines = doc.splitTextToSize(text, maxWidth);
   doc.text('•', 25, y);
   doc.text(lines, 30, y);
-  return y + (lines as string[]).length * 4.5 + 2;
+  return y + (lines as string[]).length * 4 + 1;
 }
 
 function checkPageBreak(doc: jsPDF, y: number, needed: number, pageNum: { value: number }): number {
-  const maxY = doc.internal.pageSize.getHeight() - 25;
+  const maxY = doc.internal.pageSize.getHeight() - 18;
   if (y + needed > maxY) {
     addPageFooter(doc, pageNum.value);
     doc.addPage();
@@ -447,7 +447,7 @@ export function generatePlanPdf(
     y = bulletPoint(doc, y, item);
   }
 
-  y += 5;
+  y += 3;
   y = checkPageBreak(doc, y, 60, pageNum);
   y = sectionTitle(doc, y, 'Glossary');
 
@@ -473,7 +473,7 @@ export function generatePlanPdf(
     setColor(doc, DARK);
     doc.setFont('helvetica', 'normal');
     doc.text(` — ${definition}`, 25 + doc.getTextWidth(term), y);
-    y += 6;
+    y += 5;
   }
 
   addPageFooter(doc, pageNum.value);
@@ -482,7 +482,7 @@ export function generatePlanPdf(
   // ATHLETE PROFILE
   // ═══════════════════════════════════════════════════════════════════════
 
-  y = newPage(doc, pageNum);
+  y = checkPageBreak(doc, y, 50, pageNum);
   tocMark('Athlete Profile');
   y = sectionTitle(doc, y, 'Athlete Profile');
 
@@ -505,7 +505,7 @@ export function generatePlanPdf(
   if (weeksToGoal) y = labelValue(doc, y, 'Est. Timeline', `~${weeksToGoal} weeks to goal weight`);
 
   if (answers.injuries.length > 0) {
-    y += 5;
+    y += 3;
     y = subSectionTitle(doc, y, 'Injury / Limitation Profile');
     y = bodyText(doc, y, `Areas to protect: ${answers.injuries.join(', ')}`);
     y = bodyText(doc, y,
@@ -513,7 +513,7 @@ export function generatePlanPdf(
   }
 
   if (answers.equipmentAvailable.length > 0) {
-    y += 3;
+    y += 2;
     y = subSectionTitle(doc, y, 'Available Equipment');
     y = bodyText(doc, y, answers.equipmentAvailable.map(e => e.replace(/_/g, ' ')).join(', '));
   }
@@ -547,7 +547,7 @@ export function generatePlanPdf(
   y = labelValue(doc, y, 'Carbohydrates', `${params.carbTarget}g/day (remainder)`);
 
   // Macro breakdown bar chart
-  y += 5;
+  y += 3;
   const proteinCals = Math.round((params.proteinTargetMin + params.proteinTargetMax) / 2) * 4;
   const fatCals = params.fatTarget * 9;
   const carbCals = params.carbTarget * 4;
@@ -578,10 +578,10 @@ export function generatePlanPdf(
   doc.text(`Fat ${Math.round(fatCals / totalCals * 100)}%`, barX + proteinW, y);
   setColor(doc, GREEN);
   doc.text(`Carbs ${Math.round(carbCals / totalCals * 100)}%`, barX + proteinW + fatW, y);
-  y += 8;
+  y += 5;
 
   // ── Sample meal plan ──
-  y += 3;
+  y += 2;
   y = checkPageBreak(doc, y, 55, pageNum);
   y = sectionTitle(doc, y, 'Sample Meal Plan');
 
@@ -744,7 +744,7 @@ export function generatePlanPdf(
     doc.text(`${(p.volumeMultiplier * 100).toFixed(0)}%`, 95, y);
     doc.text(`${effectiveSets}`, 125, y);
     doc.text(p.isDeload ? 'DELOAD' : 'Training', 170, y);
-    y += 8;
+    y += 7;
   }
 
   // RIR progression bar chart
@@ -846,7 +846,7 @@ export function generatePlanPdf(
     setColor(doc, MUTED);
     doc.setFontSize(8);
     doc.text(`${vol} sets/wk`, 90 + volBw + 3, y);
-    y += 9;
+    y += 7;
   }
 
   addPageFooter(doc, pageNum.value);
@@ -878,7 +878,7 @@ export function generatePlanPdf(
     }
   }
 
-  y += 5;
+  y += 3;
   y = subSectionTitle(doc, y, 'Rotatable Exercises (Change Each Block)');
   y = bodyText(doc, y,
     'These exercises will be swapped for alternatives within the same movement pool when you rotate blocks:');
@@ -895,7 +895,7 @@ export function generatePlanPdf(
     }
   }
 
-  y += 5;
+  y += 3;
   y = subSectionTitle(doc, y, 'Rotation Schedule');
   y = bodyText(doc, y, 'Block 1 -> Block 2: Rotate 2-4 non-anchor exercises');
   y = bodyText(doc, y, 'Block 2 -> Block 3: Rotate a different set of 2-4 exercises');
@@ -972,12 +972,12 @@ export function generatePlanPdf(
         y += 7;
       }
 
-      y += 8;
+      y += 4;
     }
   } else {
     // Fallback: generic movement pool slots from preview
     for (const day of preview.days) {
-      y = checkPageBreak(doc, y, 45, pageNum);
+      y = checkPageBreak(doc, y, 40, pageNum);
 
       doc.setFillColor(BRAND.r, BRAND.g, BRAND.b);
       doc.roundedRect(20, y - 4, w - 40, 8, 2, 2, 'F');
@@ -1016,106 +1016,8 @@ export function generatePlanPdf(
         y += 7;
       }
 
-      y += 8;
+      y += 4;
     }
-  }
-
-  addPageFooter(doc, pageNum.value);
-
-  // ═══════════════════════════════════════════════════════════════════════
-  // EXERCISE REFERENCE CARDS
-  // ═══════════════════════════════════════════════════════════════════════
-
-  y = newPage(doc, pageNum);
-  tocMark('Exercise Reference');
-  y = sectionTitle(doc, y, 'Exercise Reference');
-  y = bodyText(doc, y, 'Form cues and muscle targets for each exercise in your program.');
-  y += 3;
-
-  if (blockExercises && blockExercises.length > 0) {
-    const seenExercises = new Set<string>();
-
-    for (const ex of blockExercises) {
-      if (seenExercises.has(ex.exercise_name)) continue;
-      seenExercises.add(ex.exercise_name);
-
-      const hasInstructions = ex.instructions && ex.instructions.length > 0;
-      const hasMuscles = (ex.primary_muscles && ex.primary_muscles.length > 0) ||
-                          (ex.secondary_muscles && ex.secondary_muscles.length > 0);
-      const poolCues = MOVEMENT_POOL_CUES[ex.movement_pool];
-      const cueCount = hasInstructions
-        ? Math.min(ex.instructions!.length, 4)
-        : (poolCues ? Math.min(poolCues.length, 4) : 0);
-      const cardHeight = 22 + cueCount * 5 + (hasMuscles ? 12 : 0);
-
-      y = checkPageBreak(doc, y, cardHeight, pageNum);
-
-      doc.setFillColor(LIGHT_BG.r, LIGHT_BG.g, LIGHT_BG.b);
-      doc.roundedRect(20, y - 4, w - 40, cardHeight, 3, 3, 'F');
-
-      setColor(doc, BRAND);
-      doc.setFontSize(11);
-      doc.setFont('helvetica', 'bold');
-      doc.text(ex.exercise_name, 25, y);
-
-      const tags: string[] = [];
-      if (ex.is_compound) tags.push('Compound');
-      else tags.push('Isolation');
-      if (ex.is_anchor) tags.push('Anchor');
-      if (ex.body_part) tags.push(ex.body_part);
-      if (ex.difficulty) tags.push(ex.difficulty);
-
-      setColor(doc, MUTED);
-      doc.setFontSize(7);
-      doc.setFont('helvetica', 'normal');
-      doc.text(tags.join(' | '), 25, y + 5);
-      y += 10;
-
-      if (hasMuscles) {
-        setColor(doc, DARK);
-        doc.setFontSize(8);
-        if (ex.primary_muscles && ex.primary_muscles.length > 0) {
-          doc.setFont('helvetica', 'bold');
-          doc.text('Primary: ', 25, y);
-          doc.setFont('helvetica', 'normal');
-          doc.text(ex.primary_muscles.join(', '), 25 + doc.getTextWidth('Primary: '), y);
-        }
-        y += 5;
-        if (ex.secondary_muscles && ex.secondary_muscles.length > 0) {
-          doc.setFont('helvetica', 'bold');
-          doc.text('Secondary: ', 25, y);
-          doc.setFont('helvetica', 'normal');
-          doc.text(ex.secondary_muscles.join(', '), 25 + doc.getTextWidth('Secondary: '), y);
-        }
-        y += 6;
-      }
-
-      const cues = hasInstructions ? ex.instructions! : (poolCues ?? []);
-      if (cues.length > 0) {
-        setColor(doc, DARK);
-        doc.setFontSize(8);
-        doc.setFont('helvetica', 'bold');
-        doc.text('Form Cues:', 25, y);
-        y += 5;
-        doc.setFont('helvetica', 'normal');
-        for (const cue of cues.slice(0, 4)) {
-          const cueText = cue.length > 90 ? cue.slice(0, 88) + '...' : cue;
-          doc.text(`- ${cueText}`, 28, y);
-          y += 4.5;
-        }
-      }
-
-      setColor(doc, MUTED);
-      doc.setFontSize(8);
-      doc.text(
-        `${ex.sets} x ${ex.rep_min}-${ex.rep_max} reps | Rest ${ex.rest_seconds}s | RIR ${ex.rir_target}`,
-        25, y,
-      );
-      y += 8;
-    }
-  } else {
-    y = bodyText(doc, y,
-      'Generate your block exercises in the app to see detailed exercise reference cards with form cues.');
   }
 
   addPageFooter(doc, pageNum.value);
@@ -1150,7 +1052,7 @@ export function generatePlanPdf(
       doc.text(warmUp.steps[i], 35, y);
       y += 6;
     }
-    y += 5;
+    y += 3;
   }
 
   addPageFooter(doc, pageNum.value);
@@ -1159,7 +1061,7 @@ export function generatePlanPdf(
   // RECOVERY & DELOAD
   // ═══════════════════════════════════════════════════════════════════════
 
-  y = newPage(doc, pageNum);
+  y = checkPageBreak(doc, y, 50, pageNum);
   tocMark('Recovery & Deload');
   y = sectionTitle(doc, y, 'Recovery System');
   y = bodyText(doc, y,
@@ -1196,10 +1098,10 @@ export function generatePlanPdf(
     doc.setFontSize(8);
     setColor(doc, MUTED);
     doc.text(tiers[i][2], 110, y);
-    y += 8;
+    y += 7;
   }
 
-  y += 5;
+  y += 3;
   y = sectionTitle(doc, y, 'Deload Protocol');
   y = bodyText(doc, y,
     `Every ${params.weeksBetweenDeloads} training weeks, take a full deload week:`);
@@ -1224,13 +1126,13 @@ export function generatePlanPdf(
   // PROGRESSION RULES
   // ═══════════════════════════════════════════════════════════════════════
 
-  y = newPage(doc, pageNum);
+  y = checkPageBreak(doc, y, 40, pageNum);
   tocMark('Progression Rules');
   y = sectionTitle(doc, y, 'Progression Rules');
   y = bodyText(doc, y,
     'Follow these guidelines to progressively overload and drive hypertrophy:');
 
-  y += 3;
+  y += 2;
 
   y = subSectionTitle(doc, y, 'When to Add Weight');
   const progressionRules = [
@@ -1243,7 +1145,7 @@ export function generatePlanPdf(
     y = bulletPoint(doc, y, rule);
   }
 
-  y += 3;
+  y += 2;
   y = subSectionTitle(doc, y, 'Stall Detection');
   const stallRules = [
     'Same weight/reps for 3 consecutive sessions -> you\'re stalled.',
@@ -1255,7 +1157,7 @@ export function generatePlanPdf(
     y = bulletPoint(doc, y, rule);
   }
 
-  y += 3;
+  y += 2;
   y = subSectionTitle(doc, y, 'Training Mode Guide');
   y = bodyText(doc, y, 'Switch modes in the app based on your situation:');
 
@@ -1278,7 +1180,7 @@ export function generatePlanPdf(
     doc.setFont('helvetica', 'normal');
     const descLines = doc.splitTextToSize(desc, 140) as string[];
     doc.text(descLines, 25 + doc.getTextWidth(mode) + 3, y);
-    y += descLines.length * 4.5 + 4;
+    y += descLines.length * 4 + 3;
   }
 
   addPageFooter(doc, pageNum.value);
@@ -1287,12 +1189,10 @@ export function generatePlanPdf(
   // WEEKLY LOG SHEETS (Printable)
   // ═══════════════════════════════════════════════════════════════════════
 
-  tocMark('Weekly Log Sheets');
+  tocMark('Workout Log Templates');
 
-  for (let wk = 1; wk <= totalWeeks; wk++) {
-    const p = getWeekPeriodization(wk, totalWeeks, params.startingRir);
-    const effectiveRir = getWeekRir(wk, totalWeeks, params.startingRir);
-
+  // Generate one template per day (photocopy for each training week)
+  {
     for (const template of dayTemplates) {
       const dayExercises = blockExercises
         ? blockExercises
@@ -1304,25 +1204,20 @@ export function generatePlanPdf(
 
       y = newPage(doc, pageNum);
 
-      // Week/Day header bar
-      const weekLabel = p.isDeload ? `Week ${wk} — DELOAD` : `Week ${wk}`;
+      // Day header bar
       const dayLabel = ALL_DAY_LABELS[template] ?? template;
 
-      doc.setFillColor(
-        p.isDeload ? BLUE.r : BRAND.r,
-        p.isDeload ? BLUE.g : BRAND.g,
-        p.isDeload ? BLUE.b : BRAND.b,
-      );
+      doc.setFillColor(BRAND.r, BRAND.g, BRAND.b);
       doc.rect(0, 0, w, 18, 'F');
       setColor(doc, WHITE);
       doc.setFontSize(14);
       doc.setFont('helvetica', 'bold');
-      doc.text(`${weekLabel}  |  ${dayLabel}`, 20, 12);
+      doc.text(`${dayLabel}  |  Week: ____`, 20, 12);
 
       doc.setFontSize(8);
       doc.setFont('helvetica', 'normal');
       doc.text(
-        `RIR ${effectiveRir} | Volume ${(p.volumeMultiplier * 100).toFixed(0)}%`,
+        'Print / photocopy for each training week',
         w - 20, 12, { align: 'right' },
       );
 
@@ -1334,13 +1229,13 @@ export function generatePlanPdf(
       doc.text('Date: ______________', 20, y);
       doc.text('Recovery:  [ ] Great   [ ] Normal   [ ] Poor', 90, y);
       doc.text('Bodyweight: ________', 20, y + 6);
-      doc.text('Pre-Workout:  [ ] Energized  [ ] Normal  [ ] Tired', 90, y + 6);
-      y += 16;
+      doc.text('RIR Target: ____', 90, y + 6);
+      y += 14;
 
       if (dayExercises.length > 0) {
         for (const ex of dayExercises) {
           y = checkPageBreak(doc, y, 38, pageNum);
-          const effectiveSets = getWeekSets(ex.sets, wk, totalWeeks, params.startingRir);
+          const effectiveSets = ex.sets;
 
           // Exercise header
           doc.setFillColor(LIGHT_BG.r, LIGHT_BG.g, LIGHT_BG.b);
@@ -1352,7 +1247,7 @@ export function generatePlanPdf(
           setColor(doc, MUTED);
           doc.setFontSize(7);
           doc.text(
-            `Target: ${effectiveSets} x ${ex.rep_min}-${ex.rep_max} | RIR ${effectiveRir} | Rest ${ex.rest_seconds}s`,
+            `Target: ${effectiveSets} x ${ex.rep_min}-${ex.rep_max} | RIR ${ex.rir_target} | Rest ${ex.rest_seconds}s`,
             100, y,
           );
           y += 8;
@@ -1388,10 +1283,10 @@ export function generatePlanPdf(
             doc.line(120, y + 1, 145, y + 1);
             doc.line(150, y + 1, 160, y + 1);
             doc.line(165, y + 1, 185, y + 1);
-            y += 7;
+            y += 6;
           }
 
-          y += 5;
+          y += 3;
         }
       } else {
         setColor(doc, MUTED);
@@ -1403,17 +1298,17 @@ export function generatePlanPdf(
       }
 
       // Session notes
-      y = checkPageBreak(doc, y, 25, pageNum);
+      y = checkPageBreak(doc, y, 18, pageNum);
       setColor(doc, MUTED);
       doc.setFontSize(8);
       doc.setFont('helvetica', 'bold');
       doc.text('Session Notes:', 20, y);
-      y += 5;
+      y += 4;
       doc.setDrawColor(200, 200, 200);
       doc.setLineWidth(0.2);
-      for (let l = 0; l < 3; l++) {
+      for (let l = 0; l < 2; l++) {
         doc.line(20, y, w - 20, y);
-        y += 6;
+        y += 5;
       }
 
       addPageFooter(doc, pageNum.value);
@@ -1497,7 +1392,7 @@ export function generatePlanPdf(
     y = checkPageBreak(doc, y, 15, pageNum);
     const lines = doc.splitTextToSize(`- ${note}`, w - 50) as string[];
     doc.text(lines, 25, y);
-    y += lines.length * 5 + 4;
+    y += lines.length * 4.5 + 2;
   }
 
   if (answers.injuries.length > 0) {
@@ -1581,5 +1476,124 @@ export function downloadPlanPdf(
   const filename = userName
     ? `WorkIn_Plan_${userName.replace(/\s+/g, '_')}.pdf`
     : 'WorkIn_Training_Plan.pdf';
+  doc.save(filename);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// STANDALONE EXERCISE REFERENCE PDF
+// ═══════════════════════════════════════════════════════════════════════════
+
+export function downloadExerciseReferencePdf(
+  exercises: PdfBlockExercise[],
+  userName: string | null,
+) {
+  if (exercises.length === 0) return;
+
+  const doc = new jsPDF('p', 'mm', 'a4');
+  const w = doc.internal.pageSize.getWidth();
+  const pageNum = { value: 1 };
+
+  // Cover bar
+  doc.setFillColor(BRAND.r, BRAND.g, BRAND.b);
+  doc.rect(0, 0, w, 22, 'F');
+  setColor(doc, WHITE);
+  doc.setFontSize(18);
+  doc.setFont('helvetica', 'bold');
+  doc.text('WorkIn.ai — Exercise Reference', 20, 15);
+
+  let y = 32;
+  if (userName) {
+    setColor(doc, MUTED);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Prepared for ${userName}`, 20, y);
+    y += 8;
+  }
+
+  const seenExercises = new Set<string>();
+
+  for (const ex of exercises) {
+    if (seenExercises.has(ex.exercise_name)) continue;
+    seenExercises.add(ex.exercise_name);
+
+    const hasInstructions = ex.instructions && ex.instructions.length > 0;
+    const hasMuscles = (ex.primary_muscles && ex.primary_muscles.length > 0) ||
+                        (ex.secondary_muscles && ex.secondary_muscles.length > 0);
+    const poolCues = MOVEMENT_POOL_CUES[ex.movement_pool];
+    const cueCount = hasInstructions
+      ? Math.min(ex.instructions!.length, 4)
+      : (poolCues ? Math.min(poolCues.length, 4) : 0);
+    const cardHeight = 18 + cueCount * 4.5 + (hasMuscles ? 10 : 0);
+
+    y = checkPageBreak(doc, y, cardHeight, pageNum);
+
+    doc.setFillColor(LIGHT_BG.r, LIGHT_BG.g, LIGHT_BG.b);
+    doc.roundedRect(20, y - 4, w - 40, cardHeight, 2, 2, 'F');
+
+    setColor(doc, BRAND);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text(ex.exercise_name, 25, y);
+
+    const tags: string[] = [];
+    if (ex.is_compound) tags.push('Compound');
+    else tags.push('Isolation');
+    if (ex.is_anchor) tags.push('Anchor');
+    if (ex.body_part) tags.push(ex.body_part);
+
+    setColor(doc, MUTED);
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'normal');
+    doc.text(tags.join(' | '), 25, y + 4);
+    y += 8;
+
+    if (hasMuscles) {
+      setColor(doc, DARK);
+      doc.setFontSize(8);
+      if (ex.primary_muscles && ex.primary_muscles.length > 0) {
+        doc.setFont('helvetica', 'bold');
+        doc.text('Primary: ', 25, y);
+        doc.setFont('helvetica', 'normal');
+        doc.text(ex.primary_muscles.join(', '), 25 + doc.getTextWidth('Primary: '), y);
+      }
+      y += 4;
+      if (ex.secondary_muscles && ex.secondary_muscles.length > 0) {
+        doc.setFont('helvetica', 'bold');
+        doc.text('Secondary: ', 25, y);
+        doc.setFont('helvetica', 'normal');
+        doc.text(ex.secondary_muscles.join(', '), 25 + doc.getTextWidth('Secondary: '), y);
+      }
+      y += 5;
+    }
+
+    const cues = hasInstructions ? ex.instructions! : (poolCues ?? []);
+    if (cues.length > 0) {
+      setColor(doc, DARK);
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Form Cues:', 25, y);
+      y += 4;
+      doc.setFont('helvetica', 'normal');
+      for (const cue of cues.slice(0, 4)) {
+        const cueText = cue.length > 90 ? cue.slice(0, 88) + '...' : cue;
+        doc.text(`- ${cueText}`, 28, y);
+        y += 4;
+      }
+    }
+
+    setColor(doc, MUTED);
+    doc.setFontSize(8);
+    doc.text(
+      `${ex.sets} x ${ex.rep_min}-${ex.rep_max} reps | Rest ${ex.rest_seconds}s | RIR ${ex.rir_target}`,
+      25, y,
+    );
+    y += 6;
+  }
+
+  addPageFooter(doc, pageNum.value);
+
+  const filename = userName
+    ? `WorkIn_Exercise_Reference_${userName.replace(/\s+/g, '_')}.pdf`
+    : 'WorkIn_Exercise_Reference.pdf';
   doc.save(filename);
 }

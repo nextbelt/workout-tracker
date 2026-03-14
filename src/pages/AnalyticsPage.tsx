@@ -37,16 +37,23 @@ const CHART_COLORS = {
   green: '#4ADE80',
   yellow: '#FACC15',
   red: '#F87171',
-  surface: '#1a1a1a',
-  border: '#333333',
-  text: '#a3a3a3',
 };
+
+function useChartTheme() {
+  const style = typeof window !== 'undefined' ? getComputedStyle(document.documentElement) : null;
+  return {
+    surface: style?.getPropertyValue('--color-surface-2').trim() || '#1a1a1a',
+    border: style?.getPropertyValue('--color-border').trim() || '#333333',
+    text: style?.getPropertyValue('--color-muted').trim() || '#a3a3a3',
+  };
+}
 
 export default function AnalyticsPage() {
   const [activeTab, setActiveTab] = useState<TabKey>('volume');
   const [loading, setLoading] = useState(false);
   const analytics = useAnalytics();
   const { exercises } = useWorkout();
+  const chartTheme = useChartTheme();
 
   // Data states
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -146,11 +153,11 @@ export default function AnalyticsPage() {
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={volumeData}>
-                <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.border} />
-                <XAxis dataKey="date" tick={{ fontSize: 10, fill: CHART_COLORS.text }} />
-                <YAxis tick={{ fontSize: 10, fill: CHART_COLORS.text }} />
+                <CartesianGrid strokeDasharray="3 3" stroke={chartTheme.border} />
+                <XAxis dataKey="date" tick={{ fontSize: 10, fill: chartTheme.text }} />
+                <YAxis tick={{ fontSize: 10, fill: chartTheme.text }} />
                 <Tooltip
-                  contentStyle={{ backgroundColor: CHART_COLORS.surface, border: `1px solid ${CHART_COLORS.border}`, borderRadius: '8px' }}
+                  contentStyle={{ backgroundColor: chartTheme.surface, border: `1px solid ${chartTheme.border}`, borderRadius: '8px' }}
                   labelStyle={{ color: '#fff' }}
                 />
                 <Area
@@ -210,11 +217,11 @@ export default function AnalyticsPage() {
               <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={progressionData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.border} />
-                    <XAxis dataKey="date" tick={{ fontSize: 10, fill: CHART_COLORS.text }} />
-                    <YAxis tick={{ fontSize: 10, fill: CHART_COLORS.text }} />
+                    <CartesianGrid strokeDasharray="3 3" stroke={chartTheme.border} />
+                    <XAxis dataKey="date" tick={{ fontSize: 10, fill: chartTheme.text }} />
+                    <YAxis tick={{ fontSize: 10, fill: chartTheme.text }} />
                     <Tooltip
-                      contentStyle={{ backgroundColor: CHART_COLORS.surface, border: `1px solid ${CHART_COLORS.border}`, borderRadius: '8px' }}
+                      contentStyle={{ backgroundColor: chartTheme.surface, border: `1px solid ${chartTheme.border}`, borderRadius: '8px' }}
                       labelStyle={{ color: '#fff' }}
                     />
                     <Line type="monotone" dataKey="maxWeight" stroke={CHART_COLORS.brand} strokeWidth={2} dot={{ fill: CHART_COLORS.brand }} name="Max Weight" />
@@ -233,15 +240,15 @@ export default function AnalyticsPage() {
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={consistencyData}>
-                <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.border} />
-                <XAxis dataKey="weekLabel" tick={{ fontSize: 10, fill: CHART_COLORS.text }} />
-                <YAxis domain={[0, 5]} tick={{ fontSize: 10, fill: CHART_COLORS.text }} />
+                <CartesianGrid strokeDasharray="3 3" stroke={chartTheme.border} />
+                <XAxis dataKey="weekLabel" tick={{ fontSize: 10, fill: chartTheme.text }} />
+                <YAxis domain={[0, 5]} tick={{ fontSize: 10, fill: chartTheme.text }} />
                 <Tooltip
-                  contentStyle={{ backgroundColor: CHART_COLORS.surface, border: `1px solid ${CHART_COLORS.border}`, borderRadius: '8px' }}
+                  contentStyle={{ backgroundColor: chartTheme.surface, border: `1px solid ${chartTheme.border}`, borderRadius: '8px' }}
                   labelStyle={{ color: '#fff' }}
                 />
                 <Bar dataKey="sessionsCompleted" fill={CHART_COLORS.brand} radius={[4, 4, 0, 0]} name="Sessions" />
-                <Bar dataKey="targetSessions" fill={CHART_COLORS.border} radius={[4, 4, 0, 0]} name="Target" />
+                <Bar dataKey="targetSessions" fill={chartTheme.border} radius={[4, 4, 0, 0]} name="Target" />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -255,11 +262,11 @@ export default function AnalyticsPage() {
             <div className="h-48">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={recoveryData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.border} />
-                  <XAxis dataKey="date" tick={{ fontSize: 10, fill: CHART_COLORS.text }} />
-                  <YAxis domain={[0, 4]} ticks={[1, 2, 3]} tickFormatter={(v: number) => ['', 'Poor', 'Normal', 'Great'][v] ?? ''} tick={{ fontSize: 10, fill: CHART_COLORS.text }} />
+                  <CartesianGrid strokeDasharray="3 3" stroke={chartTheme.border} />
+                  <XAxis dataKey="date" tick={{ fontSize: 10, fill: chartTheme.text }} />
+                  <YAxis domain={[0, 4]} ticks={[1, 2, 3]} tickFormatter={(v: number) => ['', 'Poor', 'Normal', 'Great'][v] ?? ''} tick={{ fontSize: 10, fill: chartTheme.text }} />
                   <Tooltip
-                    contentStyle={{ backgroundColor: CHART_COLORS.surface, border: `1px solid ${CHART_COLORS.border}`, borderRadius: '8px' }}
+                    contentStyle={{ backgroundColor: chartTheme.surface, border: `1px solid ${chartTheme.border}`, borderRadius: '8px' }}
                     labelStyle={{ color: '#fff' }}
                   />
                   <Line type="monotone" dataKey="ratingNum" stroke={CHART_COLORS.green} strokeWidth={2} name="Recovery" />
@@ -296,11 +303,11 @@ export default function AnalyticsPage() {
             <div className="h-48">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={nutritionData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.border} />
-                  <XAxis dataKey="date" tick={{ fontSize: 10, fill: CHART_COLORS.text }} />
-                  <YAxis tick={{ fontSize: 10, fill: CHART_COLORS.text }} />
+                  <CartesianGrid strokeDasharray="3 3" stroke={chartTheme.border} />
+                  <XAxis dataKey="date" tick={{ fontSize: 10, fill: chartTheme.text }} />
+                  <YAxis tick={{ fontSize: 10, fill: chartTheme.text }} />
                   <Tooltip
-                    contentStyle={{ backgroundColor: CHART_COLORS.surface, border: `1px solid ${CHART_COLORS.border}`, borderRadius: '8px' }}
+                    contentStyle={{ backgroundColor: chartTheme.surface, border: `1px solid ${chartTheme.border}`, borderRadius: '8px' }}
                     labelStyle={{ color: '#fff' }}
                   />
                   <Area type="monotone" dataKey="protein" stroke={CHART_COLORS.brand} fill={CHART_COLORS.brand} fillOpacity={0.2} strokeWidth={2} name="Protein (g)" />
@@ -310,11 +317,11 @@ export default function AnalyticsPage() {
             <div className="h-48">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={nutritionData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.border} />
-                  <XAxis dataKey="date" tick={{ fontSize: 10, fill: CHART_COLORS.text }} />
-                  <YAxis tick={{ fontSize: 10, fill: CHART_COLORS.text }} />
+                  <CartesianGrid strokeDasharray="3 3" stroke={chartTheme.border} />
+                  <XAxis dataKey="date" tick={{ fontSize: 10, fill: chartTheme.text }} />
+                  <YAxis tick={{ fontSize: 10, fill: chartTheme.text }} />
                   <Tooltip
-                    contentStyle={{ backgroundColor: CHART_COLORS.surface, border: `1px solid ${CHART_COLORS.border}`, borderRadius: '8px' }}
+                    contentStyle={{ backgroundColor: chartTheme.surface, border: `1px solid ${chartTheme.border}`, borderRadius: '8px' }}
                     labelStyle={{ color: '#fff' }}
                   />
                   <Bar dataKey="calories" fill={CHART_COLORS.blue} radius={[3, 3, 0, 0]} name="Calories" />
@@ -335,24 +342,24 @@ export default function AnalyticsPage() {
               <div className="h-52">
                 <ResponsiveContainer width="100%" height="100%">
                   <ScatterChart>
-                    <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.border} />
+                    <CartesianGrid strokeDasharray="3 3" stroke={chartTheme.border} />
                     <XAxis
                       dataKey="moodNum"
                       type="number"
                       domain={[0.5, 4.5]}
                       ticks={[1, 2, 3, 4]}
                       tickFormatter={(v: number) => ['', 'Beat Up', 'Low', 'Steady', 'Fired Up'][v] ?? ''}
-                      tick={{ fontSize: 9, fill: CHART_COLORS.text }}
+                      tick={{ fontSize: 9, fill: chartTheme.text }}
                       name="Mood"
                     />
                     <YAxis
                       dataKey="totalVolume"
-                      tick={{ fontSize: 10, fill: CHART_COLORS.text }}
+                      tick={{ fontSize: 10, fill: chartTheme.text }}
                       name="Volume"
                     />
                     <ZAxis dataKey="energy" range={[40, 200]} name="Energy" />
                     <Tooltip
-                      contentStyle={{ backgroundColor: CHART_COLORS.surface, border: `1px solid ${CHART_COLORS.border}`, borderRadius: '8px' }}
+                      contentStyle={{ backgroundColor: chartTheme.surface, border: `1px solid ${chartTheme.border}`, borderRadius: '8px' }}
                       labelStyle={{ color: '#fff' }}
                       // eslint-disable-next-line @typescript-eslint/no-explicit-any
                       formatter={((value: any, name: any) => {
@@ -374,16 +381,16 @@ export default function AnalyticsPage() {
               <div className="h-40">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={moodData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.border} />
-                    <XAxis dataKey="date" tick={{ fontSize: 10, fill: CHART_COLORS.text }} />
+                    <CartesianGrid strokeDasharray="3 3" stroke={chartTheme.border} />
+                    <XAxis dataKey="date" tick={{ fontSize: 10, fill: chartTheme.text }} />
                     <YAxis
                       domain={[0.5, 4.5]}
                       ticks={[1, 2, 3, 4]}
                       tickFormatter={(v: number) => ['', '😫', '😐', '💪', '🔥'][v] ?? ''}
-                      tick={{ fontSize: 12, fill: CHART_COLORS.text }}
+                      tick={{ fontSize: 12, fill: chartTheme.text }}
                     />
                     <Tooltip
-                      contentStyle={{ backgroundColor: CHART_COLORS.surface, border: `1px solid ${CHART_COLORS.border}`, borderRadius: '8px' }}
+                      contentStyle={{ backgroundColor: chartTheme.surface, border: `1px solid ${chartTheme.border}`, borderRadius: '8px' }}
                       labelStyle={{ color: '#fff' }}
                     />
                     <Line type="monotone" dataKey="moodNum" stroke={CHART_COLORS.brand} strokeWidth={2} dot={{ fill: CHART_COLORS.brand }} name="Mood" />

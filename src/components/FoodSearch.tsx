@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
-import { Search, X, Plus, Loader2 } from 'lucide-react';
+import { Search, X, Plus, Loader2, Heart, Star } from 'lucide-react';
+import { useFoodFavorites } from '../hooks/useFoodFavorites';
 import type { MealType } from '../types/database';
 
 interface FoodResult {
@@ -31,6 +32,7 @@ export function FoodSearch({ mealType, onAdd, searchFood, recentFoods = [], onCl
   const [servings, setServings] = useState('1');
   const [adding, setAdding] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const foodFavorites = useFoodFavorites();
 
   const handleSearch = useCallback((value: string) => {
     setQuery(value);
@@ -119,12 +121,54 @@ export function FoodSearch({ mealType, onAdd, searchFood, recentFoods = [], onCl
           </div>
         )}
 
-        {/* Results / Recents */}
+        {/* Results / Favorites / Recents */}
         <div className="flex-1 overflow-y-auto space-y-1">
           {loading && (
             <div className="flex items-center justify-center py-6">
               <Loader2 size={20} className="text-brand animate-spin" />
             </div>
+          )}
+
+          {/* Favorites section — shown when no search query */}
+          {!loading && query.length < 2 && foodFavorites.favorites.length > 0 && (
+            <>
+              <p className="text-faint text-xs font-medium px-1 mb-1 flex items-center gap-1">
+                <Star size={10} className="text-brand" />
+                Favorites
+              </p>
+              {foodFavorites.favorites.map((fav) => (
+                <div key={fav.id} className="flex items-center gap-0">
+                  <button
+                    onClick={() => setSelectedFood({
+                      name: fav.name,
+                      brand: null,
+                      calories_per_100g: fav.calories,
+                      protein_per_100g: fav.protein,
+                      carbs_per_100g: fav.carbs,
+                      fat_per_100g: fav.fat,
+                      serving_description: fav.serving_size,
+                      serving_grams: 100,
+                      source: fav.source === 'cache' ? 'usda' : 'manual',
+                      source_id: fav.food_cache_id ?? fav.id,
+                    })}
+                    className="flex-1 text-left p-3 min-h-11 bg-surface-3/50 hover:bg-surface-3 rounded-xl transition-colors"
+                  >
+                    <p className="text-foreground text-sm font-medium truncate">{fav.name}</p>
+                    <span className="text-neutral-600 text-xs">
+                      {Math.round(fav.calories)} cal · {Math.round(fav.protein)}g P
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => foodFavorites.removeFavorite(fav.id)}
+                    className="p-2 min-h-11 min-w-11 shrink-0 flex items-center justify-center"
+                    aria-label="Remove from favorites"
+                  >
+                    <Heart size={14} className="text-red-500 fill-red-500" />
+                  </button>
+                </div>
+              ))}
+              <div className="h-2" />
+            </>
           )}
 
           {!loading && results.length === 0 && query.length < 2 && recentFoods.length > 0 && (
@@ -137,7 +181,7 @@ export function FoodSearch({ mealType, onAdd, searchFood, recentFoods = [], onCl
           )}
 
           {!loading && results.length > 0 && results.map((food, idx) => (
-            <FoodResultRow key={`result-${idx}`} food={food} onSelect={setSelectedFood} />
+            <FoodResultRow key={`result-${idx}`} food={food} onSelect={setSelectedFood} onFavorite={foodFavorites.addCustomFavorite} />
           ))}
 
           {!loading && results.length === 0 && query.length >= 2 && (
@@ -149,20 +193,38 @@ export function FoodSearch({ mealType, onAdd, searchFood, recentFoods = [], onCl
   );
 }
 
-function FoodResultRow({ food, onSelect }: { food: FoodResult; onSelect: (f: FoodResult) => void }) {
+function FoodResultRow({ food, onSelect, onFavorite }: { food: FoodResult; onSelect: (f: FoodResult) => void; onFavorite?: (food: { name: string; calories: number; protein: number; carbs: number; fat: number; serving_size?: string }) => void }) {
   return (
-    <button
-      onClick={() => onSelect(food)}
-      className="w-full text-left p-3 min-h-11 bg-surface-3/50 hover:bg-surface-3 rounded-xl transition-colors"
-    >
-      <p className="text-foreground text-sm font-medium truncate">{food.name}</p>
-      <div className="flex items-center gap-2 mt-0.5">
-        {food.brand && <span className="text-faint text-xs">{food.brand}</span>}
-        <span className="text-neutral-600 text-xs">
-          {Math.round(food.calories_per_100g * (food.serving_grams ?? 100) / 100)} cal · {Math.round(food.protein_per_100g * (food.serving_grams ?? 100) / 100)}g P
-        </span>
-      </div>
-    </button>
+    <div className="flex items-center gap-0">
+      <button
+        onClick={() => onSelect(food)}
+        className="flex-1 text-left p-3 min-h-11 bg-surface-3/50 hover:bg-surface-3 rounded-xl transition-colors"
+      >
+        <p className="text-foreground text-sm font-medium truncate">{food.name}</p>
+        <div className="flex items-center gap-2 mt-0.5">
+          {food.brand && <span className="text-faint text-xs">{food.brand}</span>}
+          <span className="text-neutral-600 text-xs">
+            {Math.round(food.calories_per_100g * (food.serving_grams ?? 100) / 100)} cal · {Math.round(food.protein_per_100g * (food.serving_grams ?? 100) / 100)}g P
+          </span>
+        </div>
+      </button>
+      {onFavorite && (
+        <button
+          onClick={() => onFavorite({
+            name: food.name,
+            calories: food.calories_per_100g,
+            protein: food.protein_per_100g,
+            carbs: food.carbs_per_100g,
+            fat: food.fat_per_100g,
+            serving_size: food.serving_description ?? undefined,
+          })}
+          className="p-2 min-h-11 min-w-11 shrink-0 flex items-center justify-center"
+          aria-label="Add to favorites"
+        >
+          <Heart size={14} className="text-faint hover:text-red-500 transition-colors" />
+        </button>
+      )}
+    </div>
   );
 }
 

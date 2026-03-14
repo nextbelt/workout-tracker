@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Search, Filter, Loader2, ChevronDown, X, ArrowLeftRight, Zap, Dumbbell } from 'lucide-react';
+import { Search, Filter, Loader2, ChevronDown, X, ArrowLeftRight, Zap, Dumbbell, Heart } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useExerciseSearch, type UnifiedExercise } from '../hooks/useExerciseSearch';
+import { useExercisePrefs } from '../hooks/useExercisePrefs';
 import { ExerciseDetail } from '../components/ExerciseDetail';
 import type { Exercise, ExerciseCategory } from '../types/database';
 
@@ -27,6 +28,7 @@ export default function ExerciseLibraryPage({ swapMode }: ExerciseLibraryPagePro
   const [showFilters, setShowFilters] = useState(false);
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
   const [hasDemoFilter, setHasDemoFilter] = useState(false);
+  const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [page, setPage] = useState(0);
   const [swapping, setSwapping] = useState<string | null>(null);
   const [showPoolOnly, setShowPoolOnly] = useState(!!swapMode);
@@ -34,6 +36,7 @@ export default function ExerciseLibraryPage({ swapMode }: ExerciseLibraryPagePro
 
   // ExerciseDB API search
   const exerciseSearch = useExerciseSearch();
+  const exercisePrefs = useExercisePrefs();
 
   const fetchExercises = useCallback(async () => {
     setLoading(true);
@@ -108,8 +111,12 @@ export default function ExerciseLibraryPage({ swapMode }: ExerciseLibraryPagePro
       result = result.filter((e) => e.equipment_tags.includes(equipmentFilter));
     }
 
+    if (favoritesOnly) {
+      result = result.filter((e) => exercisePrefs.isFavorite(e.id));
+    }
+
     return result;
-  }, [exercises, search, equipmentFilter]);
+  }, [exercises, search, equipmentFilter, favoritesOnly, exercisePrefs.isFavorite]);
 
   // ExerciseDB results that aren't already in local
   const apiResults = useMemo(() => {
@@ -125,9 +132,10 @@ export default function ExerciseLibraryPage({ swapMode }: ExerciseLibraryPagePro
     setBodyPartFilter(null);
     setEquipmentFilter(null);
     setHasDemoFilter(false);
+    setFavoritesOnly(false);
   };
 
-  const hasFilters = search || bodyPartFilter || equipmentFilter || hasDemoFilter;
+  const hasFilters = search || bodyPartFilter || equipmentFilter || hasDemoFilter || favoritesOnly;
 
   const handleSwap = useCallback(async (exerciseId: string) => {
     if (!swapMode) return;
@@ -319,17 +327,30 @@ export default function ExerciseLibraryPage({ swapMode }: ExerciseLibraryPagePro
           </div>
 
           {/* Has Demo toggle */}
-          <button
-            onClick={() => setHasDemoFilter(!hasDemoFilter)}
-            className={`flex items-center gap-2 px-3 py-2 min-h-9 rounded-lg text-xs font-medium transition-colors ${
-              hasDemoFilter
-                ? 'bg-brand text-white'
-                : 'bg-surface-3 text-muted border border-border-2'
-            }`}
-          >
-            <Zap size={12} />
-            Has Demo
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setHasDemoFilter(!hasDemoFilter)}
+              className={`flex items-center gap-2 px-3 py-2 min-h-9 rounded-lg text-xs font-medium transition-colors ${
+                hasDemoFilter
+                  ? 'bg-brand text-white'
+                  : 'bg-surface-3 text-muted border border-border-2'
+              }`}
+            >
+              <Zap size={12} />
+              Has Demo
+            </button>
+            <button
+              onClick={() => setFavoritesOnly(!favoritesOnly)}
+              className={`flex items-center gap-2 px-3 py-2 min-h-9 rounded-lg text-xs font-medium transition-colors ${
+                favoritesOnly
+                  ? 'bg-red-500 text-white'
+                  : 'bg-surface-3 text-muted border border-border-2'
+              }`}
+            >
+              <Heart size={12} />
+              Favorites
+            </button>
+          </div>
         </div>
       )}
 
@@ -371,6 +392,8 @@ export default function ExerciseLibraryPage({ swapMode }: ExerciseLibraryPagePro
               disabled={swapping !== null}
               onSelect={() => swapMode ? handleSwap(ex.id) : setSelectedExercise(ex)}
               onInfo={() => setSelectedExercise(ex)}
+              isFavorite={exercisePrefs.isFavorite(ex.id)}
+              onToggleFavorite={() => exercisePrefs.toggleFavorite(ex.id)}
             />
           ))}
 
@@ -449,58 +472,74 @@ interface ExerciseRowProps {
   disabled: boolean;
   onSelect: () => void;
   onInfo: () => void;
+  isFavorite: boolean;
+  onToggleFavorite: () => void;
 }
 
-function ExerciseRow({ exercise: ex, swapMode, swapping, disabled, onSelect, onInfo }: ExerciseRowProps) {
+function ExerciseRow({ exercise: ex, swapMode, swapping, disabled, onSelect, onInfo, isFavorite, onToggleFavorite }: ExerciseRowProps) {
   return (
-    <button
-      onClick={onSelect}
-      disabled={disabled}
-      className="w-full flex items-center gap-3 p-3 min-h-11 bg-surface-2 hover:bg-surface-3 rounded-xl border border-border transition-colors text-left disabled:opacity-50"
-    >
-      {ex.gif_url ? (
-        <img src={ex.gif_url} alt="" className="w-12 h-12 rounded-lg object-cover shrink-0" />
-      ) : ex.image_urls && ex.image_urls.length > 0 ? (
-        <img src={ex.image_urls[0]} alt="" className="w-12 h-12 rounded-lg object-cover shrink-0" loading="lazy" />
-      ) : (
-        <div className="w-12 h-12 rounded-lg bg-surface-3 flex items-center justify-center shrink-0">
-          <Dumbbell size={18} className="text-neutral-600" />
-        </div>
-      )}
-      <div className="flex-1 min-w-0">
-        <p className="text-foreground text-sm font-medium truncate">{ex.name}</p>
-        <div className="flex items-center gap-2 text-xs text-faint mt-0.5">
-          {ex.body_part && <span>{ex.body_part}</span>}
-          <span>·</span>
-          <span>{ex.movement_pool.replace(/_/g, ' ')}</span>
-          {ex.is_compound && (
-            <>
-              <span>·</span>
-              <span className="text-blue-400">compound</span>
-            </>
+    <div className="relative flex items-center gap-0">
+      <button
+        onClick={onSelect}
+        disabled={disabled}
+        className="flex-1 flex items-center gap-3 p-3 min-h-11 bg-surface-2 hover:bg-surface-3 rounded-xl border border-border transition-colors text-left disabled:opacity-50"
+      >
+        {ex.gif_url ? (
+          <img src={ex.gif_url} alt="" className="w-12 h-12 rounded-lg object-cover shrink-0" />
+        ) : ex.image_urls && ex.image_urls.length > 0 ? (
+          <img src={ex.image_urls[0]} alt="" className="w-12 h-12 rounded-lg object-cover shrink-0" loading="lazy" />
+        ) : (
+          <div className="w-12 h-12 rounded-lg bg-surface-3 flex items-center justify-center shrink-0">
+            <Dumbbell size={18} className="text-neutral-600" />
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          <p className="text-foreground text-sm font-medium truncate">{ex.name}</p>
+          <div className="flex items-center gap-2 text-xs text-faint mt-0.5">
+            {ex.body_part && <span>{ex.body_part}</span>}
+            <span>·</span>
+            <span>{ex.movement_pool.replace(/_/g, ' ')}</span>
+            {ex.is_compound && (
+              <>
+                <span>·</span>
+                <span className="text-blue-400">compound</span>
+              </>
+            )}
+          </div>
+          {ex.primary_muscles && ex.primary_muscles.length > 0 && (
+            <p className="text-neutral-600 text-xs mt-0.5 truncate">
+              {ex.primary_muscles.join(', ')}
+            </p>
           )}
         </div>
-        {ex.primary_muscles && ex.primary_muscles.length > 0 && (
-          <p className="text-neutral-600 text-xs mt-0.5 truncate">
-            {ex.primary_muscles.join(', ')}
-          </p>
-        )}
-      </div>
-      {swapMode ? (
-        swapping ? (
-          <Loader2 size={16} className="text-brand animate-spin shrink-0" />
+        {swapMode ? (
+          swapping ? (
+            <Loader2 size={16} className="text-brand animate-spin shrink-0" />
+          ) : (
+            <ArrowLeftRight size={16} className="text-brand shrink-0" />
+          )
         ) : (
-          <ArrowLeftRight size={16} className="text-brand shrink-0" />
-        )
-      ) : (
+          <button
+            onClick={(e) => { e.stopPropagation(); onInfo(); }}
+            className="p-2 min-h-11 min-w-11 shrink-0"
+          >
+            <ChevronDown size={14} className="text-faint" />
+          </button>
+        )}
+      </button>
+      {!swapMode && (
         <button
-          onClick={(e) => { e.stopPropagation(); onInfo(); }}
-          className="p-2 min-h-11 min-w-11 shrink-0"
+          onClick={(e) => { e.stopPropagation(); onToggleFavorite(); }}
+          className="p-2 min-h-11 min-w-11 shrink-0 flex items-center justify-center"
+          aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
         >
-          <ChevronDown size={14} className="text-faint" />
+          <Heart
+            size={16}
+            className={isFavorite ? 'text-red-500 fill-red-500' : 'text-faint'}
+          />
         </button>
       )}
-    </button>
+    </div>
   );
 }
 

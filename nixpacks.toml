@@ -3,7 +3,7 @@ aptPkgs = []
 nixPkgs = ["nodejs_22"]
 
 [phases.install]
-cmds = ["npm install --legacy-peer-deps"]
+cmds = ["npm install --legacy-peer-deps --no-package-lock"]
 
 [phases.build]
 cmds = ["npm run build"]

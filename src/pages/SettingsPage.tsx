@@ -343,7 +343,7 @@ export default function SettingsPage() {
               const exerciseIds = [...new Set(beRows.map((r) => r.exercise_id))];
               const { data: exercises } = await supabase
                 .from('exercises')
-                .select('id, name, movement_pool, is_compound')
+                .select('id, name, movement_pool, is_compound, primary_muscles, secondary_muscles, instructions, body_part, difficulty')
                 .in('id', exerciseIds);
 
               const exMap = new Map(
@@ -363,6 +363,12 @@ export default function SettingsPage() {
                   rest_seconds: row.rest_seconds,
                   rir_target: row.rir_target,
                   is_anchor: row.is_anchor,
+                  primary_muscles: ex?.primary_muscles ?? null,
+                  secondary_muscles: ex?.secondary_muscles ?? null,
+                  instructions: ex?.instructions ?? null,
+                  body_part: ex?.body_part ?? null,
+                  is_compound: ex?.is_compound ?? false,
+                  difficulty: ex?.difficulty ?? null,
                 };
               });
             }

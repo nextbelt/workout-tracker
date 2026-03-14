@@ -21,6 +21,12 @@ import { useSpotify } from '../hooks/useSpotify';
 import { supabase } from '../lib/supabase';
 import type { RecoveryRating, DayTemplate, PreMood, BlockExercise, SplitType } from '../types/database';
 
+function preMoodToSpotifyMood(mood: PreMood | null | undefined): SpotifyMood {
+  if (mood === 'energized') return 'fired_up';
+  if (mood === 'low_energy') return 'low';
+  return 'steady';
+}
+
 const ALL_DAY_LABELS: Record<DayTemplate, string> = {
   upper_a: 'Upper A',
   lower_a: 'Lower A',
@@ -214,7 +220,7 @@ export default function TodayPage() {
     }
     // Fetch Spotify recommendations based on mood
     if (spotify.isConnected) {
-      spotify.fetchRecommendations(mood);
+      spotify.fetchRecommendations(preMoodToSpotifyMood(mood));
     }
     setStartingWorkout(false);
   }, [startWorkout, selectedDay, weekNumber, moodEngine, blockExercises]);
@@ -365,7 +371,7 @@ export default function TodayPage() {
       {todaySession && spotify.isConnected && (spotify.tracks.length > 0 || spotify.loadingTracks) && (
         <SpotifyMoodPlaylist
           tracks={spotify.tracks}
-          mood={((): SpotifyMood => { const p = moodEngine.moodInput?.preMood; return p === 'energized' ? 'fired_up' : p === 'low_energy' ? 'low' : 'steady'; })()}
+          mood={preMoodToSpotifyMood(moodEngine.moodInput?.preMood)}
           loading={spotify.loadingTracks}
           error={spotify.error}
           onRefresh={spotify.fetchRecommendations}

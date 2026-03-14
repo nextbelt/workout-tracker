@@ -8,4 +8,4 @@ cmds = [
 cmds = ["npm run build"]
 
 [start]
-cmd = "npx serve dist -s -l $PORT"
+cmd = "caddy run --config /assets/Caddyfile --adapter caddyfile"

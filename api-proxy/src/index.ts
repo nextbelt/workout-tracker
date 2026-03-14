@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import { rateLimit } from 'express-rate-limit';
 import { foodRouter } from './routes/food.js';
+import { exercisesRouter } from './routes/exercises.js';
 
 const app = express();
 const PORT = process.env.PORT ?? 3001;
@@ -26,6 +27,7 @@ const limiter = rateLimit({
 app.use(limiter);
 
 app.use('/api/food', foodRouter);
+app.use('/api/exercises', exercisesRouter);
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });

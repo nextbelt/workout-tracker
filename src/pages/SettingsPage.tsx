@@ -1,12 +1,13 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, Save, Loader2, User as UserIcon, Scale, Target, Wrench, TrendingDown, Bell, RotateCcw, Sun, Moon, Monitor, FileDown } from 'lucide-react';
+import { LogOut, Save, Loader2, User as UserIcon, Scale, Target, Wrench, TrendingDown, Bell, RotateCcw, Sun, Moon, Monitor, FileDown, Music, Unlink, BookOpen } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useTheme } from '../context/ThemeContext';
+import { useSpotify } from '../hooks/useSpotify';
 import { supabase } from '../lib/supabase';
 import { BodyweightLog } from '../components/BodyweightLog';
 import { useNotifications } from '../hooks/useNotifications';
-import { downloadPlanPdf, type PdfBlockExercise } from '../lib/planPdfGenerator';
+import { downloadPlanPdf, downloadExerciseReferencePdf, type PdfBlockExercise } from '../lib/planPdfGenerator';
 import { calculateNutrition, type OnboardingAnswers } from '../lib/programGenerator';
 import type { TrainingMode, ActivityLevel, MealsPerDay, EatingApproach, DayTemplate } from '../types/database';
 
@@ -21,6 +22,7 @@ export default function SettingsPage() {
   const { user, profile, signOut, refreshProfile } = useAuth();
   const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
+  const spotify = useSpotify();
 
   const [displayName, setDisplayName] = useState(profile?.display_name ?? '');
   const [heightInches, setHeightInches] = useState(profile?.height_inches?.toString() ?? '');
@@ -257,6 +259,52 @@ export default function SettingsPage() {
         </div>
       </section>
 
+      {/* Spotify */}
+      <section className="space-y-3">
+        <div className="flex items-center gap-2 text-muted">
+          <Music size={16} />
+          <h2 className="text-sm font-medium">SPOTIFY</h2>
+        </div>
+        <div className="bg-surface-2 rounded-xl p-4 space-y-3">
+          {spotify.isConnected ? (
+            <>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-[#1DB954]/15 flex items-center justify-center">
+                    <Music size={18} className="text-[#1DB954]" />
+                  </div>
+                  <div>
+                    <p className="text-foreground text-sm font-medium">{spotify.connection?.display_name ?? 'Connected'}</p>
+                    <p className="text-faint text-xs">Spotify connected</p>
+                  </div>
+                </div>
+                <button
+                  onClick={spotify.disconnect}
+                  className="flex items-center gap-1.5 px-3 py-2 min-h-11 bg-surface-3 hover:bg-red-500/15 text-muted hover:text-red-400 rounded-lg text-sm transition-colors"
+                >
+                  <Unlink size={14} />
+                  Disconnect
+                </button>
+              </div>
+              <p className="text-faint text-xs">Mood-based playlists will appear on your workout screen.</p>
+            </>
+          ) : (
+            <>
+              <p className="text-secondary text-sm">Connect Spotify to get mood-based workout playlists.</p>
+              <button
+                onClick={spotify.connect}
+                disabled={spotify.loading}
+                className="w-full flex items-center justify-center gap-2 py-3 min-h-11 bg-[#1DB954] hover:bg-[#1ed760] text-white font-semibold rounded-xl transition-colors disabled:opacity-50"
+              >
+                {spotify.loading ? <Loader2 size={18} className="animate-spin" /> : <Music size={18} />}
+                Connect Spotify
+              </button>
+              {spotify.error && <p className="text-red-400 text-xs">{spotify.error}</p>}
+            </>
+          )}
+        </div>
+      </section>
+
       {/* Notifications */}
       <section className="space-y-3">
         <div className="flex items-center gap-2 text-muted">
@@ -408,6 +456,69 @@ export default function SettingsPage() {
       >
         <FileDown size={18} />
         Download My Plan (PDF)
+      </button>
+
+      {/* Download Exercise Reference PDF */}
+      <button
+        onClick={async () => {
+          if (!profile || !user) return;
+
+          const { data: activeBlock } = await supabase
+            .from('training_blocks')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('is_active', true)
+            .maybeSingle();
+
+          if (!activeBlock) return;
+
+          const { data: beRows } = await supabase
+            .from('block_exercises')
+            .select('day_template, slot_order, sets, rep_min, rep_max, rest_seconds, rir_target, is_anchor, exercise_id')
+            .eq('block_id', activeBlock.id)
+            .order('day_template')
+            .order('slot_order');
+
+          if (!beRows || beRows.length === 0) return;
+
+          const exerciseIds = [...new Set(beRows.map((r) => r.exercise_id))];
+          const { data: exercises } = await supabase
+            .from('exercises')
+            .select('id, name, movement_pool, is_compound, primary_muscles, secondary_muscles, instructions, body_part, difficulty')
+            .in('id', exerciseIds);
+
+          const exMap = new Map(
+            (exercises ?? []).map((e) => [e.id, e]),
+          );
+
+          const pdfExercises: PdfBlockExercise[] = beRows.map((row) => {
+            const ex = exMap.get(row.exercise_id);
+            return {
+              day_template: row.day_template as DayTemplate,
+              slot_order: row.slot_order,
+              exercise_name: ex?.name ?? 'Unknown Exercise',
+              movement_pool: ex?.movement_pool ?? '',
+              sets: row.sets,
+              rep_min: row.rep_min,
+              rep_max: row.rep_max,
+              rest_seconds: row.rest_seconds,
+              rir_target: row.rir_target,
+              is_anchor: row.is_anchor,
+              primary_muscles: ex?.primary_muscles ?? null,
+              secondary_muscles: ex?.secondary_muscles ?? null,
+              instructions: ex?.instructions ?? null,
+              body_part: ex?.body_part ?? null,
+              is_compound: ex?.is_compound ?? false,
+              difficulty: ex?.difficulty ?? null,
+            };
+          });
+
+          downloadExerciseReferencePdf(pdfExercises, profile.display_name);
+        }}
+        className="w-full bg-surface-2 hover:bg-surface-3 text-brand font-medium rounded-xl py-3 min-h-11 transition-colors flex items-center justify-center gap-2"
+      >
+        <BookOpen size={18} />
+        Download Exercise Reference
       </button>
 
       {/* Redo Onboarding */}

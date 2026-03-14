@@ -20,14 +20,14 @@ const ExerciseLibraryPage = lazy(() => import('./pages/ExerciseLibraryPage'));
 const NAV_ITEMS = [
   { to: '/',           label: 'Today',     Icon: Dumbbell     },
   { to: '/program',    label: 'Program',   Icon: CalendarDays },
-  { to: '/exercises',  label: 'Exercises', Icon: BookOpen     },
   { to: '/nutrition',  label: 'Nutrition', Icon: Apple        },
+  { to: '/analytics',  label: 'Analytics', Icon: BarChart3    },
 ] as const;
 
 const MORE_PAGES = [
-  { to: '/analytics', label: 'Analytics', Icon: BarChart3 },
-  { to: '/history',   label: 'History',   Icon: History   },
-  { to: '/settings',  label: 'Settings',  Icon: Settings  },
+  { to: '/exercises',  label: 'Exercises', Icon: BookOpen  },
+  { to: '/history',    label: 'History',   Icon: History   },
+  { to: '/settings',   label: 'Settings',  Icon: Settings  },
 ] as const;
 
 function AppShell() {

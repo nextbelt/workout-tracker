@@ -6,9 +6,9 @@ import { useTheme } from '../context/ThemeContext';
 import { supabase } from '../lib/supabase';
 import { BodyweightLog } from '../components/BodyweightLog';
 import { useNotifications } from '../hooks/useNotifications';
-import { downloadPlanPdf } from '../lib/planPdfGenerator';
+import { downloadPlanPdf, type PdfBlockExercise } from '../lib/planPdfGenerator';
 import { calculateNutrition, type OnboardingAnswers } from '../lib/programGenerator';
-import type { TrainingMode, ActivityLevel, MealsPerDay, EatingApproach } from '../types/database';
+import type { TrainingMode, ActivityLevel, MealsPerDay, EatingApproach, DayTemplate } from '../types/database';
 
 const EQUIPMENT_OPTIONS = ['barbell', 'dumbbell', 'cable', 'machine', 'smith_machine', 'bodyweight', 'ez_bar', 'bands'] as const;
 const MODE_LABELS: Record<TrainingMode, string> = {
@@ -318,8 +318,56 @@ export default function SettingsPage() {
 
       {/* Download Plan PDF */}
       <button
-        onClick={() => {
-          if (!profile) return;
+        onClick={async () => {
+          if (!profile || !user) return;
+
+          // Fetch active block exercises with real exercise names
+          let pdfExercises: PdfBlockExercise[] = [];
+          const { data: activeBlock } = await supabase
+            .from('training_blocks')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('is_active', true)
+            .maybeSingle();
+
+          if (activeBlock) {
+            const { data: beRows } = await supabase
+              .from('block_exercises')
+              .select('day_template, slot_order, sets, rep_min, rep_max, rest_seconds, rir_target, is_anchor, exercise_id')
+              .eq('block_id', activeBlock.id)
+              .order('day_template')
+              .order('slot_order');
+
+            if (beRows && beRows.length > 0) {
+              // Fetch exercise details separately
+              const exerciseIds = [...new Set(beRows.map((r) => r.exercise_id))];
+              const { data: exercises } = await supabase
+                .from('exercises')
+                .select('id, name, movement_pool, is_compound')
+                .in('id', exerciseIds);
+
+              const exMap = new Map(
+                (exercises ?? []).map((e) => [e.id, e]),
+              );
+
+              pdfExercises = beRows.map((row) => {
+                const ex = exMap.get(row.exercise_id);
+                return {
+                  day_template: row.day_template as DayTemplate,
+                  slot_order: row.slot_order,
+                  exercise_name: ex?.name ?? 'Unknown Exercise',
+                  movement_pool: ex?.movement_pool ?? '',
+                  sets: row.sets,
+                  rep_min: row.rep_min,
+                  rep_max: row.rep_max,
+                  rest_seconds: row.rest_seconds,
+                  rir_target: row.rir_target,
+                  is_anchor: row.is_anchor,
+                };
+              });
+            }
+          }
+
           const answers: OnboardingAnswers = {
             displayName: profile.display_name ?? '',
             sex: (profile.sex as 'male' | 'female' | 'prefer_not_to_say') ?? 'male',
@@ -348,7 +396,7 @@ export default function SettingsPage() {
             previousTrainingStyle: profile.previous_training_style ?? undefined,
             showFormExplanations: profile.show_form_explanations ?? 'all',
           };
-          downloadPlanPdf(answers, profile.display_name);
+          downloadPlanPdf(answers, profile.display_name, pdfExercises);
         }}
         className="w-full bg-surface-2 hover:bg-surface-3 text-brand font-medium rounded-xl py-3 min-h-11 transition-colors flex items-center justify-center gap-2"
       >

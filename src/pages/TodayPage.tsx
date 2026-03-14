@@ -6,6 +6,8 @@ import { useRestTimerContext } from '../context/RestTimerContext';
 import { useMoodAdjustment, adjustExercises, trimToFitTime, estimateWorkoutMinutes } from '../hooks/useMoodAdjustment';
 import { useMicroVariation } from '../hooks/useMicroVariation';
 import { useProgression } from '../hooks/useProgression';
+import { getDayLayouts } from '../lib/programGenerator';
+import { getWeekRir, getWeekSets } from '../lib/periodization';
 import { SetLogger } from '../components/SetLogger';
 import { RestTimerButton } from '../components/RestTimer';
 import { RecoveryRatingModal } from '../components/RecoveryRating';
@@ -15,19 +17,26 @@ import { ExerciseDetail } from '../components/ExerciseDetail';
 import { ScienceTooltip } from '../components/ScienceTooltip';
 import { CardioLogger } from '../components/CardioLogger';
 import { supabase } from '../lib/supabase';
-import type { RecoveryRating, DayTemplate, PreMood, BlockExercise } from '../types/database';
+import type { RecoveryRating, DayTemplate, PreMood, BlockExercise, SplitType } from '../types/database';
 
-const DAY_LABELS: Record<DayTemplate, string> = {
+const ALL_DAY_LABELS: Record<DayTemplate, string> = {
   upper_a: 'Upper A',
   lower_a: 'Lower A',
   upper_b: 'Upper B',
   lower_b: 'Lower B',
+  push_a: 'Push A',
+  pull_a: 'Pull A',
+  legs_a: 'Legs A',
+  push_b: 'Push B',
+  pull_b: 'Pull B',
+  legs_b: 'Legs B',
+  full_a: 'Full Body A',
+  full_b: 'Full Body B',
+  full_c: 'Full Body C',
 };
 
-const DAY_ORDER: DayTemplate[] = ['upper_a', 'lower_a', 'upper_b', 'lower_b'];
-
 export default function TodayPage() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const {
     activeBlock,
     blockExercises,
@@ -46,7 +55,16 @@ export default function TodayPage() {
   const microVar = useMicroVariation();
   const { checkProgression } = useProgression();
 
-  const [selectedDay, setSelectedDay] = useState<DayTemplate>('upper_a');
+  // Dynamic day order from profile split type
+  const splitType = (profile?.split_type ?? 'upper_lower') as SplitType;
+  const dayLayouts = useMemo(() => getDayLayouts(splitType), [splitType]);
+  const dayOrder = useMemo(() => dayLayouts.map((l) => l.dayTemplate as DayTemplate), [dayLayouts]);
+
+  // Periodization params
+  const totalWeeks = activeBlock?.total_weeks ?? (profile?.weeks_between_deloads ? profile.weeks_between_deloads + 1 : 7);
+  const startingRir = profile?.starting_rir ?? 2;
+
+  const [selectedDay, setSelectedDay] = useState<DayTemplate>(dayOrder[0] ?? 'upper_a');
   const [weekNumber, setWeekNumber] = useState(1);
   const [expandedExercise, setExpandedExercise] = useState<string | null>(null);
   const [showRecovery, setShowRecovery] = useState(false);
@@ -250,7 +268,7 @@ export default function TodayPage() {
     );
   }
 
-  const isDeload = weekNumber >= 7;
+  const isDeload = weekNumber >= totalWeeks;
 
   return (
     <div className="p-4 pb-24 space-y-4">
@@ -259,7 +277,7 @@ export default function TodayPage() {
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-2xl font-bold text-foreground">
-              {todaySession ? DAY_LABELS[selectedDay] : 'Today'}
+              {todaySession ? (ALL_DAY_LABELS[selectedDay] ?? selectedDay) : 'Today'}
             </h1>
             <p className="text-muted text-sm">
               Block {activeBlock.block_number} · Week {weekNumber}
@@ -340,7 +358,7 @@ export default function TodayPage() {
       {!todaySession && (
         <div className="space-y-3">
           <div className="flex gap-2">
-            {DAY_ORDER.map((day) => (
+            {dayOrder.map((day) => (
               <button
                 key={day}
                 onClick={() => setSelectedDay(day)}
@@ -350,7 +368,7 @@ export default function TodayPage() {
                     : 'bg-surface-3 text-muted border border-border-2'
                 }`}
               >
-                {DAY_LABELS[day]}
+                {ALL_DAY_LABELS[day] ?? day}
               </button>
             ))}
           </div>
@@ -358,14 +376,14 @@ export default function TodayPage() {
           {/* Week selector */}
           <div className="flex items-center gap-2">
             <span className="text-faint text-sm">Week:</span>
-            {[1, 2, 3, 4, 5, 6, 7].map((w) => (
+            {Array.from({ length: totalWeeks }, (_, i) => i + 1).map((w) => (
               <button
                 key={w}
                 onClick={() => setWeekNumber(w)}
                 className={`w-8 h-8 rounded-lg text-xs font-medium transition-colors flex items-center justify-center ${
                   weekNumber === w
                     ? 'bg-brand text-white'
-                    : w === 7
+                    : w === totalWeeks
                       ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
                       : 'bg-surface-3 text-muted'
                 }`}
@@ -398,7 +416,7 @@ export default function TodayPage() {
             className="w-full bg-brand hover:bg-brand-dark text-white font-semibold rounded-xl py-4 min-h-11 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 text-lg"
           >
             {startingWorkout ? <Loader2 size={20} className="animate-spin" /> : <Play size={20} />}
-            Start {DAY_LABELS[selectedDay]}
+            Start {ALL_DAY_LABELS[selectedDay] ?? selectedDay}
           </button>
         </div>
       )}
@@ -409,7 +427,8 @@ export default function TodayPage() {
           const isExpanded = expandedExercise === be.id;
           const sets = exerciseSets.get(be.exercise_id) ?? [];
           const completedSets = sets.length;
-          const totalSets = isDeload ? Math.ceil(be.sets * 0.6) : be.sets;
+          const totalSets = getWeekSets(be.sets, weekNumber, totalWeeks, startingRir);
+          const weekRir = getWeekRir(weekNumber, totalWeeks, startingRir);
           const lastSet = lastSets.get(be.exercise_id);
 
           return (
@@ -429,7 +448,7 @@ export default function TodayPage() {
                     )}
                   </div>
                   <p className="text-faint text-xs mt-0.5">
-                    {totalSets}×{be.rep_min}–{be.rep_max} · <ScienceTooltip term="RIR"><span>RIR</span></ScienceTooltip> {be.rir_target}
+                    {totalSets}×{be.rep_min}–{be.rep_max} · <ScienceTooltip term="RIR"><span>RIR</span></ScienceTooltip> {weekRir}
                     {completedSets > 0 && (
                       <span className="ml-2 text-brand">{completedSets}/{totalSets} done</span>
                     )}
@@ -488,7 +507,7 @@ export default function TodayPage() {
                         setNumber={i + 1}
                         repMin={be.rep_min}
                         repMax={be.rep_max}
-                        rirTarget={be.rir_target}
+                        rirTarget={weekRir}
                         previousWeight={existingSet?.weight}
                         previousReps={existingSet?.reps}
                         lastWeight={lastSet?.weight}

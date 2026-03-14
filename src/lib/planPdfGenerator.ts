@@ -4,8 +4,11 @@ import {
   generateProgramPreview,
   calculateBMI,
   estimateWeeksToGoal,
+  getDayLayouts,
+  resolveSplitType,
   type OnboardingAnswers,
 } from './programGenerator';
+import type { DayTemplate } from '../types/database';
 
 // ─── Brand Colors ──────────────────────────────────────────────────────────────
 
@@ -63,11 +66,34 @@ function checkPageBreak(doc: jsPDF, y: number, needed: number, pageNum: { value:
   return y;
 }
 
-// ─── Main Generator ────────────────────────────────────────────────────────────
+// ─── Block exercise data for PDF ───────────────────────────────────────────
+
+export interface PdfBlockExercise {
+  day_template: DayTemplate;
+  slot_order: number;
+  exercise_name: string;
+  movement_pool: string;
+  sets: number;
+  rep_min: number;
+  rep_max: number;
+  rest_seconds: number;
+  rir_target: number;
+  is_anchor: boolean;
+}
+
+const ALL_DAY_LABELS: Record<string, string> = {
+  upper_a: 'Upper A', lower_a: 'Lower A', upper_b: 'Upper B', lower_b: 'Lower B',
+  push_a: 'Push A', pull_a: 'Pull A', legs_a: 'Legs A',
+  push_b: 'Push B', pull_b: 'Pull B', legs_b: 'Legs B',
+  full_a: 'Full Body A', full_b: 'Full Body B', full_c: 'Full Body C',
+};
+
+// ─── Main Generator ────────────────────────────────────────────────────────
 
 export function generatePlanPdf(
   answers: OnboardingAnswers,
   userName: string | null,
+  blockExercises?: PdfBlockExercise[],
 ): jsPDF {
   const doc = new jsPDF('p', 'mm', 'a4');
   const w = doc.internal.pageSize.getWidth();
@@ -261,49 +287,115 @@ export function generatePlanPdf(
   y = sectionTitle(doc, y, 'Weekly Workout Layout');
   y += 2;
 
-  for (const day of preview.days) {
-    y = checkPageBreak(doc, y, 45, pageNum);
+  // Use real block exercises when available, otherwise fall back to generic slots
+  if (blockExercises && blockExercises.length > 0) {
+    // Group exercises by day_template, preserving slot_order
+    const splitType = resolveSplitType(answers.trainingDaysPerWeek);
+    const dayLayouts = getDayLayouts(splitType);
+    const dayTemplates = dayLayouts.map((d) => d.dayTemplate as DayTemplate);
 
-    // Day header
-    doc.setFillColor(BRAND.r, BRAND.g, BRAND.b);
-    doc.roundedRect(20, y - 4, w - 40, 8, 2, 2, 'F');
-    setColor(doc, WHITE);
-    doc.setFontSize(11);
-    doc.setFont('helvetica', 'bold');
-    doc.text(day.label, 25, y);
-    y += 8;
+    for (const template of dayTemplates) {
+      const dayExercises = blockExercises
+        .filter((be) => be.day_template === template)
+        .sort((a, b) => a.slot_order - b.slot_order);
 
-    // Column headers
-    setColor(doc, MUTED);
-    doc.setFontSize(8);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Movement Pool', 25, y);
-    doc.text('Category', 85, y);
-    doc.text('Sets × Reps', 120, y);
-    doc.text('Rest', 155, y);
-    doc.text('RIR', 175, y);
-    y += 6;
+      if (dayExercises.length === 0) continue;
 
-    for (let i = 0; i < day.slots.length; i++) {
-      const slot = day.slots[i];
-      if (i % 2 === 0) {
-        doc.setFillColor(252, 252, 252);
-        doc.rect(20, y - 4, w - 40, 7, 'F');
+      y = checkPageBreak(doc, y, 45, pageNum);
+
+      // Day header
+      const label = ALL_DAY_LABELS[template] ?? template;
+      doc.setFillColor(BRAND.r, BRAND.g, BRAND.b);
+      doc.roundedRect(20, y - 4, w - 40, 8, 2, 2, 'F');
+      setColor(doc, WHITE);
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      doc.text(label, 25, y);
+      y += 8;
+
+      // Column headers
+      setColor(doc, MUTED);
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Exercise', 25, y);
+      doc.text('Pool', 95, y);
+      doc.text('Sets × Reps', 130, y);
+      doc.text('Rest', 158, y);
+      doc.text('RIR', 178, y);
+      y += 6;
+
+      for (let i = 0; i < dayExercises.length; i++) {
+        const ex = dayExercises[i];
+        y = checkPageBreak(doc, y, 10, pageNum);
+        if (i % 2 === 0) {
+          doc.setFillColor(252, 252, 252);
+          doc.rect(20, y - 4, w - 40, 7, 'F');
+        }
+        setColor(doc, DARK);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        // Truncate long exercise names to fit
+        const name = ex.exercise_name.length > 30
+          ? ex.exercise_name.slice(0, 28) + '…'
+          : ex.exercise_name;
+        doc.text(name, 25, y);
+        setColor(doc, ex.is_anchor ? BRAND : MUTED);
+        doc.setFontSize(8);
+        doc.text(ex.movement_pool.replace(/_/g, ' '), 95, y);
+        setColor(doc, DARK);
+        doc.setFontSize(9);
+        doc.text(`${ex.sets} × ${ex.rep_min}-${ex.rep_max}`, 130, y);
+        doc.text(`${ex.rest_seconds}s`, 158, y);
+        doc.text(`${ex.rir_target}`, 178, y);
+        y += 7;
       }
-      setColor(doc, DARK);
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(9);
-      doc.text(slot.movementPool.replace(/_/g, ' '), 25, y);
-      setColor(doc, slot.category === 'compound' ? BRAND : MUTED);
-      doc.text(slot.category, 85, y);
-      setColor(doc, DARK);
-      doc.text(`${slot.sets} × ${slot.repMin}-${slot.repMax}`, 120, y);
-      doc.text(`${slot.restSeconds}s`, 155, y);
-      doc.text(`${slot.rirTarget}`, 175, y);
-      y += 7;
-    }
 
-    y += 8;
+      y += 8;
+    }
+  } else {
+    // Fallback: generic movement pool slots from preview
+    for (const day of preview.days) {
+      y = checkPageBreak(doc, y, 45, pageNum);
+
+      doc.setFillColor(BRAND.r, BRAND.g, BRAND.b);
+      doc.roundedRect(20, y - 4, w - 40, 8, 2, 2, 'F');
+      setColor(doc, WHITE);
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      doc.text(day.label, 25, y);
+      y += 8;
+
+      setColor(doc, MUTED);
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Movement Pool', 25, y);
+      doc.text('Category', 85, y);
+      doc.text('Sets × Reps', 120, y);
+      doc.text('Rest', 155, y);
+      doc.text('RIR', 175, y);
+      y += 6;
+
+      for (let i = 0; i < day.slots.length; i++) {
+        const slot = day.slots[i];
+        if (i % 2 === 0) {
+          doc.setFillColor(252, 252, 252);
+          doc.rect(20, y - 4, w - 40, 7, 'F');
+        }
+        setColor(doc, DARK);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        doc.text(slot.movementPool.replace(/_/g, ' '), 25, y);
+        setColor(doc, slot.category === 'compound' ? BRAND : MUTED);
+        doc.text(slot.category, 85, y);
+        setColor(doc, DARK);
+        doc.text(`${slot.sets} × ${slot.repMin}-${slot.repMax}`, 120, y);
+        doc.text(`${slot.restSeconds}s`, 155, y);
+        doc.text(`${slot.rirTarget}`, 175, y);
+        y += 7;
+      }
+
+      y += 8;
+    }
   }
 
   addPageFooter(doc, pageNum.value);
@@ -372,8 +464,12 @@ function formatGoal(goal: string): string {
 
 // ─── Download Trigger ──────────────────────────────────────────────────────────
 
-export function downloadPlanPdf(answers: OnboardingAnswers, userName: string | null) {
-  const doc = generatePlanPdf(answers, userName);
+export function downloadPlanPdf(
+  answers: OnboardingAnswers,
+  userName: string | null,
+  blockExercises?: PdfBlockExercise[],
+) {
+  const doc = generatePlanPdf(answers, userName, blockExercises);
   const filename = userName
     ? `WorkIn_Plan_${userName.replace(/\s+/g, '_')}.pdf`
     : 'WorkIn_Training_Plan.pdf';

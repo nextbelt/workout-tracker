@@ -4,16 +4,24 @@ import { useWorkout, type BlockExerciseWithDetails } from '../hooks/useWorkout';
 import { useAuth } from '../hooks/useAuth';
 import { ExerciseSwapModal } from '../components/ExerciseSwap';
 import { supabase } from '../lib/supabase';
-import type { DayTemplate, TrainingMode } from '../types/database';
+import { getDayLayouts } from '../lib/programGenerator';
+import type { DayTemplate, TrainingMode, SplitType } from '../types/database';
 
-const DAY_LABELS: Record<DayTemplate, string> = {
+const ALL_DAY_LABELS: Record<DayTemplate, string> = {
   upper_a: 'Upper A',
   lower_a: 'Lower A',
   upper_b: 'Upper B',
   lower_b: 'Lower B',
+  push_a: 'Push A',
+  pull_a: 'Pull A',
+  legs_a: 'Legs A',
+  push_b: 'Push B',
+  pull_b: 'Pull B',
+  legs_b: 'Legs B',
+  full_a: 'Full Body A',
+  full_b: 'Full Body B',
+  full_c: 'Full Body C',
 };
-
-const DAY_ORDER: DayTemplate[] = ['upper_a', 'lower_a', 'upper_b', 'lower_b'];
 
 const MODE_LABELS: Record<TrainingMode, string> = {
   gym: 'Full Gym',
@@ -24,18 +32,24 @@ const MODE_LABELS: Record<TrainingMode, string> = {
 export default function ProgramPage() {
   const { profile, refreshProfile } = useAuth();
   const { activeBlock, blockExercises, loading, fetchBlockExercises, createBlock1, rotateBlock } = useWorkout();
-  const [expandedDay, setExpandedDay] = useState<DayTemplate | null>('upper_a');
+
+  // Derive day order from profile's split type
+  const splitType = (profile?.split_type ?? 'upper_lower') as SplitType;
+  const dayLayouts = useMemo(() => getDayLayouts(splitType), [splitType]);
+  const dayOrder = useMemo(() => dayLayouts.map((l) => l.dayTemplate as DayTemplate), [dayLayouts]);
+
+  const [expandedDay, setExpandedDay] = useState<DayTemplate | null>(dayOrder[0] ?? 'upper_a');
   const [swapTarget, setSwapTarget] = useState<BlockExerciseWithDetails | null>(null);
   const [creatingBlock, setCreatingBlock] = useState(false);
   const [rotating, setRotating] = useState(false);
 
   const exercisesByDay = useMemo(() => {
     const map = new Map<DayTemplate, BlockExerciseWithDetails[]>();
-    for (const day of DAY_ORDER) {
+    for (const day of dayOrder) {
       map.set(day, blockExercises.filter((be) => be.day_template === day).sort((a, b) => a.slot_order - b.slot_order));
     }
     return map;
-  }, [blockExercises]);
+  }, [blockExercises, dayOrder]);
 
   const handleModeChange = useCallback(async (mode: TrainingMode) => {
     if (!profile) return;
@@ -133,10 +147,10 @@ export default function ProgramPage() {
       </div>
 
       {/* Day cards */}
-      {DAY_ORDER.map((day) => {
+      {dayOrder.map((day) => {
         const exercises = exercisesByDay.get(day) ?? [];
         const isExpanded = expandedDay === day;
-        const isUpper = day.startsWith('upper');
+        const isUpper = day.startsWith('upper') || day.startsWith('push') || day.startsWith('pull');
 
         return (
           <div key={day} className="bg-surface-2 rounded-xl overflow-hidden">
@@ -147,7 +161,7 @@ export default function ProgramPage() {
               <div className="flex items-center gap-3">
                 <div className={`w-2 h-2 rounded-full ${isUpper ? 'bg-blue-400' : 'bg-orange-400'}`} />
                 <div className="text-left">
-                  <p className="text-foreground font-semibold">{DAY_LABELS[day]}</p>
+                  <p className="text-foreground font-semibold">{ALL_DAY_LABELS[day] ?? day}</p>
                   <p className="text-faint text-xs">{exercises.length} exercises</p>
                 </div>
               </div>

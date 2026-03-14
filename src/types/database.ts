@@ -22,7 +22,7 @@ export type MealsPerDay = '2' | '3' | '4' | '5' | '6+';
 export type EatingApproach = 'no_preference' | 'clean_eating' | 'flexible_dieting' | 'keto' | 'high_carb' | 'intermittent_fasting';
 export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
 export type FoodSource = 'usda' | 'openfoodfacts' | 'manual';
-export type DayTemplate = 'upper_a' | 'lower_a' | 'upper_b' | 'lower_b';
+export type DayTemplate = 'upper_a' | 'lower_a' | 'upper_b' | 'lower_b' | 'push_a' | 'pull_a' | 'legs_a' | 'push_b' | 'pull_b' | 'legs_b' | 'full_a' | 'full_b' | 'full_c';
 export type PreMood = 'energized' | 'normal' | 'low_energy';
 export type CardioType = 'walking' | 'running' | 'cycling' | 'swimming' | 'rowing' | 'elliptical' | 'stairmaster' | 'hiit' | 'jump_rope' | 'other';
 export type CardioIntensity = 'low' | 'moderate' | 'high' | 'max';
@@ -82,6 +82,16 @@ export interface Database {
           carb_target: number | null;
           bmr: number | null;
           tdee: number | null;
+          secondary_rep_min: number;
+          secondary_rep_max: number;
+          isolation_rep_min: number;
+          isolation_rep_max: number;
+          compound_sets: number;
+          accessory_sets: number;
+          isolation_sets: number;
+          rest_compound: number;
+          rest_secondary: number;
+          rest_isolation: number;
           last_seen_version: string;
           created_at: string;
           updated_at: string;
@@ -132,6 +142,16 @@ export interface Database {
           carb_target?: number | null;
           bmr?: number | null;
           tdee?: number | null;
+          secondary_rep_min?: number;
+          secondary_rep_max?: number;
+          isolation_rep_min?: number;
+          isolation_rep_max?: number;
+          compound_sets?: number;
+          accessory_sets?: number;
+          isolation_sets?: number;
+          rest_compound?: number;
+          rest_secondary?: number;
+          rest_isolation?: number;
           last_seen_version?: string;
         };
         Update: {
@@ -180,6 +200,16 @@ export interface Database {
           carb_target?: number | null;
           bmr?: number | null;
           tdee?: number | null;
+          secondary_rep_min?: number;
+          secondary_rep_max?: number;
+          isolation_rep_min?: number;
+          isolation_rep_max?: number;
+          compound_sets?: number;
+          accessory_sets?: number;
+          isolation_sets?: number;
+          rest_compound?: number;
+          rest_secondary?: number;
+          rest_isolation?: number;
           last_seen_version?: string;
         };
         Relationships: [];
@@ -307,6 +337,7 @@ export interface Database {
           start_date: string;
           is_active: boolean;
           rotation_notes: Json | null;
+          total_weeks: number;
           created_at: string;
         };
         Insert: {
@@ -316,6 +347,7 @@ export interface Database {
           start_date: string;
           is_active?: boolean;
           rotation_notes?: Json | null;
+          total_weeks?: number;
         };
         Update: {
           id?: string;
@@ -324,6 +356,7 @@ export interface Database {
           start_date?: string;
           is_active?: boolean;
           rotation_notes?: Json | null;
+          total_weeks?: number;
         };
         Relationships: [];
       };

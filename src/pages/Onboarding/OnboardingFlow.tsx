@@ -8,6 +8,7 @@ import {
   generateProgramPreview,
   type OnboardingAnswers,
 } from '../../lib/programGenerator';
+import { generateBlock, buildBlockGenProfile } from '../../lib/blockGenerator';
 import type { ExperienceLevel, PrimaryGoal, SessionDuration, FormExplanationLevel, ActivityLevel, MealsPerDay, EatingApproach } from '../../types/database';
 import {
   ChevronRight,
@@ -246,6 +247,16 @@ export default function OnboardingFlow() {
       tdee: derived.tdee,
       compound_rep_min: derived.compoundRepMin,
       compound_rep_max: derived.compoundRepMax,
+      secondary_rep_min: derived.secondaryRepMin,
+      secondary_rep_max: derived.secondaryRepMax,
+      isolation_rep_min: derived.isolationRepMin,
+      isolation_rep_max: derived.isolationRepMax,
+      compound_sets: derived.compoundSets,
+      accessory_sets: derived.accessorySets,
+      isolation_sets: derived.isolationSets,
+      rest_compound: derived.restCompound,
+      rest_secondary: derived.restSecondary,
+      rest_isolation: derived.restIsolation,
       starting_rir: derived.startingRir,
       sets_per_muscle_per_week: derived.setsPerMusclePerWeek,
       weeks_between_deloads: derived.weeksBetweenDeloads,
@@ -281,10 +292,54 @@ export default function OnboardingFlow() {
     setError(null);
     try {
       await saveProgress();
+
+      // Mark onboarding complete
       await supabase.from('user_profiles').update({
         onboarding_completed: true,
         onboarding_completed_at: new Date().toISOString(),
       }).eq('id', user.id);
+
+      // Deactivate any existing blocks
+      await supabase
+        .from('training_blocks')
+        .update({ is_active: false })
+        .eq('user_id', user.id)
+        .eq('is_active', true);
+
+      // Get the latest block number
+      const { data: lastBlock } = await supabase
+        .from('training_blocks')
+        .select('block_number')
+        .eq('user_id', user.id)
+        .order('block_number', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const nextBlockNumber = lastBlock ? (lastBlock as { block_number: number }).block_number + 1 : 1;
+
+      // Generate a new block from derived params
+      const answers = buildAnswers();
+      const derived = deriveTrainingParams(answers);
+      const genProfile = buildBlockGenProfile({
+        split_type: derived.splitType,
+        compound_rep_min: derived.compoundRepMin,
+        compound_rep_max: derived.compoundRepMax,
+        secondary_rep_min: derived.secondaryRepMin,
+        secondary_rep_max: derived.secondaryRepMax,
+        isolation_rep_min: derived.isolationRepMin,
+        isolation_rep_max: derived.isolationRepMax,
+        starting_rir: derived.startingRir,
+        compound_sets: derived.compoundSets,
+        accessory_sets: derived.accessorySets,
+        isolation_sets: derived.isolationSets,
+        rest_compound: derived.restCompound,
+        rest_secondary: derived.restSecondary,
+        rest_isolation: derived.restIsolation,
+        equipment_available: answers.equipmentAvailable,
+        injuries: answers.injuries,
+        weeks_between_deloads: derived.weeksBetweenDeloads,
+      });
+      await generateBlock(user.id, nextBlockNumber, genProfile);
+
       await refreshProfile();
     } catch {
       setError('Failed to save profile. Please try again.');

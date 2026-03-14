@@ -1,9 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './useAuth';
-import type { TrainingBlock, BlockExercise, Exercise, WorkoutSession, SetLog, DayTemplate, Database } from '../types/database';
-
-type BlockExerciseInsert = Database['public']['Tables']['block_exercises']['Insert'];
+import { generateBlock, buildBlockGenProfile } from '../lib/blockGenerator';
+import type { TrainingBlock, BlockExercise, Exercise, WorkoutSession, SetLog, DayTemplate } from '../types/database';
 
 export interface BlockExerciseWithDetails extends BlockExercise {
   exercise: Exercise;
@@ -174,68 +173,57 @@ export function useWorkout() {
 
   const createBlock1 = useCallback(async () => {
     if (!user) return;
-    // Create the training block
-    const today = new Date().toISOString().split('T')[0];
-    const blockPayload = { user_id: user.id, block_number: 1, start_date: today, is_active: true };
-    const { data: blockData, error: blockErr } = await supabase
-      .from('training_blocks')
-      .insert(blockPayload)
-      .select()
+
+    // Fetch user profile for derived params
+    const { data: profileData } = await supabase
+      .from('user_profiles')
+      .select('*')
+      .eq('id', user.id)
       .single();
-    if (blockErr || !blockData) return;
-    const block = blockData as unknown as TrainingBlock;
 
-    // Fetch exercises to resolve IDs by name
-    const { data: allExData } = await supabase.from('exercises').select('id, name');
-    const allEx = (allExData ?? []) as unknown as Array<{ id: string; name: string }>;
-    if (allEx.length === 0) return;
-    const byName = (n: string) => allEx.find((e) => e.name === n)?.id;
+    if (!profileData) return;
+    const prof = profileData as unknown as {
+      split_type: string;
+      compound_rep_min: number;
+      compound_rep_max: number;
+      secondary_rep_min?: number | null;
+      secondary_rep_max?: number | null;
+      isolation_rep_min?: number | null;
+      isolation_rep_max?: number | null;
+      starting_rir: number;
+      compound_sets?: number | null;
+      accessory_sets?: number | null;
+      isolation_sets?: number | null;
+      rest_compound?: number | null;
+      rest_secondary?: number | null;
+      rest_isolation?: number | null;
+      equipment_available: string[];
+      injuries: string[] | null;
+      weeks_between_deloads: number;
+    };
 
-    const block1: BlockExerciseInsert[] = [
-      // Upper A
-      { block_id: block.id, day_template: 'upper_a', slot_order: 1, movement_pool: 'horizontal_press', exercise_id: byName('Barbell Bench Press')!, sets: 4, rep_min: 6, rep_max: 8, rest_seconds: 150, rir_target: 2, is_anchor: true },
-      { block_id: block.id, day_template: 'upper_a', slot_order: 2, movement_pool: 'horizontal_row', exercise_id: byName('Chest-Supported Row')!, sets: 4, rep_min: 8, rep_max: 10, rest_seconds: 105, rir_target: 2, is_anchor: true },
-      { block_id: block.id, day_template: 'upper_a', slot_order: 3, movement_pool: 'incline_press', exercise_id: byName('Incline Dumbbell Press')!, sets: 3, rep_min: 8, rep_max: 10, rest_seconds: 105, rir_target: 2, is_anchor: false },
-      { block_id: block.id, day_template: 'upper_a', slot_order: 4, movement_pool: 'vertical_pull', exercise_id: byName('Lat Pulldown')!, sets: 3, rep_min: 8, rep_max: 10, rest_seconds: 105, rir_target: 2, is_anchor: false },
-      { block_id: block.id, day_template: 'upper_a', slot_order: 5, movement_pool: 'lateral_delt', exercise_id: byName('Dumbbell Lateral Raise')!, sets: 3, rep_min: 12, rep_max: 15, rest_seconds: 60, rir_target: 2, is_anchor: false },
-      { block_id: block.id, day_template: 'upper_a', slot_order: 6, movement_pool: 'triceps', exercise_id: byName('Rope Pressdown')!, sets: 3, rep_min: 10, rep_max: 12, rest_seconds: 60, rir_target: 2, is_anchor: false },
-      { block_id: block.id, day_template: 'upper_a', slot_order: 7, movement_pool: 'biceps', exercise_id: byName('EZ-Bar Curl')!, sets: 3, rep_min: 10, rep_max: 12, rest_seconds: 60, rir_target: 2, is_anchor: false },
+    const genProfile = buildBlockGenProfile(prof as Parameters<typeof buildBlockGenProfile>[0]);
+    const blockId = await generateBlock(user.id, 1, genProfile);
 
-      // Lower A
-      { block_id: block.id, day_template: 'lower_a', slot_order: 1, movement_pool: 'squat_pattern', exercise_id: byName('Back Squat')!, sets: 4, rep_min: 6, rep_max: 8, rest_seconds: 180, rir_target: 2, is_anchor: true },
-      { block_id: block.id, day_template: 'lower_a', slot_order: 2, movement_pool: 'hip_hinge', exercise_id: byName('Romanian Deadlift')!, sets: 4, rep_min: 6, rep_max: 8, rest_seconds: 150, rir_target: 2, is_anchor: true },
-      { block_id: block.id, day_template: 'lower_a', slot_order: 3, movement_pool: 'squat_pattern', exercise_id: byName('Leg Press')!, sets: 3, rep_min: 10, rep_max: 12, rest_seconds: 120, rir_target: 2, is_anchor: false },
-      { block_id: block.id, day_template: 'lower_a', slot_order: 4, movement_pool: 'hamstring_isolation', exercise_id: byName('Lying Leg Curl')!, sets: 3, rep_min: 10, rep_max: 12, rest_seconds: 75, rir_target: 2, is_anchor: false },
-      { block_id: block.id, day_template: 'lower_a', slot_order: 5, movement_pool: 'calves', exercise_id: byName('Standing Calf Raise')!, sets: 4, rep_min: 12, rep_max: 15, rest_seconds: 60, rir_target: 2, is_anchor: false },
-      { block_id: block.id, day_template: 'lower_a', slot_order: 6, movement_pool: 'abs', exercise_id: byName('Hanging Leg Raise')!, sets: 3, rep_min: 12, rep_max: 15, rest_seconds: 60, rir_target: 2, is_anchor: false },
-
-      // Upper B
-      { block_id: block.id, day_template: 'upper_b', slot_order: 1, movement_pool: 'vertical_press', exercise_id: byName('Standing Overhead Press')!, sets: 4, rep_min: 6, rep_max: 8, rest_seconds: 150, rir_target: 2, is_anchor: true },
-      { block_id: block.id, day_template: 'upper_b', slot_order: 2, movement_pool: 'vertical_pull', exercise_id: byName('Pull-Up')!, sets: 4, rep_min: 6, rep_max: 8, rest_seconds: 150, rir_target: 2, is_anchor: true },
-      { block_id: block.id, day_template: 'upper_b', slot_order: 3, movement_pool: 'flat_press', exercise_id: byName('Flat Dumbbell Press')!, sets: 3, rep_min: 8, rep_max: 10, rest_seconds: 105, rir_target: 2, is_anchor: false },
-      { block_id: block.id, day_template: 'upper_b', slot_order: 4, movement_pool: 'horizontal_row', exercise_id: byName('Seated Cable Row')!, sets: 3, rep_min: 8, rep_max: 10, rest_seconds: 105, rir_target: 2, is_anchor: false },
-      { block_id: block.id, day_template: 'upper_b', slot_order: 5, movement_pool: 'rear_delt', exercise_id: byName('Rear Delt Fly')!, sets: 3, rep_min: 12, rep_max: 15, rest_seconds: 60, rir_target: 2, is_anchor: false },
-      { block_id: block.id, day_template: 'upper_b', slot_order: 6, movement_pool: 'triceps', exercise_id: byName('Skull Crushers')!, sets: 3, rep_min: 10, rep_max: 12, rest_seconds: 75, rir_target: 2, is_anchor: false },
-      { block_id: block.id, day_template: 'upper_b', slot_order: 7, movement_pool: 'biceps', exercise_id: byName('Incline Dumbbell Curl')!, sets: 3, rep_min: 10, rep_max: 12, rest_seconds: 60, rir_target: 2, is_anchor: false },
-
-      // Lower B
-      { block_id: block.id, day_template: 'lower_b', slot_order: 1, movement_pool: 'squat_pattern', exercise_id: byName('Front Squat')!, sets: 4, rep_min: 6, rep_max: 8, rest_seconds: 180, rir_target: 2, is_anchor: false },
-      { block_id: block.id, day_template: 'lower_b', slot_order: 2, movement_pool: 'glute_dominant', exercise_id: byName('Hip Thrust')!, sets: 3, rep_min: 8, rep_max: 10, rest_seconds: 120, rir_target: 2, is_anchor: false },
-      { block_id: block.id, day_template: 'lower_b', slot_order: 3, movement_pool: 'unilateral_leg', exercise_id: byName('Bulgarian Split Squat')!, sets: 3, rep_min: 8, rep_max: 10, rest_seconds: 105, rir_target: 2, is_anchor: false },
-      { block_id: block.id, day_template: 'lower_b', slot_order: 4, movement_pool: 'quad_isolation', exercise_id: byName('Leg Extension')!, sets: 3, rep_min: 12, rep_max: 15, rest_seconds: 60, rir_target: 2, is_anchor: false },
-      { block_id: block.id, day_template: 'lower_b', slot_order: 5, movement_pool: 'hamstring_isolation', exercise_id: byName('Seated Leg Curl')!, sets: 3, rep_min: 10, rep_max: 12, rest_seconds: 75, rir_target: 2, is_anchor: false },
-      { block_id: block.id, day_template: 'lower_b', slot_order: 6, movement_pool: 'calves', exercise_id: byName('Seated Calf Raise')!, sets: 4, rep_min: 12, rep_max: 15, rest_seconds: 60, rir_target: 2, is_anchor: false },
-      { block_id: block.id, day_template: 'lower_b', slot_order: 7, movement_pool: 'abs', exercise_id: byName('Plank')!, sets: 3, rep_min: 12, rep_max: 15, rest_seconds: 60, rir_target: 2, is_anchor: false },
-    ];
-
-    await supabase.from('block_exercises').insert(block1);
-    await fetchActiveBlock();
-  }, [user, fetchActiveBlock]);
+    if (blockId) {
+      const block = await fetchActiveBlock();
+      if (block) await fetchBlockExercises(block.id);
+    }
+  }, [user, fetchActiveBlock, fetchBlockExercises]);
 
   const rotateBlock = useCallback(async () => {
     if (!user || !activeBlock) return;
 
-    // 1. Fetch current block exercises
+    // 1. Fetch user profile for derived params
+    const { data: profileData } = await supabase
+      .from('user_profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single();
+    if (!profileData) return;
+    const prof = profileData as unknown as Parameters<typeof buildBlockGenProfile>[0];
+
+    // 2. Fetch current block exercises
     const { data: currentExData } = await supabase
       .from('block_exercises')
       .select('*')
@@ -243,19 +231,22 @@ export function useWorkout() {
     const currentExercises = (currentExData ?? []) as unknown as BlockExercise[];
     if (currentExercises.length === 0) return;
 
-    // 2. Deactivate old block
+    // 3. Deactivate old block
     await supabase
       .from('training_blocks')
       .update({ is_active: false })
       .eq('id', activeBlock.id);
 
-    // 3. Create new block
+    // 4. Create new block with derived params
+    const genProfile = buildBlockGenProfile(prof);
     const today = new Date().toISOString().split('T')[0];
+    const totalWeeks = genProfile.weeks_between_deloads + 1;
     const newBlockPayload = {
       user_id: user.id,
       block_number: activeBlock.block_number + 1,
       start_date: today,
       is_active: true,
+      total_weeks: totalWeeks,
     };
     const { data: newBlockData, error: blockErr } = await supabase
       .from('training_blocks')
@@ -265,36 +256,45 @@ export function useWorkout() {
     if (blockErr || !newBlockData) return;
     const newBlock = newBlockData as unknown as TrainingBlock;
 
-    // 4. Fetch all exercises for swap candidates
+    // 5. Fetch all exercises for swap candidates
     const { data: allExData } = await supabase.from('exercises').select('*');
     const allExercises = (allExData ?? []) as unknown as Exercise[];
 
-    // 5. Pick 2-4 non-anchor exercises to rotate
+    // 6. Pick 2-4 non-anchor exercises to rotate
     const nonAnchors = currentExercises.filter((e) => !e.is_anchor);
     const swapCount = Math.min(
-      Math.max(2, Math.floor(Math.random() * 3) + 2), // 2-4
+      Math.max(2, Math.floor(Math.random() * 3) + 2),
       nonAnchors.length
     );
-
-    // Shuffle and pick which slots to rotate
     const shuffled = [...nonAnchors].sort(() => Math.random() - 0.5);
     const slotsToRotate = new Set(shuffled.slice(0, swapCount).map((e) => e.id));
 
-    // 6. Build rotation_notes for tracking
     const rotationNotes: Array<{ slot: string; from: string; to: string }> = [];
 
-    // 7. Clone exercises into new block, swapping selected slots
+    // 7. Clone exercises into new block, using derived params for sets/reps/rest
     const newExercises = currentExercises.map((be) => {
+      // Determine category from the exercise data
+      const isCompound = allExercises.find((ex) => ex.id === be.exercise_id)?.is_compound ?? false;
+      const cat = isCompound ? 'compound' : (be.rep_min >= 12 ? 'isolation' : 'secondary');
+
       const base = {
         block_id: newBlock.id,
         day_template: be.day_template,
         slot_order: be.slot_order,
         movement_pool: be.movement_pool,
-        sets: be.sets,
-        rep_min: be.rep_min,
-        rep_max: be.rep_max,
-        rest_seconds: be.rest_seconds,
-        rir_target: be.rir_target,
+        sets: cat === 'compound' ? genProfile.compound_sets
+            : cat === 'secondary' ? genProfile.accessory_sets
+            : genProfile.isolation_sets,
+        rep_min: cat === 'compound' ? genProfile.compound_rep_min
+               : cat === 'secondary' ? genProfile.secondary_rep_min
+               : genProfile.isolation_rep_min,
+        rep_max: cat === 'compound' ? genProfile.compound_rep_max
+               : cat === 'secondary' ? genProfile.secondary_rep_max
+               : genProfile.isolation_rep_max,
+        rest_seconds: cat === 'compound' ? genProfile.rest_compound
+                    : cat === 'secondary' ? genProfile.rest_secondary
+                    : genProfile.rest_isolation,
+        rir_target: genProfile.starting_rir,
         is_anchor: be.is_anchor,
       };
 

@@ -1,7 +1,7 @@
 [phases.install]
 cmds = [
   "npm install --legacy-peer-deps",
-  "npm install --legacy-peer-deps --cpu=x64 --os=linux lightningcss-linux-x64-gnu"
+  "npm install --legacy-peer-deps --cpu=x64 --os=linux lightningcss-linux-x64-gnu @tailwindcss/oxide-linux-x64-gnu"
 ]
 
 [phases.build]

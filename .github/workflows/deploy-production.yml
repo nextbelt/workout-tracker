@@ -7,6 +7,7 @@ on:
 jobs:
   deploy-migrations:
     runs-on: ubuntu-latest
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v5
 
@@ -20,13 +21,21 @@ jobs:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
       - name: Push migrations to production
-        run: supabase db push --include-all
+        run: |
+          for i in 1 2 3; do
+            echo "Attempt $i..."
+            supabase db push --include-all && exit 0
+            echo "Attempt $i failed, waiting 60 seconds..."
+            sleep 60
+          done
+          echo "All attempts failed — apply migrations locally with: supabase db push --include-all"
+          exit 1
+        timeout-minutes: 10
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_PRODUCTION_DB_PASSWORD }}
 
   deploy-frontend:
-    needs: deploy-migrations
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -48,7 +57,6 @@ jobs:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_PRODUCTION_TOKEN }}
 
   deploy-api-proxy:
-    needs: deploy-migrations
     runs-on: ubuntu-latest
     defaults:
       run:

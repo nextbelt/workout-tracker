@@ -407,7 +407,7 @@ export default function ExerciseLibraryPage({ swapMode }: ExerciseLibraryPagePro
   if (swapMode) {
     return (
       <div className="fixed inset-0 z-50 bg-black/60 flex items-end justify-center">
-        <div className="w-full max-w-lg bg-surface-2 rounded-t-2xl p-5 max-h-[85vh] overflow-y-auto animate-slide-up">
+        <div className="w-full max-w-lg bg-surface-2 rounded-t-2xl p-5 max-h-[85vh] overflow-y-auto animate-slide-up" style={{ paddingBottom: 'calc(1.25rem + var(--safe-bottom))' }}>
           {content}
         </div>
       </div>

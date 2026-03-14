@@ -50,7 +50,7 @@ function AppShell() {
 
   return (
     <RestTimerProvider>
-    <div className="flex flex-col h-dvh bg-black text-white overflow-hidden">
+    <div className="flex flex-col h-dvh bg-black text-white overflow-hidden" style={{ paddingTop: 'var(--safe-top)', paddingLeft: 'var(--safe-left)', paddingRight: 'var(--safe-right)' }}>
       <main className="flex-1 overflow-y-auto">
         <Suspense fallback={<div className="flex items-center justify-center h-full"><Loader2 size={28} className="text-brand animate-spin" /></div>}>
         <Routes>
@@ -65,7 +65,7 @@ function AppShell() {
         </Suspense>
       </main>
       <RestTimerWidget />
-      <nav className="shrink-0 bg-surface border-t border-border">
+      <nav className="shrink-0 bg-surface border-t border-border" style={{ paddingBottom: 'var(--safe-bottom)' }}>
         <ul className="flex justify-around items-center h-16">
           {NAV_ITEMS.map(({ to, label, Icon }) => (
             <li key={to} className="flex-1">

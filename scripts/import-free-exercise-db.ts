@@ -241,7 +241,7 @@ async function main() {
       default_rest_seconds: defaults.rest,
       default_rir: defaults.rir,
       body_part: mapBodyPart(entry),
-      category: entry.category?.toLowerCase() ?? 'strength',
+      category: entry.category?.toLowerCase().replace(/\s+/g, '_') ?? 'strength',
       instructions: entry.instructions,
       primary_muscles: entry.primaryMuscles,
       secondary_muscles: entry.secondaryMuscles,
@@ -252,7 +252,19 @@ async function main() {
     };
   });
 
-  // 3. Upsert in batches (50 at a time to avoid payload limits)
+  // 3. Delete existing free_exercise_db rows for clean re-import
+  console.log('Clearing existing free_exercise_db exercises...');
+  const { error: deleteError, count: deleteCount } = await supabase
+    .from('exercises')
+    .delete({ count: 'exact' })
+    .eq('source', 'free_exercise_db');
+  if (deleteError) {
+    console.warn(`Delete warning: ${deleteError.message}`);
+  } else {
+    console.log(`Deleted ${deleteCount ?? 0} existing free_exercise_db rows.`);
+  }
+
+  // 4. Insert in batches (50 at a time to avoid payload limits)
   const BATCH_SIZE = 50;
   let inserted = 0;
   let skipped = 0;
@@ -261,27 +273,19 @@ async function main() {
     const batch = rows.slice(i, i + BATCH_SIZE);
     const { data, error } = await supabase
       .from('exercises')
-      .upsert(batch, {
-        onConflict: 'external_id',
-        ignoreDuplicates: false,
-      })
+      .insert(batch)
       .select('id');
 
     if (error) {
-      // If upsert fails (e.g., no unique constraint on external_id), fall back to insert-skip
-      console.warn(`Batch ${i / BATCH_SIZE + 1} upsert error: ${error.message}`);
-      // Try individual inserts
+      console.warn(`Batch ${i / BATCH_SIZE + 1} error: ${error.message}`);
+      // Fall back to individual inserts to identify problem rows
       for (const row of batch) {
         const { error: singleError } = await supabase
           .from('exercises')
           .insert(row);
         if (singleError) {
-          if (singleError.message.includes('duplicate') || singleError.message.includes('unique')) {
-            skipped++;
-          } else {
-            console.warn(`  Skip "${row.name}": ${singleError.message}`);
-            skipped++;
-          }
+          console.warn(`  Skip "${row.name}": ${singleError.message}`);
+          skipped++;
         } else {
           inserted++;
         }

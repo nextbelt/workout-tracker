@@ -47,6 +47,7 @@ function getSupabase() {
 youtubeRouter.get('/search', async (req: Request, res: Response) => {
   const exerciseName = String(req.query['q'] ?? '').trim();
   const attempt = Number(req.query['attempt'] ?? 0);
+  const sex = String(req.query['sex'] ?? '').trim();
 
   if (!exerciseName) {
     res.json({ results: [], source: 'none' });
@@ -61,12 +62,22 @@ youtubeRouter.get('/search', async (req: Request, res: Response) => {
   }
 
   // Build search query with attempt-based suffix rotation
-  const suffixes = [
-    'exercise demo proper form',
-    'tutorial how to',
-    'exercise technique',
-    'workout',
-  ];
+  // Female users get women-specific demos, others get neutral queries
+  const suffixesByGender: Record<string, string[]> = {
+    female: [
+      'exercise demo women proper form',
+      'women tutorial how to',
+      'female exercise technique',
+      'women workout',
+    ],
+    default: [
+      'exercise demo proper form',
+      'tutorial how to',
+      'exercise technique',
+      'workout',
+    ],
+  };
+  const suffixes = sex === 'female' ? suffixesByGender.female : suffixesByGender.default;
   const suffix = suffixes[attempt % suffixes.length] ?? 'exercise';
   const searchQuery = `${exerciseName} ${suffix}`;
 

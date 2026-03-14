@@ -44,7 +44,8 @@ export function useExerciseVideo(
   existingVideoUrl?: string | null,
   existingImageUrls?: string[] | null,
 ) {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
+  const userSex = profile?.sex ?? null;
   const [video, setVideo] = useState<VideoState | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchResults, setSearchResults] = useState<YouTubeResult[]>([]);
@@ -102,7 +103,7 @@ export function useExerciseVideo(
       // Step 2: Search YouTube via API proxy (main path for embedded video + like/dislike)
       if (!cancelled && API_BASE) {
         try {
-          const results = await searchYouTube(exerciseName, 0);
+          const results = await searchYouTube(exerciseName, 0, userSex);
           if (!cancelled && results.length > 0) {
             setSearchResults(results);
             setCurrentIndex(0);
@@ -190,7 +191,7 @@ export function useExerciseVideo(
 
     init();
     return () => { cancelled = true; };
-  }, [exerciseId, exerciseName, user, existingGifUrl, existingVideoUrl, existingImageUrls]);
+  }, [exerciseId, exerciseName, user, userSex, existingGifUrl, existingVideoUrl, existingImageUrls]);
 
   // Like current video → save to exercise_video_feedback
   const likeVideo = useCallback(async () => {
@@ -243,7 +244,7 @@ export function useExerciseVideo(
     const nextAttempt = searchAttempt + 1;
     if (nextAttempt < 4) {
       try {
-        const results = await searchYouTube(exerciseName, nextAttempt);
+        const results = await searchYouTube(exerciseName, nextAttempt, userSex);
         if (results.length > 0) {
           setSearchResults(results);
           setCurrentIndex(0);
@@ -259,7 +260,7 @@ export function useExerciseVideo(
     // Truly exhausted — no more videos
     setVideo(null);
     setCanCycle(false);
-  }, [user, video, exerciseId, currentIndex, searchResults, searchAttempt, exerciseName]);
+  }, [user, userSex, video, exerciseId, currentIndex, searchResults, searchAttempt, exerciseName]);
 
   // Reset liked video → restart cycling
   const changeVideo = useCallback(async () => {
@@ -280,7 +281,7 @@ export function useExerciseVideo(
 
     // Re-search
     try {
-      const results = await searchYouTube(exerciseName, 0);
+      const results = await searchYouTube(exerciseName, 0, userSex);
       if (results.length > 0) {
         // Filter out previously disliked videos
         const { data: disliked } = await supabase
@@ -307,7 +308,7 @@ export function useExerciseVideo(
     } catch {
       setVideo(null);
     }
-  }, [user, exerciseId, exerciseName]);
+  }, [user, userSex, exerciseId, exerciseName]);
 
   function setVideoFromSearchResult(result: YouTubeResult) {
     setVideo({
@@ -357,10 +358,13 @@ function extractYouTubeId(url: string): string | null {
   return null;
 }
 
-async function searchYouTube(exerciseName: string, attempt: number): Promise<YouTubeResult[]> {
-  const response = await fetch(
-    `${API_BASE}/api/youtube/search?q=${encodeURIComponent(exerciseName)}&attempt=${attempt}`
-  );
+async function searchYouTube(exerciseName: string, attempt: number, sex?: string | null): Promise<YouTubeResult[]> {
+  const params = new URLSearchParams({
+    q: exerciseName,
+    attempt: String(attempt),
+  });
+  if (sex) params.set('sex', sex);
+  const response = await fetch(`${API_BASE}/api/youtube/search?${params}`);
   if (!response.ok) return [];
   const data = await response.json();
   return (data.results ?? []) as YouTubeResult[];

@@ -171,6 +171,21 @@ export function useWorkout() {
     return { error };
   }, [fetchLastSets]);
 
+  const cancelWorkout = useCallback(async (sessionId: string) => {
+    // Delete all logged sets for this session
+    await supabase
+      .from('set_logs')
+      .delete()
+      .eq('session_id', sessionId);
+    // Delete the session itself
+    await supabase
+      .from('workout_sessions')
+      .delete()
+      .eq('id', sessionId);
+    setTodaySession(null);
+    setSessionSets([]);
+  }, []);
+
   const createBlock1 = useCallback(async () => {
     if (!user) return;
 
@@ -354,6 +369,7 @@ export function useWorkout() {
     logSet,
     startWorkout,
     completeWorkout,
+    cancelWorkout,
     createBlock1,
     rotateBlock,
     fetchBlockExercises,

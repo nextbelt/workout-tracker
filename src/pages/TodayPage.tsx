@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { Play, CheckCircle, ChevronDown, ChevronUp, ArrowLeftRight, AlertTriangle, Loader2, Video, Info, Music, Flame, Activity, BatteryLow, Clock, Sparkles, ExternalLink } from 'lucide-react';
+import { Play, CheckCircle, ChevronDown, ChevronUp, ArrowLeftRight, AlertTriangle, Loader2, Video, Info, Music, Flame, Activity, BatteryLow, Clock, Sparkles, ExternalLink, RotateCcw } from 'lucide-react';
 import { useWorkout, type BlockExerciseWithDetails } from '../hooks/useWorkout';
 import { useAuth } from '../hooks/useAuth';
 import { useRestTimerContext } from '../context/RestTimerContext';
@@ -54,6 +54,7 @@ export default function TodayPage() {
     logSet,
     startWorkout,
     completeWorkout,
+    cancelWorkout,
     createBlock1,
     fetchBlockExercises,
     lastSets,
@@ -89,6 +90,7 @@ export default function TodayPage() {
   const [startingWorkout, setStartingWorkout] = useState(false);
   const [showMoodCheck, setShowMoodCheck] = useState(false);
   const [detailExercise, setDetailExercise] = useState<BlockExerciseWithDetails | null>(null);
+  const [confirmRestart, setConfirmRestart] = useState(false);
   const [progressionHints, setProgressionHints] = useState<Map<string, { shouldIncrease: boolean; suggestedWeight: number | null; stallCount: number; message: string }>>(new Map());
   const [swappedExerciseDetails, setSwappedExerciseDetails] = useState<Map<string, BlockExerciseWithDetails['exercise']>>(new Map());
 
@@ -609,15 +611,49 @@ export default function TodayPage() {
         <CardioLogger />
       )}
 
-      {/* Complete Workout button */}
+      {/* Restart / Complete Workout buttons */}
       {todaySession && (
-        <button
-          onClick={() => setShowRecovery(true)}
-          className="w-full bg-brand hover:bg-brand-dark text-white font-semibold rounded-xl py-4 min-h-11 transition-colors flex items-center justify-center gap-2 text-lg"
-        >
-          <CheckCircle size={20} />
-          Complete Workout
-        </button>
+        <div className="space-y-2">
+          {confirmRestart ? (
+            <div className="flex gap-2">
+              <button
+                onClick={() => setConfirmRestart(false)}
+                className="flex-1 bg-surface-3 text-secondary font-medium rounded-xl py-3 min-h-11 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  await cancelWorkout(todaySession.id);
+                  moodEngine.resetMood();
+                  setInlineMood(null);
+                  setConfirmRestart(false);
+                  setExpandedExercise(null);
+                  setProgressionHints(new Map());
+                }}
+                className="flex-1 bg-red-500/15 text-red-400 border border-red-500/30 font-semibold rounded-xl py-3 min-h-11 transition-colors flex items-center justify-center gap-2"
+              >
+                <RotateCcw size={16} />
+                Yes, Restart
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setConfirmRestart(true)}
+              className="w-full bg-surface-2 hover:bg-surface-3 text-secondary font-medium rounded-xl py-3 min-h-11 transition-colors flex items-center justify-center gap-2"
+            >
+              <RotateCcw size={16} />
+              Restart Today
+            </button>
+          )}
+          <button
+            onClick={() => setShowRecovery(true)}
+            className="w-full bg-brand hover:bg-brand-dark text-white font-semibold rounded-xl py-4 min-h-11 transition-colors flex items-center justify-center gap-2 text-lg"
+          >
+            <CheckCircle size={20} />
+            Complete Workout
+          </button>
+        </div>
       )}
 
       {/* Modals */}

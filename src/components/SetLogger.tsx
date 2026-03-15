@@ -15,6 +15,7 @@ interface SetLoggerProps {
   rirTarget: number;
   previousWeight?: number | null;
   previousReps?: number | null;
+  previousRir?: number | null;
   lastWeight?: number | null;
   lastReps?: number | null;
   progressionHint?: ProgressionHint | null;
@@ -76,6 +77,7 @@ export function SetLogger({
   rirTarget,
   previousWeight,
   previousReps,
+  previousRir,
   lastWeight,
   lastReps,
   progressionHint,
@@ -84,8 +86,8 @@ export function SetLogger({
 }: SetLoggerProps) {
   const [weight, setWeight] = useState<string>(previousWeight?.toString() ?? lastWeight?.toString() ?? '');
   const [reps, setReps] = useState<string>(previousReps?.toString() ?? lastReps?.toString() ?? '');
-  const [rir, setRir] = useState<string>(rirTarget.toString());
-  const [saved, setSaved] = useState(false);
+  const [rir, setRir] = useState<string>(previousRir?.toString() ?? rirTarget.toString());
+  const [saved, setSaved] = useState(previousWeight != null);
 
   const handleSave = useCallback(async () => {
     await onLog(

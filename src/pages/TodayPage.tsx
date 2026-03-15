@@ -450,7 +450,7 @@ export default function TodayPage() {
         {dayExercises.map((be) => {
           const isExpanded = expandedExercise === be.id;
           const sets = exerciseSets.get(be.exercise_id) ?? [];
-          const completedSets = sets.length;
+          const completedSets = new Set(sets.map((s) => s.set_number)).size;
           const totalSets = getWeekSets(be.sets, weekNumber, totalWeeks, startingRir);
           const weekRir = getWeekRir(weekNumber, totalWeeks, startingRir);
           const lastSet = lastSets.get(be.exercise_id);
@@ -485,14 +485,12 @@ export default function TodayPage() {
                   >
                     <Info size={14} className="text-faint" />
                   </button>
-                  {!todaySession && (
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setSwapTarget(be); }}
-                      className="p-2 min-h-11 min-w-11 hover:bg-surface-3 rounded-lg transition-colors flex items-center justify-center"
-                    >
-                      <ArrowLeftRight size={14} className="text-faint" />
-                    </button>
-                  )}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setSwapTarget(be); }}
+                    className="p-2 min-h-11 min-w-11 hover:bg-surface-3 rounded-lg transition-colors flex items-center justify-center"
+                  >
+                    <ArrowLeftRight size={14} className="text-faint" />
+                  </button>
                   <button
                     onClick={(e) => { e.stopPropagation(); setDetailExercise(be); }}
                     className={`p-2 min-h-11 min-w-11 hover:bg-surface-3 rounded-lg transition-colors flex items-center justify-center text-faint`}
@@ -534,6 +532,7 @@ export default function TodayPage() {
                         rirTarget={weekRir}
                         previousWeight={existingSet?.weight}
                         previousReps={existingSet?.reps}
+                        previousRir={existingSet?.rir ?? null}
                         lastWeight={lastSet?.weight}
                         lastReps={lastSet?.reps}
                         progressionHint={progressionHints.get(be.exercise_id) ?? null}

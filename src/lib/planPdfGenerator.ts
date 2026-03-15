@@ -534,7 +534,7 @@ export function generatePlanPdf(
   y = labelValue(doc, y, 'TDEE', `${params.tdee} cal/day`);
   y = labelValue(doc, y, 'Target Calories', `${params.calorieTarget} cal/day`);
 
-  const goalLabel = answers.primaryGoal === 'lose_fat' ? '20% deficit' :
+  const goalLabel = answers.primaryGoal === 'lose_fat' ? '~500 cal deficit (min floor applied)' :
     (answers.primaryGoal === 'build_muscle' || answers.primaryGoal === 'get_stronger')
       ? '10% surplus' : 'maintenance';
   y = labelValue(doc, y, 'Adjustment', goalLabel);

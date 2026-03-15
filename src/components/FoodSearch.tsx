@@ -231,35 +231,43 @@ function FoodResultRow({ food, onSelect, onFavorite }: { food: FoodResult; onSel
 interface ManualEntryProps {
   mealType: MealType;
   onAdd: (entry: { name: string; calories: number; protein: number; carbs: number; fat: number }) => Promise<void>;
+  onUpdate?: (entry: { name: string; calories: number; protein: number; carbs: number; fat: number }) => Promise<void>;
+  initialValues?: { name: string; calories: number; protein: number; carbs: number; fat: number };
   onClose: () => void;
 }
 
-export function ManualFoodEntry({ mealType, onAdd, onClose }: ManualEntryProps) {
-  const [name, setName] = useState('');
-  const [calories, setCalories] = useState('');
-  const [protein, setProtein] = useState('');
-  const [carbs, setCarbs] = useState('');
-  const [fat, setFat] = useState('');
+export function ManualFoodEntry({ mealType, onAdd, onUpdate, initialValues, onClose }: ManualEntryProps) {
+  const [name, setName] = useState(initialValues?.name ?? '');
+  const [calories, setCalories] = useState(initialValues?.calories?.toString() ?? '');
+  const [protein, setProtein] = useState(initialValues?.protein?.toString() ?? '');
+  const [carbs, setCarbs] = useState(initialValues?.carbs?.toString() ?? '');
+  const [fat, setFat] = useState(initialValues?.fat?.toString() ?? '');
   const [adding, setAdding] = useState(false);
+  const isEditing = initialValues != null && onUpdate != null;
 
   const handleAdd = useCallback(async () => {
     setAdding(true);
-    await onAdd({
+    const payload = {
       name: name || 'Manual entry',
       calories: Number(calories) || 0,
       protein: Number(protein) || 0,
       carbs: Number(carbs) || 0,
       fat: Number(fat) || 0,
-    });
+    };
+    if (isEditing) {
+      await onUpdate(payload);
+    } else {
+      await onAdd(payload);
+    }
     setAdding(false);
     onClose();
-  }, [name, calories, protein, carbs, fat, onAdd, onClose]);
+  }, [name, calories, protein, carbs, fat, onAdd, onUpdate, isEditing, onClose]);
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 flex items-end justify-center">
       <div className="w-full max-w-lg bg-surface-2 rounded-t-2xl p-6" style={{ paddingBottom: 'calc(1.5rem + var(--safe-bottom))' }}>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-foreground capitalize">Manual Entry – {mealType}</h2>
+          <h2 className="text-lg font-bold text-foreground capitalize">{isEditing ? 'Edit' : 'Manual'} Entry – {mealType}</h2>
           <button onClick={onClose} className="p-2 min-h-11 min-w-11 bg-surface-3 rounded-lg flex items-center justify-center">
             <X size={18} className="text-muted" />
           </button>
@@ -299,7 +307,7 @@ export function ManualFoodEntry({ mealType, onAdd, onClose }: ManualEntryProps) 
             disabled={adding}
             className="w-full bg-brand hover:bg-brand-dark text-white font-semibold rounded-xl py-3 min-h-11 transition-colors disabled:opacity-50"
           >
-            {adding ? 'Adding...' : 'Add Entry'}
+            {adding ? 'Saving...' : isEditing ? 'Update Entry' : 'Add Entry'}
           </button>
         </div>
       </div>

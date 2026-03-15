@@ -24,11 +24,13 @@ const MEAL_ICONS: Record<MealType, string> = {
 
 export default function NutritionPage() {
   const { profile, user } = useAuth();
-  const { entries, totals, loading, addEntry, deleteEntry } = useNutrition();
+  const { entries, totals, loading, addEntry, deleteEntry, updateEntry } = useNutrition();
   const [expandedMeal, setExpandedMeal] = useState<MealType | null>('breakfast');
   const [searchMeal, setSearchMeal] = useState<MealType | null>(null);
   const [manualMeal, setManualMeal] = useState<MealType | null>(null);
   const [barcodeMeal, setBarcodeMeal] = useState<MealType | null>(null);
+  const [editEntry, setEditEntry] = useState<NutritionEntry | null>(null);
+  const [searchError, setSearchError] = useState(false);
   const [weeklyAvg, setWeeklyAvg] = useState<{ protein: number; calories: number; days: number } | null>(null);
 
   // Fetch 7-day rolling average
@@ -123,9 +125,16 @@ export default function NutritionPage() {
     const API_BASE = import.meta.env.VITE_API_PROXY_URL ?? 'http://localhost:3001';
     try {
       const res = await fetch(`${API_BASE}/api/food/search?q=${encodeURIComponent(query)}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
+      if (json.error) {
+        setSearchError(true);
+      } else {
+        setSearchError(false);
+      }
       return json.results ?? [];
     } catch {
+      setSearchError(true);
       return [];
     }
   }, []);
@@ -203,6 +212,13 @@ export default function NutritionPage() {
         </div>
       )}
 
+      {/* Search error banner */}
+      {searchError && (
+        <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3 flex items-center gap-2">
+          <span className="text-yellow-400 text-sm">⚠️ Food search unavailable — try again later or use Manual entry.</span>
+        </div>
+      )}
+
       {/* Meal sections */}
       {MEAL_ORDER.map((meal) => {
         const mealEntries = entriesByMeal.get(meal) ?? [];
@@ -244,12 +260,20 @@ export default function NutritionPage() {
                         {entry.serving_size && <span className="ml-1 text-neutral-600">({entry.serving_size})</span>}
                       </p>
                     </div>
-                    <button
-                      onClick={() => deleteEntry(entry.id)}
-                      className="p-2 min-h-11 min-w-11 hover:bg-surface-3 rounded-lg transition-colors flex items-center justify-center shrink-0"
-                    >
-                      <Trash2 size={14} className="text-faint" />
-                    </button>
+                    <div className="flex items-center gap-0.5 shrink-0">
+                      <button
+                        onClick={() => setEditEntry(entry)}
+                        className="p-2 min-h-11 min-w-11 hover:bg-surface-3 rounded-lg transition-colors flex items-center justify-center"
+                      >
+                        <Edit3 size={14} className="text-faint" />
+                      </button>
+                      <button
+                        onClick={() => deleteEntry(entry.id)}
+                        className="p-2 min-h-11 min-w-11 hover:bg-surface-3 rounded-lg transition-colors flex items-center justify-center"
+                      >
+                        <Trash2 size={14} className="text-faint" />
+                      </button>
+                    </div>
                   </div>
                 ))}
 
@@ -304,6 +328,31 @@ export default function NutritionPage() {
         <BarcodeScanner
           onScan={handleBarcodeScan}
           onClose={() => setBarcodeMeal(null)}
+        />
+      )}
+
+      {editEntry && (
+        <ManualFoodEntry
+          mealType={editEntry.meal_type}
+          initialValues={{
+            name: editEntry.food_name,
+            calories: Number(editEntry.calories),
+            protein: Number(editEntry.protein),
+            carbs: Number(editEntry.carbs),
+            fat: Number(editEntry.fat),
+          }}
+          onAdd={async () => {}}
+          onUpdate={async (updated) => {
+            await updateEntry(editEntry.id, {
+              food_name: updated.name,
+              calories: updated.calories,
+              protein: updated.protein,
+              carbs: updated.carbs,
+              fat: updated.fat,
+            });
+            setEditEntry(null);
+          }}
+          onClose={() => setEditEntry(null)}
         />
       )}
     </div>

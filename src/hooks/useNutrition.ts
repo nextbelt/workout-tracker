@@ -82,6 +82,17 @@ export function useNutrition(date?: string) {
     await fetchEntries();
   }, [fetchEntries]);
 
+  const updateEntry = useCallback(async (entryId: string, patch: {
+    food_name?: string;
+    calories?: number;
+    protein?: number;
+    carbs?: number;
+    fat?: number;
+  }) => {
+    await supabase.from('nutrition_entries').update(patch).eq('id', entryId);
+    await fetchEntries();
+  }, [fetchEntries]);
+
   useEffect(() => {
     const load = async () => {
       setLoading(true);
@@ -99,5 +110,6 @@ export function useNutrition(date?: string) {
     loading,
     addEntry,
     deleteEntry,
+    updateEntry,
   };
 }

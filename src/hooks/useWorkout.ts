@@ -123,7 +123,7 @@ export function useWorkout() {
     };
     const { error } = await supabase
       .from('set_logs')
-      .insert(payload)
+      .upsert(payload, { onConflict: 'session_id,exercise_id,set_number' })
       .select()
       .single();
     if (!error) {

@@ -242,6 +242,7 @@ export interface Database {
           description: string | null;
           video_url: string | null;
           contraindicated_for: string[] | null;
+          swap_tier: string | null;
           created_at: string;
         };
         Insert: {
@@ -271,6 +272,7 @@ export interface Database {
           description?: string | null;
           video_url?: string | null;
           contraindicated_for?: string[] | null;
+          swap_tier?: string | null;
         };
         Update: {
           id?: string;
@@ -299,6 +301,7 @@ export interface Database {
           description?: string | null;
           video_url?: string | null;
           contraindicated_for?: string[] | null;
+          swap_tier?: string | null;
         };
         Relationships: [];
       };

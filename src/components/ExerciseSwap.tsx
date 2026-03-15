@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { ArrowLeftRight, X, Loader2 } from 'lucide-react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { ArrowLeftRight, X, Loader2, Star } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { Exercise } from '../types/database';
 
@@ -7,6 +7,12 @@ interface ExerciseSwapModalProps {
   currentExercise: Exercise;
   onSwap: (newExerciseId: string) => Promise<void>;
   onClose: () => void;
+}
+
+function equipmentOverlap(a: string[] | null, b: string[] | null): number {
+  if (!a || !b) return 0;
+  const setB = new Set(b);
+  return a.filter((tag) => setB.has(tag)).length;
 }
 
 export function ExerciseSwapModal({ currentExercise, onSwap, onClose }: ExerciseSwapModalProps) {
@@ -23,12 +29,19 @@ export function ExerciseSwapModal({ currentExercise, onSwap, onClose }: Exercise
         setLoading(false);
         return;
       }
-      const { data, error } = await supabase
+
+      let query = supabase
         .from('exercises')
         .select('*')
         .eq('movement_pool', pool)
-        .neq('id', currentExercise.id)
-        .order('name');
+        .neq('id', currentExercise.id);
+
+      // Filter by swap_tier if the current exercise has one
+      if (currentExercise.swap_tier) {
+        query = query.eq('swap_tier', currentExercise.swap_tier);
+      }
+
+      const { data, error } = await query.order('name');
 
       if (!error && data) {
         setCandidates(data as Exercise[]);
@@ -36,7 +49,23 @@ export function ExerciseSwapModal({ currentExercise, onSwap, onClose }: Exercise
       setLoading(false);
     }
     fetchPool();
-  }, [currentExercise.id, currentExercise.movement_pool]);
+  }, [currentExercise.id, currentExercise.movement_pool, currentExercise]);
+
+  // Sort candidates: equipment overlap first, then alphabetical
+  const sortedCandidates = useMemo(() => {
+    const currentEquipment = currentExercise.equipment_tags;
+    return [...candidates].sort((a, b) => {
+      const overlapA = equipmentOverlap(a.equipment_tags, currentEquipment);
+      const overlapB = equipmentOverlap(b.equipment_tags, currentEquipment);
+      if (overlapB !== overlapA) return overlapB - overlapA;
+      return a.name.localeCompare(b.name);
+    });
+  }, [candidates, currentExercise.equipment_tags]);
+
+  const bestMatchThreshold = useMemo(() => {
+    if (!currentExercise.equipment_tags || currentExercise.equipment_tags.length === 0) return 0;
+    return Math.max(1, Math.ceil(currentExercise.equipment_tags.length / 2));
+  }, [currentExercise.equipment_tags]);
 
   const handleSwap = useCallback(async (exerciseId: string) => {
     setSwapping(exerciseId);
@@ -75,30 +104,47 @@ export function ExerciseSwapModal({ currentExercise, onSwap, onClose }: Exercise
           <div className="flex items-center justify-center py-8">
             <Loader2 size={24} className="text-brand animate-spin" />
           </div>
-        ) : candidates.length === 0 ? (
+        ) : sortedCandidates.length === 0 ? (
           <p className="text-faint text-center py-8">No alternatives in this movement pool.</p>
         ) : (
           <div className="space-y-2">
-            {candidates.map((ex) => (
-              <button
-                key={ex.id}
-                onClick={() => handleSwap(ex.id)}
-                disabled={swapping !== null}
-                className="w-full flex items-center justify-between p-4 min-h-11 bg-surface-3 hover:bg-surface-3 rounded-xl border border-border-2 transition-colors disabled:opacity-50"
-              >
-                <div className="text-left">
-                  <p className="text-foreground font-medium">{ex.name}</p>
-                  <p className="text-faint text-xs">
-                    {ex.default_sets}×{ex.default_rep_min}–{ex.default_rep_max} · {ex.equipment_tags?.join(', ')}
-                  </p>
-                </div>
-                {swapping === ex.id ? (
-                  <Loader2 size={16} className="text-brand animate-spin" />
-                ) : (
-                  <ArrowLeftRight size={16} className="text-faint" />
-                )}
-              </button>
-            ))}
+            {sortedCandidates.map((ex) => {
+              const overlap = equipmentOverlap(ex.equipment_tags, currentExercise.equipment_tags);
+              const isBestMatch = overlap >= bestMatchThreshold && bestMatchThreshold > 0;
+              return (
+                <button
+                  key={ex.id}
+                  onClick={() => handleSwap(ex.id)}
+                  disabled={swapping !== null}
+                  className="w-full flex items-center justify-between p-4 min-h-11 bg-surface-3 hover:bg-surface-3 rounded-xl border border-border-2 transition-colors disabled:opacity-50"
+                >
+                  <div className="text-left">
+                    <div className="flex items-center gap-2">
+                      <p className="text-foreground font-medium">{ex.name}</p>
+                      {isBestMatch && (
+                        <span className="flex items-center gap-0.5 text-[10px] font-semibold text-brand bg-brand/10 px-1.5 py-0.5 rounded-full">
+                          <Star size={10} className="fill-brand" />
+                          Best Match
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-faint text-xs">
+                      {ex.default_sets}×{ex.default_rep_min}–{ex.default_rep_max} · {ex.equipment_tags?.join(', ')}
+                    </p>
+                    {ex.primary_muscles && ex.primary_muscles.length > 0 && (
+                      <p className="text-faint text-[10px] mt-0.5">
+                        {ex.primary_muscles.join(', ')}
+                      </p>
+                    )}
+                  </div>
+                  {swapping === ex.id ? (
+                    <Loader2 size={16} className="text-brand animate-spin" />
+                  ) : (
+                    <ArrowLeftRight size={16} className="text-faint" />
+                  )}
+                </button>
+              );
+            })}
           </div>
         )}
       </div>

@@ -62,17 +62,43 @@ foodRouter.get('/search', async (req: Request, res: Response) => {
     }
     console.log(`[cache MISS] "${query}"`);
 
+    let results: NormalizedFood[] = [];
+
+    // Try USDA first
     const apiKey = process.env.USDA_API_KEY;
-    if (!apiKey) throw new Error('USDA_API_KEY not set');
+    if (apiKey) {
+      try {
+        const url = `https://api.nal.usda.gov/fdc/v1/foods/search?api_key=${apiKey}&query=${encodeURIComponent(query)}&dataType=SR%20Legacy,Survey%20(FNDDS)&pageSize=10`;
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`USDA API error: ${response.status}`);
+        const data = (await response.json()) as { foods?: Record<string, unknown>[] };
+        results = (data.foods ?? []).map(usdaToNormalized);
+      } catch (usdaErr) {
+        console.error('[food/search] USDA failed, trying OFF fallback:', usdaErr);
+      }
+    }
 
-    const url = `https://api.nal.usda.gov/fdc/v1/foods/search?api_key=${apiKey}&query=${encodeURIComponent(query)}&dataType=SR%20Legacy,Survey%20(FNDDS)&pageSize=10`;
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`USDA API error: ${response.status}`);
+    // Fallback to Open Food Facts if USDA returned no results
+    if (results.length === 0) {
+      try {
+        const offUrl = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=10`;
+        const offResponse = await fetch(offUrl, {
+          headers: { 'User-Agent': 'WorkoutTracker/1.0 (contact@workouttracker.app)' },
+        });
+        if (offResponse.ok) {
+          const offData = (await offResponse.json()) as { products?: Record<string, unknown>[] };
+          results = (offData.products ?? [])
+            .filter((p) => p['product_name'])
+            .map((p) => offToNormalized(p, String(p['code'] ?? '')));
+        }
+      } catch (offErr) {
+        console.error('[food/search] OFF fallback also failed:', offErr);
+      }
+    }
 
-    const data = (await response.json()) as { foods?: Record<string, unknown>[] };
-    const results: NormalizedFood[] = (data.foods ?? []).map(usdaToNormalized);
-
-    await cacheSet(query, results);
+    if (results.length > 0) {
+      await cacheSet(query, results);
+    }
     res.json({ results, cache: false });
   } catch (err) {
     console.error('[food/search]', err);

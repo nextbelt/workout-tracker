@@ -346,7 +346,11 @@ export function generatePlanPdf(
 
   const splitType = resolveSplitType(answers.trainingDaysPerWeek);
   const dayLayouts = getDayLayouts(splitType);
-  const dayTemplates = dayLayouts.map((d) => d.dayTemplate as DayTemplate);
+
+  // Prefer actual day templates from block exercises over theoretical ones
+  const dayTemplates: DayTemplate[] = blockExercises && blockExercises.length > 0
+    ? [...new Set(blockExercises.map((be) => be.day_template))].sort()
+    : dayLayouts.map((d) => d.dayTemplate as DayTemplate);
 
   const tocEntries: Array<{ title: string; page: number }> = [];
   function tocMark(title: string) {
@@ -388,9 +392,14 @@ export function generatePlanPdf(
   doc.roundedRect(20, cy, w - 40, 72, 3, 3, 'F');
   cy += 10;
 
+  // Infer actual split label from block exercise day templates when available
+  const actualSplitLabel = blockExercises && blockExercises.length > 0
+    ? `${dayTemplates.length}-Day ${inferSplitName(dayTemplates)}`
+    : `${answers.trainingDaysPerWeek}-Day ${preview.splitType.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}`;
+
   const overviewItems = [
     ['Goal', formatGoal(answers.primaryGoal)],
-    ['Split', `${answers.trainingDaysPerWeek}-Day ${preview.splitType.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}`],
+    ['Split', actualSplitLabel],
     ['Experience', answers.experience.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())],
     ['Block Length', `${totalWeeks} weeks (${totalWeeks - 1} training + 1 deload)`],
     ['Session Length', `${answers.sessionDuration} min`],
@@ -1463,6 +1472,18 @@ function formatGoal(goal: string): string {
     general_fitness: 'General Fitness',
   };
   return map[goal] ?? goal.replace(/_/g, ' ');
+}
+
+/** Infer a human-readable split name from actual block day-template keys. */
+function inferSplitName(templates: DayTemplate[]): string {
+  const joined = templates.join(',').toLowerCase();
+  if (joined.includes('push') && joined.includes('pull') && joined.includes('legs'))
+    return 'Push Pull Legs';
+  if (joined.includes('upper') && joined.includes('lower'))
+    return 'Upper Lower';
+  if (joined.includes('full'))
+    return 'Full Body';
+  return 'Split';
 }
 
 // ─── Download Trigger ──────────────────────────────────────────────────────────

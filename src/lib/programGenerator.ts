@@ -164,9 +164,11 @@ export function calculateNutrition(
   // Target calories based on goal
   let calorieTarget: number;
   const goal = primaryGoal ?? 'build_muscle';
+  const minCalories = isFemale ? 1200 : 1500;
   switch (goal) {
     case 'lose_fat':
-      calorieTarget = Math.round(tdee * 0.80); // 20% deficit
+      // Cap deficit at 500 kcal; never go below safe minimum
+      calorieTarget = Math.max(tdee - 500, minCalories);
       break;
     case 'build_muscle':
       calorieTarget = Math.round(tdee * 1.10); // 10% surplus
@@ -182,8 +184,8 @@ export function calculateNutrition(
       calorieTarget = tdee;
       break;
   }
-  // Round to nearest 50
-  calorieTarget = Math.round(calorieTarget / 50) * 50;
+  // Round to nearest 50, but never below safe minimum
+  calorieTarget = Math.max(Math.round(calorieTarget / 50) * 50, minCalories);
 
   // Protein: 0.8–1.0 g/lb bodyweight (higher range for cuts)
   const proteinMultiplierLow = isFemale ? 0.75 : 0.82;

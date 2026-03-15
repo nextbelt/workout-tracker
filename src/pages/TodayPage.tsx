@@ -236,18 +236,10 @@ export default function TodayPage() {
   }, [startWorkout, selectedDay, weekNumber, moodEngine, blockExercises]);
 
   const handleStartWorkout = useCallback(async () => {
-    if (inlineMood) {
-      // Mood already selected inline — use default time from profile session duration
-      const defaultMinutes = profile?.session_duration
-        ? parseInt(profile.session_duration, 10) || 60
-        : 60;
-      const energyMap: Record<PreMood, number> = { energized: 5, normal: 3, low_energy: 1 };
-      await handleMoodSubmit(inlineMood, energyMap[inlineMood], defaultMinutes);
-    } else {
-      // No mood selected — show full mood check modal
-      setShowMoodCheck(true);
-    }
-  }, [inlineMood, profile?.session_duration, handleMoodSubmit]);
+    // Always show the MoodCheck modal — if a mood was pre-selected
+    // inline, it will jump straight to the time-selection step.
+    setShowMoodCheck(true);
+  }, []);
 
   const handleSkipMood = useCallback(async () => {
     setShowMoodCheck(false);
@@ -652,6 +644,7 @@ export default function TodayPage() {
         <MoodCheck
           onSubmit={handleMoodSubmit}
           onSkip={handleSkipMood}
+          initialMood={inlineMood}
         />
       )}
 

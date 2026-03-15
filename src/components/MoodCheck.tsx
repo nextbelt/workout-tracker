@@ -5,6 +5,7 @@ import type { PreMood } from '../types/database';
 interface MoodCheckProps {
   onSubmit: (mood: PreMood, energy: number, timeMinutes: number) => void;
   onSkip: () => void;
+  initialMood?: PreMood | null;
 }
 
 const MOOD_OPTIONS: Array<{
@@ -51,10 +52,10 @@ const MOOD_OPTIONS: Array<{
 
 const TIME_OPTIONS = [20, 30, 45, 60, 75, 90];
 
-export function MoodCheck({ onSubmit, onSkip }: MoodCheckProps) {
-  const [mood, setMood] = useState<PreMood | null>(null);
+export function MoodCheck({ onSubmit, onSkip, initialMood }: MoodCheckProps) {
+  const [mood, setMood] = useState<PreMood | null>(initialMood ?? null);
   const [timeMinutes, setTimeMinutes] = useState(60);
-  const [step, setStep] = useState<'mood' | 'time'>('mood');
+  const [step, setStep] = useState<'mood' | 'time'>(initialMood ? 'time' : 'mood');
 
   const handleNext = () => {
     if (step === 'mood' && mood) setStep('time');

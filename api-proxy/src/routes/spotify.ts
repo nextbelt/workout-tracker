@@ -61,8 +61,8 @@ interface NormalizedTrack {
 // Allowed redirect URIs — must match what's registered in the Spotify Dashboard
 const ALLOWED_REDIRECT_URIS = [
   process.env.SPOTIFY_REDIRECT_URI,
-  'http://localhost:7000/spotify/callback',
-  'http://localhost:5173/spotify/callback',
+  'http://127.0.0.1:7000/spotify/callback',
+  'http://127.0.0.1:5173/spotify/callback',
 ].filter(Boolean) as string[];
 
 function getCredentials(requestedRedirectUri?: string) {

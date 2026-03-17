@@ -4,6 +4,15 @@ import type { SpotifyTrack } from './useSpotify';
 const API_BASE = (import.meta.env.VITE_API_PROXY_URL as string) ?? 'http://localhost:3001';
 const SDK_URL = 'https://sdk.scdn.co/spotify-player.js';
 
+/** Retry delay between attempts (ms) */
+const RETRY_DELAY = 1500;
+/** Max retries for play on 404 */
+const MAX_PLAY_RETRIES = 3;
+/** Time after 'ready' before we consider the device stable */
+const DEVICE_SETTLE_MS = 1500;
+/** Auto-clear transient errors after this many ms */
+const ERROR_AUTO_CLEAR_MS = 6000;
+
 interface PlayerState {
   currentTrack: SpotifyTrack | null;
   isPlaying: boolean;
@@ -32,18 +41,38 @@ export function useSpotifyPlayer({ getToken, enabled }: UseSpotifyPlayerOptions)
   const playerRef = useRef<Spotify.Player | null>(null);
   const positionInterval = useRef<ReturnType<typeof setInterval> | null>(null);
   const trackMapRef = useRef<Map<string, SpotifyTrack>>(new Map());
+  const deviceReadyAt = useRef<number>(0);
+  const errorClearTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Keep deviceId in a ref too so the play closure always sees the latest value
+  const deviceIdRef = useRef<string | null>(null);
+
+  // --- helpers ---
+  const setTransientError = useCallback((msg: string) => {
+    setError(msg);
+    if (errorClearTimer.current) clearTimeout(errorClearTimer.current);
+    errorClearTimer.current = setTimeout(() => setError(null), ERROR_AUTO_CLEAR_MS);
+  }, []);
+
+  const clearError = useCallback(() => {
+    setError(null);
+    if (errorClearTimer.current) {
+      clearTimeout(errorClearTimer.current);
+      errorClearTimer.current = null;
+    }
+  }, []);
+
+  const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
   // Load SDK script once
   useEffect(() => {
     if (!enabled) return;
 
-    // Check if already loaded
     if (window.Spotify) {
       setSdkReady(true);
       return;
     }
 
-    // Check if script already exists
     if (document.querySelector(`script[src="${SDK_URL}"]`)) return;
 
     window.onSpotifyWebPlaybackSDKReady = () => {
@@ -72,13 +101,23 @@ export function useSpotifyPlayer({ getToken, enabled }: UseSpotifyPlayerOptions)
 
     player.addListener('ready', ({ device_id }: SpotifyDeviceReady) => {
       console.log('[SpotifyPlayer] Ready with device:', device_id);
+      deviceReadyAt.current = Date.now();
+      deviceIdRef.current = device_id;
       setPlayerState((prev) => ({ ...prev, deviceId: device_id }));
-      setError(null);
+      clearError();
     });
 
     player.addListener('not_ready', ({ device_id }: SpotifyDeviceReady) => {
       console.log('[SpotifyPlayer] Device not ready:', device_id);
+      deviceIdRef.current = null;
       setPlayerState((prev) => ({ ...prev, deviceId: null }));
+
+      // Auto-reconnect after a short delay
+      if (reconnectTimer.current) clearTimeout(reconnectTimer.current);
+      reconnectTimer.current = setTimeout(() => {
+        console.log('[SpotifyPlayer] Attempting reconnect…');
+        player.connect();
+      }, 2000);
     });
 
     player.addListener('player_state_changed', (state: SpotifyWebPlaybackState | null) => {
@@ -94,7 +133,6 @@ export function useSpotifyPlayer({ getToken, enabled }: UseSpotifyPlayerOptions)
       }
 
       const sdkTrack = state.track_window.current_track;
-      // Try to match against our track map for full metadata, fall back to SDK data
       const mapped = trackMapRef.current.get(sdkTrack.id);
       const currentTrack: SpotifyTrack = mapped ?? {
         id: sdkTrack.id,
@@ -119,12 +157,12 @@ export function useSpotifyPlayer({ getToken, enabled }: UseSpotifyPlayerOptions)
 
     player.addListener('initialization_error', ({ message }: { message: string }) => {
       console.error('[SpotifyPlayer] init error:', message);
-      setError('Failed to initialize player');
+      setTransientError('Failed to initialize player');
     });
 
     player.addListener('authentication_error', ({ message }: { message: string }) => {
       console.error('[SpotifyPlayer] auth error:', message);
-      setError('Spotify authentication failed — try reconnecting in Settings');
+      setTransientError('Spotify authentication failed — try reconnecting in Settings');
     });
 
     player.addListener('account_error', ({ message }: { message: string }) => {
@@ -135,7 +173,7 @@ export function useSpotifyPlayer({ getToken, enabled }: UseSpotifyPlayerOptions)
 
     player.addListener('playback_error', ({ message }: { message: string }) => {
       console.error('[SpotifyPlayer] playback error:', message);
-      setError('Playback error — try again');
+      setTransientError('Playback error — try again');
     });
 
     player.connect();
@@ -145,8 +183,10 @@ export function useSpotifyPlayer({ getToken, enabled }: UseSpotifyPlayerOptions)
       player.disconnect();
       playerRef.current = null;
       if (positionInterval.current) clearInterval(positionInterval.current);
+      if (reconnectTimer.current) clearTimeout(reconnectTimer.current);
+      if (errorClearTimer.current) clearTimeout(errorClearTimer.current);
     };
-  }, [sdkReady, enabled, getToken]);
+  }, [sdkReady, enabled, getToken, setTransientError, clearError]);
 
   // Position tracking when playing
   useEffect(() => {
@@ -169,11 +209,8 @@ export function useSpotifyPlayer({ getToken, enabled }: UseSpotifyPlayerOptions)
     };
   }, [playerState.isPlaying]);
 
-  // Play a list of tracks starting at a specific index
+  // Core play call with retry logic for 404 "Device not found"
   const play = useCallback(async (tracks: SpotifyTrack[], startIndex = 0) => {
-    const token = await getToken();
-    if (!token || !playerState.deviceId) return;
-
     // Cache tracks for metadata lookup
     const map = new Map<string, SpotifyTrack>();
     for (const t of tracks) map.set(t.id, t);
@@ -181,31 +218,88 @@ export function useSpotifyPlayer({ getToken, enabled }: UseSpotifyPlayerOptions)
 
     const uris = tracks.map((t) => t.uri);
 
-    try {
-      const res = await fetch(`${API_BASE}/api/spotify/play`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          access_token: token,
-          device_id: playerState.deviceId,
-          uris,
-          offset: { position: startIndex },
-        }),
-      });
+    for (let attempt = 0; attempt < MAX_PLAY_RETRIES; attempt++) {
+      const token = await getToken();
 
-      if (!res.ok) {
+      if (!token) {
+        setTransientError('No Spotify token — try reconnecting in Settings');
+        return;
+      }
+
+      // Read device ID from ref (always current)
+      let deviceId = deviceIdRef.current;
+
+      // If device isn't ready yet, wait a bit
+      if (!deviceId) {
+        if (attempt < MAX_PLAY_RETRIES - 1) {
+          console.log(`[SpotifyPlayer] No device yet, waiting… (attempt ${attempt + 1})`);
+          await sleep(RETRY_DELAY);
+          deviceId = deviceIdRef.current; // re-read after wait
+          if (!deviceId) continue;
+        } else {
+          setTransientError('Spotify player not ready — tap a track to try again');
+          return;
+        }
+      }
+
+      // If device just became ready, wait for Spotify backend to register it
+      const sinceReady = Date.now() - deviceReadyAt.current;
+      if (sinceReady < DEVICE_SETTLE_MS) {
+        await sleep(DEVICE_SETTLE_MS - sinceReady);
+      }
+
+      try {
+        const res = await fetch(`${API_BASE}/api/spotify/play`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            access_token: token,
+            device_id: deviceId,
+            uris,
+            offset: { position: startIndex },
+          }),
+        });
+
+        if (res.ok) {
+          clearError();
+          return; // success!
+        }
+
         const data = (await res.json()) as { error?: string; needsRefresh?: boolean };
+
         if (res.status === 403) {
           setPremiumRequired(true);
           setError('Spotify Premium is required for in-app playback');
-        } else {
-          setError(data.error ?? 'Failed to start playback');
+          return; // no point retrying
         }
+
+        if (res.status === 404 && attempt < MAX_PLAY_RETRIES - 1) {
+          // Device not found — Spotify backend may be slow to register
+          console.log(`[SpotifyPlayer] 404 Device not found, retrying in ${RETRY_DELAY}ms (attempt ${attempt + 1})`);
+
+          // Try to reconnect the player so a fresh device_id is generated
+          playerRef.current?.connect();
+          await sleep(RETRY_DELAY);
+          continue;
+        }
+
+        if (data.needsRefresh) {
+          setTransientError('Session expired — refreshing…');
+          return;
+        }
+
+        setTransientError(data.error ?? 'Failed to start playback');
+        return;
+      } catch {
+        if (attempt < MAX_PLAY_RETRIES - 1) {
+          await sleep(RETRY_DELAY);
+          continue;
+        }
+        setTransientError('Failed to start playback — check your connection');
+        return;
       }
-    } catch {
-      setError('Failed to start playback');
     }
-  }, [getToken, playerState.deviceId]);
+  }, [getToken, setTransientError, clearError]);
 
   const togglePlay = useCallback(async () => {
     if (!playerRef.current) return;
@@ -233,6 +327,13 @@ export function useSpotifyPlayer({ getToken, enabled }: UseSpotifyPlayerOptions)
     await playerRef.current.setVolume(volume);
   }, []);
 
+  // Manual reconnect for recovery
+  const reconnect = useCallback(() => {
+    if (!playerRef.current) return;
+    clearError();
+    playerRef.current.connect();
+  }, [clearError]);
+
   return {
     ...playerState,
     sdkReady,
@@ -244,5 +345,6 @@ export function useSpotifyPlayer({ getToken, enabled }: UseSpotifyPlayerOptions)
     previousTrack,
     seek,
     setVolume,
+    reconnect,
   };
 }

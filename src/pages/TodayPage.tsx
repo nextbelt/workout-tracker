@@ -420,6 +420,7 @@ export default function TodayPage() {
           onPrevious={spotifyPlayer.previousTrack}
           onSeek={spotifyPlayer.seek}
           onSetVolume={spotifyPlayer.setVolume}
+          onReconnect={spotifyPlayer.reconnect}
         />
       )}
 

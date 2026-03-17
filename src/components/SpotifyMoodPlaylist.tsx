@@ -24,6 +24,7 @@ interface SpotifyMoodPlaylistProps {
   onPrevious: () => void;
   onSeek: (positionMs: number) => void;
   onSetVolume: (volume: number) => void;
+  onReconnect?: () => void;
 }
 
 const MOOD_LABELS: Record<string, string> = {
@@ -76,6 +77,7 @@ export function SpotifyMoodPlaylist({
   onPrevious,
   onSeek,
   onSetVolume,
+  onReconnect,
 }: SpotifyMoodPlaylistProps) {
   const [expanded, setExpanded] = useState(true);
   const [visibleCount, setVisibleCount] = useState(5);
@@ -133,8 +135,27 @@ export function SpotifyMoodPlaylist({
   const displayError = error ?? playerError;
   if (displayError && tracks.length === 0) {
     return (
-      <div className="bg-surface-2 rounded-xl p-4">
-        <p className="text-red-400 text-sm">{displayError}</p>
+      <div className="bg-surface-2 rounded-xl p-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <AlertCircle size={16} className="text-red-400 shrink-0" />
+          <p className="text-red-400 text-sm">{displayError}</p>
+        </div>
+        <div className="flex gap-2">
+          {onReconnect && (
+            <button
+              onClick={onReconnect}
+              className="flex-1 text-xs py-2 min-h-11 bg-surface-3 hover:bg-surface-4 text-foreground rounded-lg transition-colors"
+            >
+              Reconnect Player
+            </button>
+          )}
+          <button
+            onClick={() => onRefresh(mood)}
+            className="flex-1 text-xs py-2 min-h-11 bg-[#1DB954]/15 hover:bg-[#1DB954]/25 text-[#1DB954] rounded-lg transition-colors"
+          >
+            Reload Tracks
+          </button>
+        </div>
       </div>
     );
   }

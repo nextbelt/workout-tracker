@@ -58,20 +58,33 @@ interface NormalizedTrack {
   durationMs: number;
 }
 
-function getCredentials() {
+// Allowed redirect URIs — must match what's registered in the Spotify Dashboard
+const ALLOWED_REDIRECT_URIS = [
+  process.env.SPOTIFY_REDIRECT_URI,
+  'http://localhost:7000/spotify/callback',
+  'http://localhost:5173/spotify/callback',
+].filter(Boolean) as string[];
+
+function getCredentials(requestedRedirectUri?: string) {
   const clientId = process.env.SPOTIFY_CLIENT_ID;
   const clientSecret = process.env.SPOTIFY_CLIENT_SECRET;
-  const redirectUri = process.env.SPOTIFY_REDIRECT_URI;
-  if (!clientId || !clientSecret || !redirectUri) {
+  if (!clientId || !clientSecret || ALLOWED_REDIRECT_URIS.length === 0) {
     throw new Error('Missing SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET, or SPOTIFY_REDIRECT_URI');
   }
+
+  // Use the requested redirect URI if it's in the allow-list, otherwise default
+  const redirectUri = (requestedRedirectUri && ALLOWED_REDIRECT_URIS.includes(requestedRedirectUri))
+    ? requestedRedirectUri
+    : ALLOWED_REDIRECT_URIS[0];
+
   return { clientId, clientSecret, redirectUri };
 }
 
 // GET /api/spotify/auth-url — returns the Spotify OAuth URL for the frontend to redirect to
-spotifyRouter.get('/auth-url', (_req: Request, res: Response) => {
+spotifyRouter.get('/auth-url', (req: Request, res: Response) => {
   try {
-    const { clientId, redirectUri } = getCredentials();
+    const requestedUri = req.query.redirect_uri as string | undefined;
+    const { clientId, redirectUri } = getCredentials(requestedUri);
     const params = new URLSearchParams({
       response_type: 'code',
       client_id: clientId,
@@ -88,14 +101,14 @@ spotifyRouter.get('/auth-url', (_req: Request, res: Response) => {
 
 // POST /api/spotify/callback — exchange auth code for tokens
 spotifyRouter.post('/callback', async (req: Request, res: Response) => {
-  const { code } = req.body as { code?: string };
+  const { code, redirect_uri: reqRedirectUri } = req.body as { code?: string; redirect_uri?: string };
   if (!code) {
     res.status(400).json({ error: 'Missing authorization code' });
     return;
   }
 
   try {
-    const { clientId, clientSecret, redirectUri } = getCredentials();
+    const { clientId, clientSecret, redirectUri } = getCredentials(reqRedirectUri);
 
     // Exchange code for tokens
     const tokenRes = await fetch(SPOTIFY_TOKEN_URL, {

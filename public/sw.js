@@ -11,7 +11,7 @@
  * asset URLs, so old un-hashed entries are pruned on activate.
  */
 
-const CACHE_NAME = 'workin-v5';
+const CACHE_NAME = 'workin-v6';
 
 // ── Install ────────────────────────────────────────────────────────
 self.addEventListener('install', () => {

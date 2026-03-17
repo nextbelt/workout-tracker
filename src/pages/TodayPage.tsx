@@ -556,14 +556,6 @@ export default function TodayPage() {
                       onStart={restTimer.start}
                     />
                   </div>
-                  {lastSet?.weight && (
-                    <div className="flex items-center gap-2 py-1.5 mb-1 border-b border-border">
-                      <span className="text-faint text-xs">Last session:</span>
-                      <span className="text-brand text-xs font-medium">
-                        {lastSet.weight} lbs × {lastSet.reps ?? '?'} reps
-                      </span>
-                    </div>
-                  )}
                   {Array.from({ length: totalSets }, (_, i) => {
                     const existingSet = sets.find((s) => s.set_number === i + 1);
                     return (

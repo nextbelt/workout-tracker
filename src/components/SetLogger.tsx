@@ -84,10 +84,13 @@ export function SetLogger({
   onLog,
   onComplete,
 }: SetLoggerProps) {
-  const [weight, setWeight] = useState<string>(previousWeight?.toString() ?? lastWeight?.toString() ?? '');
-  const [reps, setReps] = useState<string>(previousReps?.toString() ?? lastReps?.toString() ?? '');
-  const [rir, setRir] = useState<string>(previousRir?.toString() ?? rirTarget.toString());
-  const [saved, setSaved] = useState(previousWeight != null);
+  // If this set was already logged in the current session, pre-fill it.
+  // Otherwise start blank — the "Last session" hint shows prior values.
+  const alreadyLogged = previousWeight != null;
+  const [weight, setWeight] = useState<string>(alreadyLogged ? (previousWeight?.toString() ?? '') : '');
+  const [reps, setReps] = useState<string>(alreadyLogged ? (previousReps?.toString() ?? '') : '');
+  const [rir, setRir] = useState<string>(alreadyLogged ? (previousRir?.toString() ?? '') : '');
+  const [saved, setSaved] = useState(alreadyLogged);
 
   const handleSave = useCallback(async () => {
     await onLog(
@@ -117,6 +120,14 @@ export function SetLogger({
           ) : null}
           <span>{progressionHint.message}</span>
         </div>
+      )}
+      {/* Last session hint */}
+      {!alreadyLogged && (lastWeight != null || lastReps != null) && (
+        <p className="text-faint text-[11px] px-2">
+          Last session: {lastWeight != null ? `${lastWeight} lbs` : '—'}
+          {lastReps != null ? ` × ${lastReps} reps` : ''}
+          {rirTarget != null ? ` · RIR ${rirTarget}` : ''}
+        </p>
       )}
       <div className={`flex items-center gap-1.5 sm:gap-3 py-3 px-2 sm:px-3 rounded-xl transition-colors ${saved ? 'bg-brand/10 border border-brand/20' : 'bg-surface-3/50 border border-transparent'}`}>
         <span className="text-faint text-xs font-bold w-5 sm:w-6 shrink-0">S{setNumber}</span>

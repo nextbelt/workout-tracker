@@ -3,10 +3,11 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from './useAuth';
 import type { SpotifyMood } from '../components/SpotifyMoodPlaylist';
 
-const API_BASE = import.meta.env.VITE_API_URL as string ?? 'http://localhost:3001';
+const API_BASE = (import.meta.env.VITE_API_PROXY_URL as string) ?? 'http://localhost:3001';
 
 export interface SpotifyTrack {
   id: string;
+  uri: string;
   name: string;
   artist: string;
   album: string;
@@ -55,7 +56,8 @@ export function useSpotify() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API_BASE}/api/spotify/auth-url`);
+      const callbackUri = `${window.location.origin}/spotify/callback`;
+      const res = await fetch(`${API_BASE}/api/spotify/auth-url?redirect_uri=${encodeURIComponent(callbackUri)}`);
       const data = (await res.json()) as { url?: string; error?: string };
       if (data.url) {
         window.location.href = data.url;
@@ -76,10 +78,11 @@ export function useSpotify() {
     setError(null);
 
     try {
+      const callbackUri = `${window.location.origin}/spotify/callback`;
       const res = await fetch(`${API_BASE}/api/spotify/callback`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code }),
+        body: JSON.stringify({ code, redirect_uri: callbackUri }),
       });
 
       if (!res.ok) {
@@ -236,6 +239,14 @@ export function useSpotify() {
     }
   }, [connection, refreshToken]);
 
+  // Get a valid (non-expired) access token, refreshing if needed
+  const getValidToken = useCallback(async (): Promise<string | null> => {
+    if (!connection) return null;
+    const isExpired = new Date(connection.token_expires_at) <= new Date();
+    if (!isExpired) return connection.access_token;
+    return refreshToken();
+  }, [connection, refreshToken]);
+
   // Disconnect Spotify
   const disconnect = useCallback(async () => {
     if (!user) return;
@@ -250,12 +261,14 @@ export function useSpotify() {
   return {
     isConnected: !!connection,
     connection,
+    accessToken: connection?.access_token ?? null,
     tracks,
     loading,
     loadingTracks,
     error,
     connect,
     handleCallback,
+    getValidToken,
     fetchRecommendations,
     disconnect,
   };

@@ -10,6 +10,9 @@ const SCOPES = [
   'user-read-private',
   'user-read-email',
   'user-top-read',
+  'streaming',
+  'user-modify-playback-state',
+  'user-read-playback-state',
 ].join(' ');
 
 interface SpotifyTokenResponse {
@@ -45,6 +48,7 @@ interface RecommendationsResponse {
 
 interface NormalizedTrack {
   id: string;
+  uri: string;
   name: string;
   artist: string;
   album: string;
@@ -194,24 +198,39 @@ const MOOD_PARAMS: Record<string, {
 }> = {
   fired_up: {
     seed_genres: 'work-out,edm,hip-hop',
-    target_energy: 0.9,
-    target_valence: 0.8,
+    target_energy: 0.95,
+    target_valence: 0.85,
     min_tempo: 130,
     max_tempo: 180,
   },
+  elevate: {
+    seed_genres: 'work-out,pop,hip-hop',
+    target_energy: 0.85,
+    target_valence: 0.8,
+    min_tempo: 120,
+    max_tempo: 155,
+  },
+  boost: {
+    seed_genres: 'pop,dance,electronic',
+    target_energy: 0.8,
+    target_valence: 0.75,
+    min_tempo: 115,
+    max_tempo: 150,
+  },
+  // Legacy moods (backward compat)
   steady: {
-    seed_genres: 'rock,pop,electronic',
-    target_energy: 0.7,
-    target_valence: 0.6,
-    min_tempo: 110,
-    max_tempo: 145,
+    seed_genres: 'work-out,pop,hip-hop',
+    target_energy: 0.85,
+    target_valence: 0.8,
+    min_tempo: 120,
+    max_tempo: 155,
   },
   low: {
-    seed_genres: 'indie,chill,r-n-b',
-    target_energy: 0.5,
-    target_valence: 0.4,
-    min_tempo: 90,
-    max_tempo: 125,
+    seed_genres: 'pop,dance,electronic',
+    target_energy: 0.8,
+    target_valence: 0.75,
+    min_tempo: 115,
+    max_tempo: 150,
   },
   beat_up: {
     seed_genres: 'ambient,chill,acoustic',
@@ -263,6 +282,7 @@ spotifyRouter.get('/recommendations', async (req: Request, res: Response) => {
 
     const tracks: NormalizedTrack[] = data.tracks.map((t) => ({
       id: t.id,
+      uri: `spotify:track:${t.id}`,
       name: t.name,
       artist: t.artists.map((a) => a.name).join(', '),
       album: t.album.name,
@@ -276,5 +296,56 @@ spotifyRouter.get('/recommendations', async (req: Request, res: Response) => {
   } catch (err) {
     console.error('[spotify/recommendations]', err);
     res.status(500).json({ error: 'Failed to fetch recommendations' });
+  }
+});
+
+// PUT /api/spotify/play — start playback on a device
+spotifyRouter.put('/play', async (req: Request, res: Response) => {
+  const { access_token, device_id, uris, offset } = req.body as {
+    access_token?: string;
+    device_id?: string;
+    uris?: string[];
+    offset?: { position: number };
+  };
+
+  if (!access_token) {
+    res.status(401).json({ error: 'Missing access token' });
+    return;
+  }
+
+  try {
+    const params = device_id ? `?device_id=${encodeURIComponent(device_id)}` : '';
+    const body: Record<string, unknown> = {};
+    if (uris) body.uris = uris;
+    if (offset) body.offset = offset;
+
+    const playRes = await fetch(`${SPOTIFY_API_BASE}/me/player/play${params}`, {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${access_token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!playRes.ok) {
+      const errText = await playRes.text();
+      console.error('[spotify/play] error:', playRes.status, errText);
+      if (playRes.status === 401) {
+        res.status(401).json({ error: 'Token expired', needsRefresh: true });
+        return;
+      }
+      if (playRes.status === 403) {
+        res.status(403).json({ error: 'Spotify Premium required for playback' });
+        return;
+      }
+      res.status(playRes.status).json({ error: 'Playback failed' });
+      return;
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[spotify/play]', err);
+    res.status(500).json({ error: 'Failed to start playback' });
   }
 });

@@ -28,12 +28,22 @@
     <script type="module" src="/src/main.tsx"></script>
     <script>
       if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js').then((reg) => {
-            // Check for updates every 5 minutes (not aggressively)
-            setInterval(() => reg.update(), 5 * 60 * 1000);
+        // Only register SW in production — in dev mode it caches stale
+        // assets and breaks Vite HMR WebSocket connections.
+        const isDev = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+        if (isDev) {
+          // Unregister any existing SW from a previous session
+          navigator.serviceWorker.getRegistrations().then((regs) => {
+            for (const r of regs) r.unregister();
           });
-        });
+        } else {
+          window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/sw.js').then((reg) => {
+              // Check for updates every 5 minutes (not aggressively)
+              setInterval(() => reg.update(), 5 * 60 * 1000);
+            });
+          });
+        }
       }
     </script>
   </body>

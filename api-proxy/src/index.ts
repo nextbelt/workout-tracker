@@ -14,9 +14,7 @@ const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN ?? 'http://localhost:7000';
 const allowedOrigins = [
   FRONTEND_ORIGIN,
   'http://localhost:7000',
-  'https://localhost:7000',
   'http://localhost:5173',
-  'https://localhost:5173',
 ];
 
 app.use(express.json());

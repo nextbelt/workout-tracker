@@ -10,11 +10,25 @@ const app = express();
 const PORT = process.env.PORT ?? 3001;
 const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN ?? 'http://localhost:7000';
 
+// Allow both production and localhost origins for CORS
+const allowedOrigins = [
+  FRONTEND_ORIGIN,
+  'http://localhost:7000',
+  'http://localhost:5173',
+];
+
 app.use(express.json());
 
 app.use(cors({
-  origin: FRONTEND_ORIGIN,
-  methods: ['GET', 'POST'],
+  origin: (origin, callback) => {
+    // Allow requests with no origin (e.g. mobile apps, curl)
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error(`CORS blocked: ${origin}`));
+    }
+  },
+  methods: ['GET', 'POST', 'PUT'],
   credentials: false,
 }));
 

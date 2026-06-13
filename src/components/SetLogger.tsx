@@ -18,9 +18,28 @@ interface SetLoggerProps {
   previousRir?: number | null;
   lastWeight?: number | null;
   lastReps?: number | null;
+  lastRir?: number | null;
+  isBarbell?: boolean;
   progressionHint?: ProgressionHint | null;
   onLog: (weight: number | null, reps: number | null, rir: number | null) => Promise<void>;
   onComplete: () => void;
+}
+
+// Standard plates per side for a 45 lb Olympic bar.
+const PLATES = [45, 35, 25, 10, 5, 2.5];
+function platesPerSide(total: number, bar = 45): string | null {
+  if (total < bar) return null;
+  if (total === bar) return 'bar only';
+  let perSide = (total - bar) / 2;
+  if (perSide <= 0) return 'bar only';
+  const out: string[] = [];
+  for (const p of PLATES) {
+    let count = 0;
+    while (perSide >= p - 1e-9) { perSide = Math.round((perSide - p) * 100) / 100; count++; }
+    if (count) out.push(`${count}×${p}`);
+  }
+  if (perSide > 0.01) return null; // not cleanly loadable with standard plates
+  return out.length ? `${out.join(', ')} / side` : 'bar only';
 }
 
 function StepperInput({
@@ -80,6 +99,8 @@ export function SetLogger({
   previousRir,
   lastWeight,
   lastReps,
+  lastRir,
+  isBarbell,
   progressionHint,
   onLog,
   onComplete,
@@ -121,12 +142,12 @@ export function SetLogger({
           <span>{progressionHint.message}</span>
         </div>
       )}
-      {/* Last session hint */}
+      {/* Last session hint — shows what you actually did last time */}
       {!alreadyLogged && (lastWeight != null || lastReps != null) && (
         <p className="text-faint text-[11px] px-2">
           Last session: {lastWeight != null ? `${lastWeight} lbs` : '—'}
           {lastReps != null ? ` × ${lastReps} reps` : ''}
-          {rirTarget != null ? ` · RIR ${rirTarget}` : ''}
+          {lastRir != null ? ` · RIR ${lastRir}` : ` · target RIR ${rirTarget}`}
         </p>
       )}
       <div className={`flex items-center gap-1.5 sm:gap-3 py-3 px-2 sm:px-3 rounded-xl transition-colors ${saved ? 'bg-brand/10 border border-brand/20' : 'bg-surface-3/50 border border-transparent'}`}>
@@ -168,6 +189,10 @@ export function SetLogger({
           <Check size={20} />
         </button>
       </div>
+      {/* Barbell plate math */}
+      {isBarbell && Number(weight) >= 45 && platesPerSide(Number(weight)) && (
+        <p className="text-faint text-[11px] px-2">🏋️ {platesPerSide(Number(weight))}</p>
+      )}
     </div>
   );
 }

@@ -86,14 +86,7 @@ export function ExerciseDetail({ exercise, onClose }: ExerciseDetailProps) {
               />
             )}
 
-            {/* GIF display */}
-            {exerciseVideo.video.isGif && (
-              <img
-                src={exerciseVideo.video.videoUrl}
-                alt={`${exercise.name} demo`}
-                className="w-full rounded-xl bg-surface-3"
-              />
-            )}
+            {/* GIF is already shown full-width in the header above — no duplicate here */}
 
             {/* Static images (scrollable) */}
             {exerciseVideo.video.isImage && !exerciseVideo.video.isGif && exerciseVideo.video.imageUrls.length > 1 ? (
@@ -177,6 +170,19 @@ export function ExerciseDetail({ exercise, onClose }: ExerciseDetailProps) {
               <p className="text-faint text-xs text-center">
                 Video {exerciseVideo.currentResultIndex + 1} of {exerciseVideo.searchResultCount}
               </p>
+            )}
+
+            {/* On-demand: fetch a YouTube tutorial when only local media is showing */}
+            {(exerciseVideo.video.source === 'local_gif' ||
+              exerciseVideo.video.source === 'local_video' ||
+              exerciseVideo.video.source === 'local_image') && (
+              <button
+                onClick={exerciseVideo.findVideoTutorial}
+                className="flex items-center justify-center gap-2 w-full py-2.5 min-h-11 bg-brand/10 text-brand rounded-xl text-sm font-medium hover:bg-brand/20 transition-colors"
+              >
+                <Video size={14} />
+                Find a video tutorial
+              </button>
             )}
 
             {/* YouTube search fallback link */}

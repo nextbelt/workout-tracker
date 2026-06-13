@@ -45,7 +45,9 @@ function getSupabase() {
 
 // GET /api/youtube/search?q=barbell+bench+press&attempt=0
 youtubeRouter.get('/search', async (req: Request, res: Response) => {
-  const exerciseName = String(req.query['q'] ?? '').trim();
+  // Normalize (lowercase + collapse whitespace) so 'Bench Press' and 'bench  press'
+  // share one cache row and one quota hit. YouTube search is case-insensitive.
+  const exerciseName = String(req.query['q'] ?? '').toLowerCase().replace(/\s+/g, ' ').trim();
   const attempt = Number(req.query['attempt'] ?? 0);
   const sex = String(req.query['sex'] ?? '').trim();
 

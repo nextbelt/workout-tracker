@@ -19,7 +19,7 @@ const DEFAULT_CONFIG: NotificationConfig = {
 };
 
 export function useNotifications() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const permissionRef = useRef<NotificationPermission>('default');
 
   useEffect(() => {
@@ -61,6 +61,7 @@ export function useNotifications() {
 
   const checkPreWorkoutNudge = useCallback(async () => {
     if (!user) return;
+    if (profile && profile.notify_rest_day === false) return;
     const now = new Date();
     const today = now.toISOString().split('T')[0];
 
@@ -99,10 +100,11 @@ export function useNotifications() {
         'pre_workout'
       );
     }
-  }, [user, sendNotification]);
+  }, [user, profile, sendNotification]);
 
   const checkNutritionReminder = useCallback(async () => {
     if (!user) return;
+    if (profile && profile.notify_protein === false) return;
     const today = new Date().toISOString().split('T')[0];
 
     const { data } = await supabase
@@ -115,13 +117,13 @@ export function useNotifications() {
       .reduce((sum, e) => sum + e.protein, 0);
 
     // Get user's protein target
-    const { data: profile } = await supabase
+    const { data: profileRow } = await supabase
       .from('user_profiles')
       .select('protein_target_min')
       .eq('id', user.id)
       .maybeSingle();
 
-    const target = (profile as { protein_target_min: number } | null)?.protein_target_min ?? 170;
+    const target = (profileRow as { protein_target_min: number } | null)?.protein_target_min ?? 170;
 
     if (totalProtein < target * 0.5) {
       const remaining = Math.round(target - totalProtein);
@@ -131,10 +133,11 @@ export function useNotifications() {
         'nutrition'
       );
     }
-  }, [user, sendNotification]);
+  }, [user, profile, sendNotification]);
 
   const checkRecoveryPattern = useCallback(async () => {
     if (!user) return;
+    if (profile && profile.notify_recovery === false) return;
 
     const { data } = await supabase
       .from('workout_sessions')
@@ -156,7 +159,7 @@ export function useNotifications() {
         'recovery'
       );
     }
-  }, [user, sendNotification]);
+  }, [user, profile, sendNotification]);
 
   // Run checks on mount and periodically
   useEffect(() => {

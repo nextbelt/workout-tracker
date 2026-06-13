@@ -40,13 +40,13 @@ const MOOD_OPTIONS: Array<{
   },
   {
     value: 'low_energy',
-    label: 'Low Energy',
+    label: 'Drained',
     icon: BatteryLow,
     color: 'text-yellow-400',
     bg: 'bg-yellow-500/15',
     border: 'border-yellow-500/40 ring-yellow-500/30',
-    desc: 'Minimum effective dose',
-    detail: 'Easier exercises, less volume, longer rest. Still productive.',
+    desc: 'Running on empty',
+    detail: 'Easier exercises, less volume, longer rest. Music will lift you up.',
   },
 ];
 

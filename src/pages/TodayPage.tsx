@@ -19,6 +19,8 @@ import { CardioLogger } from '../components/CardioLogger';
 import { SpotifyMoodPlaylist, type SpotifyMood } from '../components/SpotifyMoodPlaylist';
 import { useSpotify } from '../hooks/useSpotify';
 import { useSpotifyPlayer } from '../hooks/useSpotifyPlayer';
+import { useNotifications } from '../hooks/useNotifications';
+import { getBlockWeek } from '../lib/blockWeek';
 import { supabase } from '../lib/supabase';
 import type { RecoveryRating, DayTemplate, PreMood, BlockExercise, SplitType } from '../types/database';
 
@@ -67,8 +69,11 @@ export default function TodayPage() {
   const spotify = useSpotify();
   const spotifyPlayer = useSpotifyPlayer({
     getToken: spotify.getValidToken,
-    enabled: spotify.isConnected && !!todaySession,
+    // Connect as soon as Spotify is linked (not only once a session starts) so the
+    // device registers with Spotify's backend well before the first track tap.
+    enabled: spotify.isConnected,
   });
+  const notifications = useNotifications();
   const lastSpotifyRequestKey = useRef<string | null>(null);
 
   // Dynamic day order from profile split type
@@ -159,7 +164,10 @@ export default function TodayPage() {
     }
 
     return exercises;
-  }, [blockExercises, selectedDay, weekNumber, microVar, moodEngine.adjustments, moodEngine.moodInput, moodEngine.decision, swappedExerciseDetails]);
+    // Depend on the stable applyVariation fn, NOT the microVar object (which is a
+    // fresh literal every render and would recompute this whole pipeline 2x/sec
+    // during playback position ticks).
+  }, [blockExercises, selectedDay, weekNumber, microVar.applyVariation, moodEngine.adjustments, moodEngine.moodInput, moodEngine.decision, swappedExerciseDetails]);
 
   // Estimated workout time
   const estimatedTime = useMemo(() => {
@@ -173,6 +181,18 @@ export default function TodayPage() {
       .sort((a, b) => a.slot_order - b.slot_order);
     return estimateWorkoutMinutes(original as unknown as BlockExercise[]);
   }, [blockExercises, selectedDay]);
+
+  // Resume the active session's day/week; otherwise default the week from the
+  // block's start date so periodized RIR/volume is correct without manual tapping
+  // (and stays consistent with HomePage).
+  useEffect(() => {
+    if (todaySession) {
+      setSelectedDay(todaySession.day_template as DayTemplate);
+      setWeekNumber(todaySession.week_number);
+    } else if (activeBlock) {
+      setWeekNumber(getBlockWeek(activeBlock.start_date, activeBlock.total_weeks));
+    }
+  }, [todaySession, activeBlock]);
 
   // Persist UI state to sessionStorage so tab restore doesn't lose context
   useEffect(() => {
@@ -261,7 +281,9 @@ export default function TodayPage() {
     if (!todaySession) return;
     await completeWorkout(todaySession.id, rating, notes);
     setShowRecovery(false);
-  }, [todaySession, completeWorkout]);
+    // Nudge if recovery has been trending poor (gated by the user's pref inside the check).
+    notifications.checkRecoveryPattern();
+  }, [todaySession, completeWorkout, notifications]);
 
   const handleCreateBlock = useCallback(async () => {
     setCreatingBlock(true);
@@ -606,6 +628,8 @@ export default function TodayPage() {
                         previousRir={existingSet?.rir ?? null}
                         lastWeight={lastSet?.weight}
                         lastReps={lastSet?.reps}
+                        lastRir={lastSet?.rir ?? null}
+                        isBarbell={be.exercise.equipment_tags?.includes('barbell') ?? false}
                         progressionHint={progressionHints.get(be.exercise_id) ?? null}
                         onLog={async (weight, reps, rir) => {
                           await logSet(todaySession.id, be.exercise_id, i + 1, weight, reps, rir);

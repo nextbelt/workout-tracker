@@ -54,11 +54,11 @@ const DIFFICULTY_RANK: Record<string, number> = {
   expert: 3,
 };
 
-// Spotify deep link URIs by mood
+// Spotify mood genre hints by pre-mood (for internal recommendation mapping)
 const SPOTIFY_CONFIG: Record<PreMood, { genre: string; searchQuery: string }> = {
   energized: { genre: 'workout', searchQuery: 'intense gym workout heavy bass' },
-  normal: { genre: 'workout', searchQuery: 'workout motivation hip hop' },
-  low_energy: { genre: 'chill', searchQuery: 'chill workout lofi beats focus' },
+  normal: { genre: 'workout', searchQuery: 'high energy gym motivation pump up' },
+  low_energy: { genre: 'workout', searchQuery: 'uplifting workout energy boost hype' },
 };
 
 // ─── Time Estimation ────────────────────────────────────────────────────────────
@@ -122,7 +122,7 @@ function computeAdjustments(input: MoodInput): MoodAdjustments {
       rirAdjustment = 2;       // +2 RIR, well away from failure
       setsMultiplier = 0.7;    // ~30% volume reduction
       restMultiplier = 1.3;    // Longer rest between sets
-      message = 'Low energy — reduced volume, higher RIR, easier exercises.';
+      message = 'Drained — reduced volume, higher RIR, easier exercises.';
       break;
   }
 
@@ -348,7 +348,7 @@ export function useMoodAdjustment() {
         reasoning.push('✊ Normal day — reducing intensity slightly. RIR +1, ~15% less volume.');
         break;
       case 'low_energy':
-        reasoning.push('🔋 Low energy — minimum effective dose. RIR +2, ~30% less volume.');
+        reasoning.push('🔋 Drained — minimum effective dose. RIR +2, ~30% less volume.');
         if (exercises && exercises.length > 0) {
           const ids = exercises.map((e) => e.exercise_id);
           swaps = await findEasierAlternatives(exercises, ids);
@@ -394,7 +394,7 @@ export function useMoodAdjustment() {
 
   const saveMoodToSession = useCallback(async (sessionId: string) => {
     if (!user || !moodInput) return;
-    await supabase
+    const { error } = await supabase
       .from('workout_sessions')
       .update({
         pre_mood: moodInput.preMood,
@@ -403,6 +403,7 @@ export function useMoodAdjustment() {
         mood_adjusted: adjustments !== null,
       })
       .eq('id', sessionId);
+    if (error) console.error('[saveMoodToSession] failed to persist mood:', error);
   }, [user, moodInput, adjustments]);
 
   const resetMood = useCallback(() => {

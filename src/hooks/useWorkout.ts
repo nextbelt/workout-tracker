@@ -16,7 +16,7 @@ export function useWorkout() {
   const [sessionSets, setSessionSets] = useState<SetLog[]>([]);
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [loading, setLoading] = useState(true);
-  const [lastSets, setLastSets] = useState<Map<string, { weight: number | null; reps: number | null }>>(new Map());
+  const [lastSets, setLastSets] = useState<Map<string, { weight: number | null; reps: number | null; rir: number | null }>>(new Map());
 
   const fetchExercises = useCallback(async () => {
     const { data } = await supabase.from('exercises').select('*').order('name');
@@ -89,15 +89,15 @@ export function useWorkout() {
     const sessionIds = (sessData as Array<{ id: string }>).map((s) => s.id);
     const { data } = await supabase
       .from('set_logs')
-      .select('exercise_id, weight, reps, created_at')
+      .select('exercise_id, weight, reps, rir, created_at')
       .eq('user_id', user.id)
       .in('session_id', sessionIds)
       .order('created_at', { ascending: false });
     if (!data) return;
-    const map = new Map<string, { weight: number | null; reps: number | null }>();
-    for (const row of data as Array<{ exercise_id: string; weight: number | null; reps: number | null }>) {
+    const map = new Map<string, { weight: number | null; reps: number | null; rir: number | null }>();
+    for (const row of data as Array<{ exercise_id: string; weight: number | null; reps: number | null; rir: number | null }>) {
       if (!map.has(row.exercise_id)) {
-        map.set(row.exercise_id, { weight: row.weight, reps: row.reps });
+        map.set(row.exercise_id, { weight: row.weight, reps: row.reps, rir: row.rir });
       }
     }
     setLastSets(map);
@@ -140,7 +140,8 @@ export function useWorkout() {
       day_template: dayTemplate,
       week_number: weekNumber,
       scheduled_date: today,
-      is_deload: weekNumber >= 7,
+      // Deload is the block's final week, which varies by block length — not a fixed 7.
+      is_deload: weekNumber >= (activeBlock.total_weeks ?? 7),
     };
     const { data, error } = await supabase
       .from('workout_sessions')
@@ -348,11 +349,15 @@ export function useWorkout() {
   useEffect(() => {
     const load = async () => {
       setLoading(true);
-      await fetchExercises();
-      const block = await fetchActiveBlock();
+      // Run the independent fetches in parallel; only block-exercises depends on
+      // the active block id, so it waits for that one result.
+      const [block] = await Promise.all([
+        fetchActiveBlock(),
+        fetchExercises(),
+        fetchTodaySession(),
+        fetchLastSets(),
+      ]);
       if (block) await fetchBlockExercises(block.id);
-      await fetchTodaySession();
-      await fetchLastSets();
       setLoading(false);
     };
     if (user) load();

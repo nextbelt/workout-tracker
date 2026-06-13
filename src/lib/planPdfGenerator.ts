@@ -9,7 +9,7 @@ import {
   type OnboardingAnswers,
 } from './programGenerator';
 import { getWeekPeriodization, getWeekRir, getWeekSets } from './periodization';
-import type { DayTemplate } from '../types/database';
+import type { DayTemplate, MealsPerDay, EatingApproach } from '../types/database';
 
 // ─── Brand Colors ──────────────────────────────────────────────────────────────
 
@@ -290,37 +290,70 @@ interface MealTemplate {
   approxProtein: number;
 }
 
-function generateMealPlan(calorieTarget: number, proteinTarget: number): MealTemplate[] {
-  const mealsPerDay = 4;
-  const proteinPerMeal = Math.round(proteinTarget / mealsPerDay);
-  const calsPerMeal = Math.round(calorieTarget / mealsPerDay);
+function mealCountFor(mealsPerDay: MealsPerDay): number {
+  if (mealsPerDay === '6+') return 6;
+  const n = Number(mealsPerDay);
+  return Number.isFinite(n) && n >= 2 ? n : 4;
+}
 
-  return [
-    {
-      meal: 'Breakfast',
-      foods: '4 eggs scrambled, 2 slices whole wheat toast, 1 cup mixed berries',
-      approxCals: calsPerMeal,
-      approxProtein: proteinPerMeal,
-    },
-    {
-      meal: 'Lunch',
-      foods: '8oz grilled chicken breast, 1 cup rice, mixed vegetables, olive oil drizzle',
-      approxCals: calsPerMeal,
-      approxProtein: proteinPerMeal,
-    },
-    {
-      meal: 'Post-Workout',
-      foods: 'Whey protein shake (2 scoops), 1 banana, 2 tbsp peanut butter',
-      approxCals: calsPerMeal,
-      approxProtein: proteinPerMeal,
-    },
-    {
-      meal: 'Dinner',
-      foods: '8oz salmon or lean beef, sweet potato, side salad with dressing',
-      approxCals: calsPerMeal,
-      approxProtein: proteinPerMeal,
-    },
+function generateMealPlan(
+  calorieTarget: number,
+  proteinTarget: number,
+  mealsPerDay: MealsPerDay,
+  eatingApproach: EatingApproach,
+): MealTemplate[] {
+  const n = mealCountFor(mealsPerDay);
+  const proteinPerMeal = Math.round(proteinTarget / n);
+  const calsPerMeal = Math.round(calorieTarget / n);
+
+  // Food templates branch by eating approach so the examples match the macro split.
+  const keto = [
+    '4 eggs, 2 oz cheese, 1/2 avocado',
+    '8oz grilled chicken thigh, leafy greens, olive oil',
+    'Whey isolate shake, 2 tbsp almond butter',
+    '8oz salmon or ribeye, asparagus, butter',
+    'Full-fat Greek yogurt, walnuts',
+    'Tuna salad with mayo, cucumber slices',
   ];
+  const highCarb = [
+    '4 eggs, 2 slices whole wheat toast, 1 cup berries, oatmeal',
+    '8oz grilled chicken breast, 1.5 cups rice, vegetables',
+    'Whey shake, 1 banana, 2 tbsp peanut butter, granola',
+    '8oz lean beef, large sweet potato, side salad',
+    'Greek yogurt, honey, fruit, granola',
+    'Turkey sandwich, fruit, pretzels',
+  ];
+  const balanced = [
+    '4 eggs scrambled, 2 slices whole wheat toast, 1 cup mixed berries',
+    '8oz grilled chicken breast, 1 cup rice, mixed vegetables, olive oil drizzle',
+    'Whey protein shake (2 scoops), 1 banana, 2 tbsp peanut butter',
+    '8oz salmon or lean beef, sweet potato, side salad with dressing',
+    'Greek yogurt, mixed nuts, fruit',
+    'Cottage cheese, whole-grain crackers, veggies',
+  ];
+  const foods = eatingApproach === 'keto' ? keto
+    : eatingApproach === 'high_carb' ? highCarb
+    : balanced;
+  const labels = ['Breakfast', 'Lunch', 'Post-Workout', 'Dinner', 'Snack', 'Late Snack'];
+
+  return Array.from({ length: n }, (_, i) => ({
+    meal: labels[i] ?? `Meal ${i + 1}`,
+    foods: foods[i] ?? foods[foods.length - 1],
+    approxCals: calsPerMeal,
+    approxProtein: proteinPerMeal,
+  }));
+}
+
+function formatEatingApproach(approach: EatingApproach): string {
+  const map: Record<string, string> = {
+    no_preference: 'balanced',
+    clean_eating: 'clean-eating',
+    flexible_dieting: 'flexible (IIFYM)',
+    keto: 'keto / low-carb',
+    high_carb: 'high-carb',
+    intermittent_fasting: 'intermittent fasting',
+  };
+  return map[approach] ?? 'balanced';
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -593,9 +626,11 @@ export function generatePlanPdf(
   y += 2;
   y = checkPageBreak(doc, y, 55, pageNum);
   y = sectionTitle(doc, y, 'Sample Meal Plan');
+  y = bodyText(doc, y,
+    `Based on your survey: ${mealCountFor(answers.mealsPerDay)} meals/day, ${formatEatingApproach(answers.eatingApproach)} approach.`);
 
   const avgProtein = Math.round((params.proteinTargetMin + params.proteinTargetMax) / 2);
-  const meals = generateMealPlan(params.calorieTarget, avgProtein);
+  const meals = generateMealPlan(params.calorieTarget, avgProtein, answers.mealsPerDay, answers.eatingApproach);
 
   doc.setFillColor(BRAND.r, BRAND.g, BRAND.b);
   doc.rect(20, y - 4, w - 40, 8, 'F');
@@ -657,7 +692,7 @@ export function generatePlanPdf(
   y = labelValue(doc, y, 'Training Days', `${answers.trainingDaysPerWeek}/week`);
   y = labelValue(doc, y, 'Session Duration', `${answers.sessionDuration} min`);
   y = labelValue(doc, y, 'Starting RIR', `${params.startingRir}`);
-  y = labelValue(doc, y, 'Sets/Muscle/Week', `${params.setsPerMusclePerWeek}`);
+  y = labelValue(doc, y, 'Sets/Muscle/Week (target)', `~${params.setsPerMusclePerWeek}`);
   y = labelValue(doc, y, 'Deload Frequency', `Every ${params.weeksBetweenDeloads} weeks`);
   y = labelValue(doc, y, 'Cardio', `${params.cardioSessionsPerWeek} sessions/week`);
 
@@ -815,8 +850,8 @@ export function generatePlanPdf(
   tocMark('Volume Distribution');
   y = sectionTitle(doc, y, 'Weekly Volume Distribution');
   y = bodyText(doc, y,
-    'Sets per movement pool per week based on your current block. ' +
-    'This accounts for primary muscle involvement.');
+    'Total working sets per movement pool per week in your current block ' +
+    '(direct sets only; secondary muscle involvement not counted).');
 
   y += 3;
 
@@ -1383,7 +1418,7 @@ export function generatePlanPdf(
   const notes = [
     'Progressive Overload: Aim to add weight, reps, or sets each week within your target ranges.',
     `RIR (Reps in Reserve): Start each block at RIR ${params.startingRir}. Push closer to failure as the block progresses.`,
-    `Deloads: Take a deload week every ${params.weeksBetweenDeloads} weeks — reduce volume by 40-50%, keep intensity.`,
+    `Deloads: Take a deload week every ${params.weeksBetweenDeloads} weeks — reduce volume by 40%, keep intensity.`,
     'Exercise Swaps: You can swap exercises within the same movement pool. This keeps training fresh.',
     `Protein Priority: Hit ${params.proteinTargetMin}-${params.proteinTargetMax}g protein daily. This is your most important macro.`,
     'Recovery: Sleep 7-9 hours. If recovery is poor, reduce volume by 1-2 sets per muscle group.',

@@ -24,7 +24,7 @@ const MEAL_ICONS: Record<MealType, string> = {
 
 export default function NutritionPage() {
   const { profile, user } = useAuth();
-  const { entries, totals, loading, addEntry, deleteEntry, updateEntry } = useNutrition();
+  const { entries, totals, recentFoods, loading, addEntry, deleteEntry, updateEntry } = useNutrition();
   const [expandedMeal, setExpandedMeal] = useState<MealType | null>('breakfast');
   const [searchMeal, setSearchMeal] = useState<MealType | null>(null);
   const [manualMeal, setManualMeal] = useState<MealType | null>(null);
@@ -79,6 +79,21 @@ export default function NutritionPage() {
     }
     return map;
   }, [entriesByMeal]);
+
+  // Map recent log entries (which store per-entry totals) into the per-100g
+  // FoodResult shape FoodSearch expects. serving_grams:100 makes the multiplier 1.
+  const recentFoodResults = useMemo(() => recentFoods.map((e) => ({
+    name: e.food_name,
+    brand: null,
+    calories_per_100g: Number(e.calories),
+    protein_per_100g: Number(e.protein),
+    carbs_per_100g: Number(e.carbs),
+    fat_per_100g: Number(e.fat),
+    serving_description: e.serving_size,
+    serving_grams: 100,
+    source: e.source ?? 'manual',
+    source_id: e.food_cache_id ?? e.id,
+  })), [recentFoods]);
 
   const handleFoodSearchAdd = useCallback(async (food: {
     name: string;
@@ -312,6 +327,7 @@ export default function NutritionPage() {
           mealType={searchMeal}
           onAdd={handleFoodSearchAdd}
           searchFood={proxySearch}
+          recentFoods={recentFoodResults}
           onClose={() => setSearchMeal(null)}
         />
       )}

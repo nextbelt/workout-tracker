@@ -482,7 +482,7 @@ export default function AnalyticsPage() {
 
   return (
     <div className="p-4 pb-24 space-y-4">
-      <h1 className="text-2xl font-bold text-foreground">Analytics</h1>
+      <h1 className="text-3xl font-serif font-light text-foreground">Analytics</h1>
 
       {/* Tab bar */}
       <div className="flex gap-1 bg-surface rounded-xl p-1 overflow-x-auto">

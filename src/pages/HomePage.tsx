@@ -6,6 +6,7 @@ import { useWorkout } from '../hooks/useWorkout';
 import { useNutrition } from '../hooks/useNutrition';
 import { useBodyweight } from '../hooks/useBodyweight';
 import { getBlockWeek } from '../lib/blockWeek';
+import { SkyHero, skyForHour } from '../components/SkyHero';
 import { supabase } from '../lib/supabase';
 import type { WorkoutSession } from '../types/database';
 
@@ -81,6 +82,7 @@ export default function HomePage() {
   }, []);
 
   const firstName = profile?.display_name?.split(' ')[0] ?? '';
+  const sky = skyForHour(new Date().getHours());
 
   const proteinTarget = profile?.protein_target_min ?? 170;
   const calorieTarget = profile?.calorie_target ?? 2500;
@@ -113,45 +115,48 @@ export default function HomePage() {
   }
 
   return (
-    <div className="p-4 space-y-5 pb-6">
-      {/* Greeting */}
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">
-          {greeting}{firstName ? `, ${firstName}` : ''}
-        </h1>
-        <p className="text-sm text-muted mt-0.5">
-          {activeBlock
-            ? `Block ${activeBlock.block_number} · Week ${blockWeek} of ${activeBlock.total_weeks}`
-            : 'No active block — start one from the Program tab'}
-        </p>
-      </div>
+    <div className="bg-bg min-h-full pb-6">
+      {/* Sky greeting band */}
+      <SkyHero grad={sky.grad} height={188}>
+        <div className="absolute inset-0 px-5 pt-12 flex flex-col">
+          <div className="text-[11px] font-bold uppercase tracking-[0.24em] text-white/90">
+            {sky.label}
+            {activeBlock ? ` · Block ${activeBlock.block_number} · Week ${blockWeek} of ${activeBlock.total_weeks}` : ''}
+          </div>
+          <h1 className="font-serif font-light text-[34px] leading-[1.05] text-white mt-2" style={{ textShadow: '0 2px 16px rgba(0,0,0,0.16)' }}>
+            {greeting},<br /><span className="italic">{firstName || 'there'}</span>
+          </h1>
+        </div>
+      </SkyHero>
 
-      {/* Quick Action — Go to Today's Workout */}
-      <button
-        onClick={() => navigate('/today')}
-        className="w-full bg-brand text-white rounded-2xl p-4 flex items-center gap-4 min-h-[68px] active:scale-[0.98] transition-transform"
-      >
-        <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
-          <Dumbbell size={24} />
-        </div>
-        <div className="flex-1 text-left">
-          <p className="font-semibold text-base">
-            {todaySession && !todaySession.completed_at
-              ? 'Continue Workout'
-              : todaySession?.completed_at
-                ? 'Workout Complete ✓'
-                : 'Start Today\'s Workout'}
-          </p>
-          <p className="text-sm text-white/70">
-            {todaySession && !todaySession.completed_at
-              ? `${todaySession.day_template?.replace('_', ' ').toUpperCase()} in progress`
-              : todaySession?.completed_at
-                ? `${todaySession.day_template?.replace('_', ' ').toUpperCase()} done`
-                : 'Tap to pick your day and begin'}
-          </p>
-        </div>
-        <ChevronRight size={20} className="text-white/50 shrink-0" />
-      </button>
+      <div className="px-4 -mt-6 relative space-y-4">
+        {/* Quick Action — Go to Today's Workout */}
+        <button
+          onClick={() => navigate('/today')}
+          className="w-full bg-surface rounded-2xl p-4 flex items-center gap-4 min-h-[68px] active:scale-[0.98] transition-transform"
+          style={{ boxShadow: 'var(--shadow-float)' }}
+        >
+          <div className="w-12 h-12 rounded-xl text-white flex items-center justify-center shrink-0" style={{ background: 'var(--gradient-sunrise)' }}>
+            <Dumbbell size={24} />
+          </div>
+          <div className="flex-1 text-left">
+            <p className="font-semibold text-base text-foreground">
+              {todaySession && !todaySession.completed_at
+                ? 'Continue Workout'
+                : todaySession?.completed_at
+                  ? 'Workout Complete ✓'
+                  : 'Start Today\'s Workout'}
+            </p>
+            <p className="text-sm text-muted">
+              {todaySession && !todaySession.completed_at
+                ? `${todaySession.day_template?.replace('_', ' ').toUpperCase()} in progress`
+                : todaySession?.completed_at
+                  ? `${todaySession.day_template?.replace('_', ' ').toUpperCase()} done`
+                  : 'Tap to pick your day and begin'}
+            </p>
+          </div>
+          <ChevronRight size={20} className="text-brand-dark shrink-0" />
+        </button>
 
       {/* Stats Row */}
       <div className="grid grid-cols-3 gap-3">
@@ -302,6 +307,7 @@ export default function HomePage() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

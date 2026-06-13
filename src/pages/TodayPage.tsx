@@ -332,7 +332,7 @@ export default function TodayPage() {
     return (
       <div className="p-4 flex flex-col items-center justify-center h-full gap-4">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-foreground mb-2">Ready to Train</h1>
+          <h1 className="text-3xl font-serif font-light text-foreground mb-2">Ready to Train</h1>
           <p className="text-muted">No active training block. Create Block 1 to get started.</p>
         </div>
         <button
@@ -355,7 +355,7 @@ export default function TodayPage() {
       <div>
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">
+            <h1 className="text-3xl font-serif font-light text-foreground">
               {todaySession ? (ALL_DAY_LABELS[selectedDay] ?? selectedDay) : 'Today'}
             </h1>
             <p className="text-muted text-sm">
@@ -530,7 +530,7 @@ export default function TodayPage() {
           <button
             onClick={handleStartWorkout}
             disabled={startingWorkout || dayExercises.length === 0}
-            className="w-full bg-brand hover:bg-brand-dark text-white font-semibold rounded-xl py-4 min-h-11 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 text-lg"
+            className="w-full [background:var(--gradient-brand)] text-white font-semibold rounded-xl py-4 min-h-11 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 text-lg"
           >
             {startingWorkout ? <Loader2 size={20} className="animate-spin" /> : <Play size={20} />}
             Start {ALL_DAY_LABELS[selectedDay] ?? selectedDay}
@@ -700,7 +700,7 @@ export default function TodayPage() {
           )}
           <button
             onClick={() => setShowRecovery(true)}
-            className="w-full bg-brand hover:bg-brand-dark text-white font-semibold rounded-xl py-4 min-h-11 transition-colors flex items-center justify-center gap-2 text-lg"
+            className="w-full [background:var(--gradient-brand)] text-white font-semibold rounded-xl py-4 min-h-11 transition-colors flex items-center justify-center gap-2 text-lg"
           >
             <CheckCircle size={20} />
             Complete Workout

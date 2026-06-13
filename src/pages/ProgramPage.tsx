@@ -142,7 +142,7 @@ export default function ProgramPage() {
     return (
       <div className="p-4 flex flex-col items-center justify-center h-full gap-4">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-foreground mb-2">No Active Program</h1>
+          <h1 className="text-3xl font-serif font-light text-foreground mb-2">No Active Program</h1>
           <p className="text-muted">Create your first training block to see the program overview.</p>
         </div>
         <button
@@ -162,7 +162,7 @@ export default function ProgramPage() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Program</h1>
+          <h1 className="text-3xl font-serif font-light text-foreground">Program</h1>
           <p className="text-muted text-sm">Block {activeBlock.block_number} · {blockExercises.length} exercises</p>
         </div>
         <button

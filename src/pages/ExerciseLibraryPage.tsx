@@ -241,7 +241,7 @@ export default function ExerciseLibraryPage({ swapMode }: ExerciseLibraryPagePro
           </div>
         </div>
       ) : (
-        <h1 className="text-2xl font-bold text-foreground mb-4">Exercise Library</h1>
+        <h1 className="text-3xl font-serif font-light text-foreground mb-4">Exercise Library</h1>
       )}
 
       {/* Search bar */}

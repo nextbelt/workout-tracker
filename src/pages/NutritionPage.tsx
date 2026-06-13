@@ -5,6 +5,7 @@ import { useNutrition } from '../hooks/useNutrition';
 import { ProteinBar, MacroCard } from '../components/MacroDashboard';
 import { FoodSearch, ManualFoodEntry } from '../components/FoodSearch';
 import { BarcodeScanner } from '../components/BarcodeScanner';
+import { AdaptiveTargetCard } from '../components/AdaptiveTargetCard';
 import { supabase } from '../lib/supabase';
 import type { MealType, NutritionEntry } from '../types/database';
 
@@ -226,6 +227,9 @@ export default function NutritionPage() {
           )}
         </div>
       )}
+
+      {/* Adaptive (data-driven) calorie target */}
+      <AdaptiveTargetCard />
 
       {/* Search error banner */}
       {searchError && (

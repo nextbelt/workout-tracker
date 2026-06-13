@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { Mail, Lock, Loader2 } from 'lucide-react';
-import { WorkInLogo } from '../components/WorkInLogo';
+import { SkyHero } from '../components/SkyHero';
 
 export default function LoginPage() {
   const { signIn, signUp, signInWithMagicLink } = useAuth();
@@ -32,12 +32,21 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-dvh bg-bg px-6">
-      <div className="w-full max-w-sm">
-        <div className="flex justify-center mb-8">
-          <WorkInLogo size="lg" />
+    <div className="flex flex-col min-h-dvh bg-bg">
+      {/* Dusk sky welcome band */}
+      <SkyHero grad="var(--gradient-dusk)" height={196}>
+        <div className="absolute inset-0 flex items-end px-7 pb-6">
+          <div>
+            <span className="inline-flex items-baseline font-black tracking-tight text-3xl text-white">
+              Work<span className="text-white/85">IN</span>
+              <span className="w-2 h-2 bg-white rounded-full ml-0.5 mb-1 inline-block" />
+            </span>
+            <p className="font-serif italic font-light text-2xl text-white mt-2.5">Welcome back.</p>
+          </div>
         </div>
+      </SkyHero>
 
+      <div className="flex-1 px-7 pt-7">
         {magicLinkSent ? (
           <div className="bg-brand/10 border border-brand/30 rounded-2xl p-5 text-center">
             <p className="text-brand font-bold text-lg">Check your email</p>
@@ -78,7 +87,8 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-brand hover:bg-brand-dark text-white font-bold rounded-xl py-3.5 min-h-12 transition-all disabled:opacity-50 flex items-center justify-center gap-2 hover:shadow-[0_0_20px_rgba(255,107,53,0.3)]"
+              className="w-full text-white font-semibold rounded-xl py-3.5 min-h-12 transition-transform active:scale-[0.99] disabled:opacity-50 flex items-center justify-center gap-2"
+              style={{ background: 'var(--gradient-brand)' }}
             >
               {loading && <Loader2 size={18} className="animate-spin" />}
               {isSignUp ? 'Create Account' : 'Sign In'}

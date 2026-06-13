@@ -97,7 +97,7 @@ export default function HistoryPage() {
 
   return (
     <div className="p-4 pb-24 space-y-3">
-      <h1 className="text-2xl font-bold text-foreground mb-4">History</h1>
+      <h1 className="text-3xl font-serif font-light text-foreground mb-4">History</h1>
 
       {sessions.map((session) => {
         const isExpanded = expandedSession === session.id;

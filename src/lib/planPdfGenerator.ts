@@ -13,13 +13,13 @@ import type { DayTemplate, MealsPerDay, EatingApproach } from '../types/database
 
 // ─── Brand Colors ──────────────────────────────────────────────────────────────
 
-const BRAND = { r: 255, g: 107, b: 53 };    // #FF6B35
-const DARK  = { r: 24,  g: 24,  b: 27 };    // #18181b
-const MUTED = { r: 113, g: 113, b: 122 };   // #71717a
+const BRAND = { r: 216, g: 90,  b: 43 };    // #D85A2B terracotta
+const DARK  = { r: 38,  g: 33,  b: 28 };    // #26211C warm near-black
+const MUTED = { r: 138, g: 126, b: 112 };   // #8A7E70 warm muted
 const WHITE = { r: 255, g: 255, b: 255 };
-const LIGHT_BG = { r: 245, g: 245, b: 245 };
-const GREEN = { r: 34, g: 197, b: 94 };
-const BLUE  = { r: 96, g: 165, b: 250 };
+const LIGHT_BG = { r: 244, g: 239, b: 230 }; // #F4EFE6 warm cream
+const GREEN = { r: 46,  g: 158, b: 107 };   // #2E9E6B
+const BLUE  = { r: 74,  g: 143, b: 208 };   // #4A8FD0
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -31,27 +31,31 @@ function addPageFooter(doc: jsPDF, pageNum: number) {
   const w = doc.internal.pageSize.getWidth();
   const h = doc.internal.pageSize.getHeight();
   setColor(doc, MUTED);
+  doc.setFont('times', 'italic');
   doc.setFontSize(8);
-  doc.text(`WorkIn.ai — It's Not a Workout. It's a WorkIN.`, w / 2, h - 10, { align: 'center' });
+  doc.text('WorkIN — A Healthy Way of Life', w / 2, h - 10, { align: 'center' });
+  doc.setFont('helvetica', 'normal');
   doc.text(`Page ${pageNum}`, w - 20, h - 10);
 }
 
 function sectionTitle(doc: jsPDF, y: number, title: string): number {
   setColor(doc, BRAND);
-  doc.setFontSize(13);
-  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(15);
+  doc.setFont('times', 'bold'); // serif display, matching the app's editorial headings
   doc.text(title, 20, y);
   doc.setDrawColor(BRAND.r, BRAND.g, BRAND.b);
   doc.setLineWidth(0.5);
   doc.line(20, y + 2, 190, y + 2);
+  doc.setFont('helvetica', 'normal');
   return y + 8;
 }
 
 function subSectionTitle(doc: jsPDF, y: number, title: string): number {
   setColor(doc, DARK);
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.setFont('times', 'bold');
   doc.text(title, 25, y);
+  doc.setFont('helvetica', 'normal');
   return y + 6;
 }
 
@@ -397,19 +401,21 @@ export function generatePlanPdf(
   doc.setFillColor(BRAND.r, BRAND.g, BRAND.b);
   doc.rect(0, 0, w, 50, 'F');
 
-  doc.setFont('helvetica', 'bold');
+  doc.setFont('times', 'bold');
   setColor(doc, WHITE);
-  doc.setFontSize(28);
-  doc.text('WorkIn.ai', w / 2, 25, { align: 'center' });
-  doc.setFontSize(11);
-  doc.text("It's Not a Workout. It's a WorkIN.", w / 2, 35, { align: 'center' });
+  doc.setFontSize(32);
+  doc.text('WorkIN', w / 2, 25, { align: 'center' });
+  doc.setFont('times', 'italic');
+  doc.setFontSize(12);
+  doc.text('A Healthy Way of Life', w / 2, 36, { align: 'center' });
 
-  let cy = 70;
+  let cy = 72;
   setColor(doc, DARK);
-  doc.setFontSize(20);
-  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(22);
+  doc.setFont('times', 'bold');
   const title = userName ? `${userName}'s Training Plan` : 'Your Training Plan';
   doc.text(title, w / 2, cy, { align: 'center' });
+  doc.setFont('helvetica', 'normal');
 
   cy += 15;
   setColor(doc, MUTED);
@@ -1553,9 +1559,10 @@ export function downloadExerciseReferencePdf(
   doc.setFillColor(BRAND.r, BRAND.g, BRAND.b);
   doc.rect(0, 0, w, 22, 'F');
   setColor(doc, WHITE);
-  doc.setFontSize(18);
-  doc.setFont('helvetica', 'bold');
-  doc.text('WorkIn.ai — Exercise Reference', 20, 15);
+  doc.setFontSize(20);
+  doc.setFont('times', 'bold');
+  doc.text('WorkIN · Exercise Reference', 20, 15);
+  doc.setFont('helvetica', 'normal');
 
   let y = 32;
   if (userName) {

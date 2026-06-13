@@ -424,3 +424,51 @@ spotifyRouter.put('/play', async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Failed to start playback' });
   }
 });
+
+// PUT /api/spotify/transfer — make a Web Playback device the ACTIVE device.
+// A freshly-"ready" SDK device often isn't yet the active target on Spotify's
+// backend, so /play returns 404 "Device not found". Transferring first fixes that.
+spotifyRouter.put('/transfer', async (req: Request, res: Response) => {
+  const { access_token, device_id, play } = req.body as {
+    access_token?: string;
+    device_id?: string;
+    play?: boolean;
+  };
+
+  if (!access_token || !device_id) {
+    res.status(400).json({ error: 'Missing access token or device id' });
+    return;
+  }
+
+  try {
+    const transferRes = await fetch(`${SPOTIFY_API_BASE}/me/player`, {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${access_token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ device_ids: [device_id], play: !!play }),
+    });
+
+    // Spotify returns 204 No Content on success (fetch .ok covers 200–299).
+    if (!transferRes.ok) {
+      const errText = await transferRes.text();
+      console.error('[spotify/transfer] error:', transferRes.status, errText);
+      if (transferRes.status === 401) {
+        res.status(401).json({ error: 'Token expired', needsRefresh: true });
+        return;
+      }
+      if (transferRes.status === 403) {
+        res.status(403).json({ error: 'Spotify Premium required for playback' });
+        return;
+      }
+      res.status(transferRes.status).json({ error: 'Transfer failed' });
+      return;
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[spotify/transfer]', err);
+    res.status(500).json({ error: 'Transfer failed' });
+  }
+});

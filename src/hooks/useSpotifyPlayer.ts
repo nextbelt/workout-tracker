@@ -53,6 +53,10 @@ export function useSpotifyPlayer({ getToken, enabled }: UseSpotifyPlayerOptions)
   useEffect(() => { getTokenRef.current = getToken; }, [getToken]);
   // One-time audio-element activation guard (browser autoplay policy)
   const activatedRef = useRef(false);
+  // Prevents overlapping play() sequences from ever firing a request storm.
+  const playInFlightRef = useRef(false);
+  // Tracks which device we've already transferred playback to (so we only do it once).
+  const transferredDeviceRef = useRef<string | null>(null);
 
   // --- helpers ---
   const setTransientError = useCallback((msg: string) => {
@@ -118,6 +122,7 @@ export function useSpotifyPlayer({ getToken, enabled }: UseSpotifyPlayerOptions)
       console.log('[SpotifyPlayer] Device not ready:', device_id);
       deviceIdRef.current = null;
       activatedRef.current = false;
+      transferredDeviceRef.current = null;
       setPlayerState((prev) => ({ ...prev, deviceId: null }));
 
       // Auto-reconnect after a short delay
@@ -191,6 +196,7 @@ export function useSpotifyPlayer({ getToken, enabled }: UseSpotifyPlayerOptions)
       player.disconnect();
       playerRef.current = null;
       activatedRef.current = false;
+      transferredDeviceRef.current = null;
       if (positionInterval.current) clearInterval(positionInterval.current);
       if (reconnectTimer.current) clearTimeout(reconnectTimer.current);
       if (errorClearTimer.current) clearTimeout(errorClearTimer.current);
@@ -223,6 +229,10 @@ export function useSpotifyPlayer({ getToken, enabled }: UseSpotifyPlayerOptions)
   // Core play call with retry logic for 404 "Device not found"
   const play = useCallback(async (tracks: SpotifyTrack[], startIndex = 0) => {
     if (!tracks.length) return;
+    // Hard guard: never run overlapping play() sequences. This makes a request
+    // storm impossible regardless of how often the UI calls play().
+    if (playInFlightRef.current) return;
+    playInFlightRef.current = true;
 
     // Unlock the SDK audio element on the first user gesture (autoplay policy on
     // Safari/iOS/Chrome). Issue it synchronously inside the gesture tick — do not
@@ -239,85 +249,112 @@ export function useSpotifyPlayer({ getToken, enabled }: UseSpotifyPlayerOptions)
 
     const uris = tracks.map((t) => t.uri);
 
-    for (let attempt = 0; attempt < MAX_PLAY_RETRIES; attempt++) {
-      const token = await getToken();
+    try {
+      for (let attempt = 0; attempt < MAX_PLAY_RETRIES; attempt++) {
+        const token = await getToken();
 
-      if (!token) {
-        setTransientError('No Spotify token — try reconnecting in Settings');
-        return;
-      }
-
-      // Read device ID from ref (always current)
-      let deviceId = deviceIdRef.current;
-
-      // If device isn't ready yet, wait a bit
-      if (!deviceId) {
-        if (attempt < MAX_PLAY_RETRIES - 1) {
-          console.log(`[SpotifyPlayer] No device yet, waiting… (attempt ${attempt + 1})`);
-          await sleep(RETRY_DELAY);
-          deviceId = deviceIdRef.current; // re-read after wait
-          if (!deviceId) continue;
-        } else {
-          setTransientError('Spotify player not ready — tap a track to try again');
-          return;
-        }
-      }
-
-      // If device just became ready, wait for Spotify backend to register it
-      const sinceReady = Date.now() - deviceReadyAt.current;
-      if (sinceReady < DEVICE_SETTLE_MS) {
-        await sleep(DEVICE_SETTLE_MS - sinceReady);
-      }
-
-      try {
-        const res = await fetch(`${API_BASE}/api/spotify/play`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            access_token: token,
-            device_id: deviceId,
-            uris,
-            offset: { position: startIndex },
-          }),
-        });
-
-        if (res.ok) {
-          clearError();
-          return; // success!
-        }
-
-        const data = (await res.json()) as { error?: string; needsRefresh?: boolean };
-
-        if (res.status === 403) {
-          setPremiumRequired(true);
-          setError('Spotify Premium is required for in-app playback');
-          return; // no point retrying
-        }
-
-        if (res.status === 404 && attempt < MAX_PLAY_RETRIES - 1) {
-          // Device not yet registered on Spotify's backend — just give it time.
-          // Do NOT reconnect here: that resets the settle timer and triggers the
-          // not_ready auto-reconnect, prolonging the unsettled window we're waiting on.
-          console.log(`[SpotifyPlayer] 404 Device not found, retrying in ${RETRY_DELAY}ms (attempt ${attempt + 1})`);
-          await sleep(RETRY_DELAY);
-          continue;
-        }
-
-        if (data.needsRefresh) {
-          setTransientError('Session expired — refreshing…');
+        if (!token) {
+          setTransientError('No Spotify token — try reconnecting in Settings');
           return;
         }
 
-        setTransientError(data.error ?? 'Failed to start playback');
-        return;
-      } catch {
-        if (attempt < MAX_PLAY_RETRIES - 1) {
-          await sleep(RETRY_DELAY);
-          continue;
+        // Read device ID from ref (always current)
+        let deviceId = deviceIdRef.current;
+
+        // If device isn't ready yet, wait a bit
+        if (!deviceId) {
+          if (attempt < MAX_PLAY_RETRIES - 1) {
+            console.log(`[SpotifyPlayer] No device yet, waiting… (attempt ${attempt + 1})`);
+            await sleep(RETRY_DELAY);
+            deviceId = deviceIdRef.current; // re-read after wait
+            if (!deviceId) continue;
+          } else {
+            setTransientError('Spotify player not ready — tap a track to try again');
+            return;
+          }
         }
-        setTransientError('Failed to start playback — check your connection');
-        return;
+
+        // If device just became ready, wait for Spotify backend to register it
+        const sinceReady = Date.now() - deviceReadyAt.current;
+        if (sinceReady < DEVICE_SETTLE_MS) {
+          await sleep(DEVICE_SETTLE_MS - sinceReady);
+        }
+
+        // Make this device the ACTIVE device before playing. A freshly-ready Web
+        // Playback device often isn't the active target yet → /play 404s. Transfer
+        // first (once per device) to fix "device not found".
+        if (transferredDeviceRef.current !== deviceId) {
+          try {
+            const tr = await fetch(`${API_BASE}/api/spotify/transfer`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ access_token: token, device_id: deviceId, play: false }),
+            });
+            if (tr.ok) {
+              transferredDeviceRef.current = deviceId;
+              await sleep(600); // let the transfer register on Spotify's backend
+            } else if (tr.status === 403) {
+              setPremiumRequired(true);
+              setError('Spotify Premium is required for in-app playback');
+              return;
+            }
+          } catch {
+            // Transfer is best-effort — the play call below will retry on 404.
+          }
+        }
+
+        try {
+          const res = await fetch(`${API_BASE}/api/spotify/play`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              access_token: token,
+              device_id: deviceId,
+              uris,
+              offset: { position: startIndex },
+            }),
+          });
+
+          if (res.ok) {
+            clearError();
+            return; // success!
+          }
+
+          const data = (await res.json()) as { error?: string; needsRefresh?: boolean };
+
+          if (res.status === 403) {
+            setPremiumRequired(true);
+            setError('Spotify Premium is required for in-app playback');
+            return; // no point retrying
+          }
+
+          if (res.status === 404 && attempt < MAX_PLAY_RETRIES - 1) {
+            // Device dropped from the backend — force a re-transfer next attempt,
+            // then give it time. (We do NOT reconnect, which would churn the device.)
+            console.log(`[SpotifyPlayer] 404 Device not found, re-transferring (attempt ${attempt + 1})`);
+            transferredDeviceRef.current = null;
+            await sleep(RETRY_DELAY);
+            continue;
+          }
+
+          if (data.needsRefresh) {
+            setTransientError('Session expired — refreshing…');
+            return;
+          }
+
+          setTransientError(data.error ?? 'Failed to start playback');
+          return;
+        } catch {
+          if (attempt < MAX_PLAY_RETRIES - 1) {
+            await sleep(RETRY_DELAY);
+            continue;
+          }
+          setTransientError('Failed to start playback — check your connection');
+          return;
+        }
       }
+    } finally {
+      playInFlightRef.current = false;
     }
   }, [getToken, setTransientError, clearError]);
 

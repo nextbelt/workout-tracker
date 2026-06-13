@@ -8,6 +8,7 @@ import { useMicroVariation } from '../hooks/useMicroVariation';
 import { useProgression } from '../hooks/useProgression';
 import { getDayLayouts } from '../lib/programGenerator';
 import { getWeekRir, getWeekSets } from '../lib/periodization';
+import { MOVEMENT_POOL_TO_MUSCLE, getMuscleWeekMultiplier, weeklyMuscleVolumeFromExercises } from '../lib/volumeLandmarks';
 import { SetLogger } from '../components/SetLogger';
 import { RestTimerButton } from '../components/RestTimer';
 import { RecoveryRatingModal } from '../components/RecoveryRating';
@@ -102,7 +103,7 @@ export default function TodayPage() {
   const [showMoodCheck, setShowMoodCheck] = useState(false);
   const [detailExercise, setDetailExercise] = useState<BlockExerciseWithDetails | null>(null);
   const [confirmRestart, setConfirmRestart] = useState(false);
-  const [progressionHints, setProgressionHints] = useState<Map<string, { shouldIncrease: boolean; suggestedWeight: number | null; stallCount: number; message: string }>>(new Map());
+  const [progressionHints, setProgressionHints] = useState<Map<string, { shouldIncrease: boolean; suggestedWeight: number | null; prescribedWeight: number | null; stallCount: number; message: string }>>(new Map());
   const [swappedExerciseDetails, setSwappedExerciseDetails] = useState<Map<string, BlockExerciseWithDetails['exercise']>>(new Map());
   const spotifyMood = preMoodToSpotifyMood(moodEngine.moodInput?.preMood);
 
@@ -169,6 +170,12 @@ export default function TodayPage() {
     // during playback position ticks).
   }, [blockExercises, selectedDay, weekNumber, microVar.applyVariation, moodEngine.adjustments, moodEngine.moodInput, moodEngine.decision, swappedExerciseDetails]);
 
+  // Per-muscle week-1 weekly volume for the whole block — drives the MEV→MAV ramp.
+  const weeklyMuscleVol = useMemo(
+    () => weeklyMuscleVolumeFromExercises(blockExercises.map((be) => ({ movement_pool: be.exercise.movement_pool, sets: be.sets }))),
+    [blockExercises],
+  );
+
   // Estimated workout time
   const estimatedTime = useMemo(() => {
     return estimateWorkoutMinutes(dayExercises as unknown as BlockExercise[]);
@@ -208,10 +215,12 @@ export default function TodayPage() {
     const be = dayExercises.find((e) => e.id === expandedExercise);
     if (!be || progressionHints.has(be.exercise_id)) return;
 
-    checkProgression(user.id, be.exercise_id, be.exercise, be.rep_max).then((hint) => {
+    // weekRir is computed in the render map (out of scope here) — derive it inline.
+    const rir = getWeekRir(weekNumber, totalWeeks, startingRir);
+    checkProgression(user.id, be.exercise_id, be.exercise, be.rep_max, be.rep_min, rir).then((hint) => {
       setProgressionHints((prev) => new Map(prev).set(be.exercise_id, hint));
     });
-  }, [expandedExercise, todaySession, user, dayExercises, checkProgression, progressionHints]);
+  }, [expandedExercise, todaySession, user, dayExercises, checkProgression, progressionHints, weekNumber, totalWeeks, startingRir]);
 
   const exerciseSets = useMemo(() => {
     const map = new Map<string, typeof sessionSets>();
@@ -544,7 +553,10 @@ export default function TodayPage() {
           const isExpanded = expandedExercise === be.id;
           const sets = exerciseSets.get(be.exercise_id) ?? [];
           const completedSets = new Set(sets.map((s) => s.set_number)).size;
-          const totalSets = getWeekSets(be.sets, weekNumber, totalWeeks, startingRir);
+          const muscle = MOVEMENT_POOL_TO_MUSCLE[be.exercise.movement_pool];
+          const mv = muscle ? weeklyMuscleVol.get(muscle) : undefined;
+          const muscleMult = muscle && mv ? getMuscleWeekMultiplier(muscle, mv.week1Sets, weekNumber, totalWeeks) : undefined;
+          const totalSets = getWeekSets(be.sets, weekNumber, totalWeeks, startingRir, muscleMult != null ? { multiplier: muscleMult } : undefined);
           const weekRir = getWeekRir(weekNumber, totalWeeks, startingRir);
           const lastSet = lastSets.get(be.exercise_id);
 

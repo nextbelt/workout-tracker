@@ -4,6 +4,7 @@ import { Check, TrendingUp, AlertTriangle, Minus, Plus } from 'lucide-react';
 interface ProgressionHint {
   shouldIncrease: boolean;
   suggestedWeight: number | null;
+  prescribedWeight: number | null;
   stallCount: number;
   message: string;
 }
@@ -112,6 +113,7 @@ export function SetLogger({
   const [reps, setReps] = useState<string>(alreadyLogged ? (previousReps?.toString() ?? '') : '');
   const [rir, setRir] = useState<string>(alreadyLogged ? (previousRir?.toString() ?? '') : '');
   const [saved, setSaved] = useState(alreadyLogged);
+  const [touched, setTouched] = useState(false);
 
   const handleSave = useCallback(async () => {
     await onLog(
@@ -150,13 +152,25 @@ export function SetLogger({
           {lastRir != null ? ` · RIR ${lastRir}` : ` · target RIR ${rirTarget}`}
         </p>
       )}
+      {/* Suggested working load (e1RM-derived) — non-destructive prefill */}
+      {!alreadyLogged && !touched && weight === '' && progressionHint?.prescribedWeight != null && (
+        <div className="px-2">
+          <button
+            type="button"
+            onClick={() => { setWeight(String(progressionHint.prescribedWeight)); setSaved(false); }}
+            className="text-[11px] px-2 py-1 min-h-8 rounded-md bg-brand/10 text-brand font-medium"
+          >
+            Try {progressionHint.prescribedWeight} lbs
+          </button>
+        </div>
+      )}
       <div className={`flex items-center gap-1.5 sm:gap-3 py-3 px-2 sm:px-3 rounded-xl transition-colors ${saved ? 'bg-brand/10 border border-brand/20' : 'bg-surface-3/50 border border-transparent'}`}>
         <span className="text-faint text-xs font-bold w-5 sm:w-6 shrink-0">S{setNumber}</span>
 
         <StepperInput
           label="lbs"
           value={weight}
-          onChange={(v) => { setWeight(v); setSaved(false); }}
+          onChange={(v) => { setWeight(v); setSaved(false); setTouched(true); }}
           placeholder="0"
           step={5}
         />

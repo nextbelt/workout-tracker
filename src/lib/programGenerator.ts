@@ -94,6 +94,21 @@ const ACTIVITY_MULTIPLIERS: Record<string, number> = {
   extremely_active: 1.9,
 };
 
+// Typical daily steps already "priced in" by each activity tier (Tudor-Locke &
+// Bassett 2004 step bands). Used only to compute a DELTA vs. the user's real steps,
+// so we never double-count movement already represented by the activity multiplier.
+const ACTIVITY_BASELINE_STEPS: Record<string, number> = {
+  sedentary: 4000,
+  lightly_active: 6500,
+  moderately_active: 9000,
+  very_active: 12500,
+  extremely_active: 16000,
+};
+// NET walking energy cost above resting metabolism (Mifflin BMR already counts rest;
+// gross would be ~0.0005 — using gross would over-feed). ~0.0004 kcal/kg/step.
+const NET_KCAL_PER_STEP_PER_KG = 0.0004;
+const MAX_STEP_TDEE_ADJUSTMENT = 300; // clamp so a noisy/extreme step entry can't blow up calories
+
 // ─── BMI Calculation ───────────────────────────────────────────────────────────
 
 export function calculateBMI(
@@ -141,6 +156,7 @@ export function calculateNutrition(
   activityLevel?: string | null,
   primaryGoal?: PrimaryGoal | null,
   eatingApproach?: EatingApproach | null,
+  averageDailySteps?: number | null,
 ): NutritionResult {
   const w = currentWeight ?? 170;
   const userAge = age ?? 30;
@@ -160,7 +176,18 @@ export function calculateNutrition(
 
   // TDEE = BMR × activity multiplier
   const multiplier = ACTIVITY_MULTIPLIERS[activityLevel ?? 'moderately_active'] ?? 1.55;
-  const tdee = Math.round(bmr * multiplier);
+  let tdee = Math.round(bmr * multiplier);
+
+  // Steps-based NEAT correction: refine the static Mifflin estimate by the DELTA
+  // between real steps and the steps implied by the chosen activity tier (so we
+  // don't double-count). Bounded to ±300 kcal; skipped when steps unknown.
+  if (typeof averageDailySteps === 'number' && averageDailySteps > 0) {
+    const baselineSteps = ACTIVITY_BASELINE_STEPS[activityLevel ?? 'moderately_active'] ?? 9000;
+    const steps = Math.min(Math.max(averageDailySteps, 0), 30000); // clamp fat-fingered input
+    const rawAdj = (steps - baselineSteps) * NET_KCAL_PER_STEP_PER_KG * weightKg;
+    const stepAdjustment = Math.max(-MAX_STEP_TDEE_ADJUSTMENT, Math.min(MAX_STEP_TDEE_ADJUSTMENT, Math.round(rawAdj)));
+    tdee = tdee + stepAdjustment;
+  }
 
   // Target calories based on goal
   let calorieTarget: number;
@@ -298,6 +325,7 @@ export function deriveTrainingParams(answers: OnboardingAnswers): DerivedTrainin
     answers.activityLevel,
     answers.primaryGoal,
     answers.eatingApproach,
+    answers.averageDailySteps,
   );
 
   // ── BMI & Timeline ────────────────────────────────────────────────────

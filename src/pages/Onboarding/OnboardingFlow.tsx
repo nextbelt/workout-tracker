@@ -339,6 +339,8 @@ export default function OnboardingFlow() {
         equipment_available: answers.equipmentAvailable,
         injuries: answers.injuries,
         weeks_between_deloads: derived.weeksBetweenDeloads,
+        emphasis_areas: answers.emphasisAreas,
+        session_duration: answers.sessionDuration,
       });
       await generateBlock(user.id, nextBlockNumber, genProfile);
 

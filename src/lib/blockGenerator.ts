@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
 import { getDayLayouts } from './programGenerator';
-import type { SplitType, DayTemplate, Exercise, Database, TrainingMode } from '../types/database';
+import { applyEmphasisToSlots, type ExerciseSlot } from './emphasis';
+import type { SplitType, DayTemplate, Exercise, Database, TrainingMode, SessionDuration } from '../types/database';
 
 type BlockExerciseInsert = Database['public']['Tables']['block_exercises']['Insert'];
 
@@ -25,20 +26,13 @@ export interface BlockGenProfile {
   injuries: string[] | null;
   weeks_between_deloads: number;
   training_mode: TrainingMode;
-}
-
-// ─── Movement pool slot definition ──────────────────────────────────────────
-
-interface ExerciseSlot {
-  movementPool: string;
-  isCompound: boolean;
-  category: 'compound' | 'secondary' | 'isolation';
-  isAnchor: boolean;
+  emphasis_areas?: string[];
+  session_duration?: SessionDuration;
 }
 
 // ─── Day template → movement pool mapping ───────────────────────────────────
 
-function getSlotsForTemplate(dayTemplate: string): ExerciseSlot[] {
+export function getSlotsForTemplate(dayTemplate: string): ExerciseSlot[] {
   if (dayTemplate.startsWith('upper_a')) {
     return [
       { movementPool: 'horizontal_press', isCompound: true, category: 'compound', isAnchor: true },
@@ -237,7 +231,15 @@ export async function generateBlock(
         })()
       : slots;
 
-    for (const slot of slotsToUse) {
+    // Bias toward the user's weak points (additive isolation slots; no-op if none).
+    const slotsWithEmphasis = applyEmphasisToSlots(
+      slotsToUse,
+      profile.emphasis_areas,
+      profile.session_duration,
+      profile.training_mode,
+    );
+
+    for (const slot of slotsWithEmphasis) {
       const candidates = byPool.get(slot.movementPool) ?? [];
       const exercise = pickExercise(candidates, equipment, injuries, usedIds, profile.training_mode);
       if (!exercise) continue; // Skip if no valid exercise found
@@ -328,6 +330,8 @@ export function buildBlockGenProfile(profile: {
   injuries: string[] | null;
   weeks_between_deloads: number;
   training_mode?: TrainingMode | null;
+  emphasis_areas?: string[] | null;
+  session_duration?: SessionDuration | null;
 }): BlockGenProfile {
   return {
     split_type: profile.split_type,
@@ -348,5 +352,7 @@ export function buildBlockGenProfile(profile: {
     injuries: profile.injuries,
     weeks_between_deloads: profile.weeks_between_deloads,
     training_mode: profile.training_mode ?? 'gym',
+    emphasis_areas: profile.emphasis_areas ?? [],
+    session_duration: profile.session_duration ?? undefined,
   };
 }

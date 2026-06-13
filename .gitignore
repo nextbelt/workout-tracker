@@ -32,3 +32,5 @@ api-proxy/.env.local
 *.njsproj
 *.sln
 *.sw?
+# Added by code-review-graph
+.code-review-graph/

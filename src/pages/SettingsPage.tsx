@@ -53,12 +53,14 @@ export default function SettingsPage() {
       profile?.height_inches ?? null,
       profile?.activity_level ?? 'moderately_active',
       profile?.primary_goal ?? 'build_muscle',
+      (profile?.eating_approach as EatingApproach) ?? null,
+      profile?.average_daily_steps ?? null,
     );
     setProteinMin(String(result.proteinMin));
     setProteinMax(String(result.proteinMax));
     setCalorieTarget(String(result.calorieTarget));
     setSaved(false);
-  }, [currentWeight, targetWeight, profile?.sex, profile?.age, profile?.height_inches, profile?.activity_level, profile?.primary_goal]);
+  }, [currentWeight, targetWeight, profile?.sex, profile?.age, profile?.height_inches, profile?.activity_level, profile?.primary_goal, profile?.eating_approach, profile?.average_daily_steps]);
 
   const toggleEquipment = useCallback((item: string) => {
     setEquipment((prev) =>

@@ -67,13 +67,24 @@ export function getWeekRir(
 
 /**
  * Get effective set count for a specific week.
+ *
+ * Optional `muscleCtx.multiplier` makes the ramp per-muscle (MEV→MAV volume
+ * landmarks) instead of the flat +10%. When omitted, behavior is byte-identical to
+ * before. A hard per-slot cap of baseSets+2 prevents any single session from
+ * ballooning (e.g. a 1×/week muscle whose weekly target would otherwise pile onto
+ * one slot).
  */
 export function getWeekSets(
   baseSets: number,
   weekNumber: number,
   totalWeeks: number,
   startingRir: number,
+  muscleCtx?: { multiplier: number },
 ): number {
+  if (muscleCtx) {
+    const scaled = Math.round(baseSets * muscleCtx.multiplier);
+    return Math.max(1, Math.min(scaled, baseSets + 2));
+  }
   const p = getWeekPeriodization(weekNumber, totalWeeks, startingRir);
   return Math.max(1, Math.round(baseSets * p.volumeMultiplier));
 }

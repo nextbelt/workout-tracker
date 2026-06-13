@@ -24,7 +24,9 @@ function usdaToNormalized(item: Record<string, unknown>): NormalizedFood {
     external_id: String(item['fdcId'] ?? ''),
     food_name: String(item['description'] ?? ''),
     serving_size: '100g',
-    calories: get(1008),
+    // Energy: 1008 (kcal) on SR Legacy/FNDDS; Foundation foods sometimes only
+    // carry Atwater energy (2047/2048), so fall back to those.
+    calories: get(1008) || get(2047) || get(2048),
     protein: get(1003),
     carbs: get(1005),
     fat: get(1004),
@@ -68,8 +70,19 @@ foodRouter.get('/search', async (req: Request, res: Response) => {
     const apiKey = process.env.USDA_API_KEY;
     if (apiKey) {
       try {
-        const url = `https://api.nal.usda.gov/fdc/v1/foods/search?api_key=${apiKey}&query=${encodeURIComponent(query)}&dataType=SR%20Legacy,Survey%20(FNDDS)&pageSize=10`;
-        const response = await fetch(url);
+        // POST + JSON body: the old GET sent `dataType=SR Legacy,Survey (FNDDS)`
+        // whose spaces/parens make USDA return 400, so USDA *always* failed and
+        // every search silently fell back to Open Food Facts. The JSON body
+        // sidesteps URL-encoding entirely.
+        const response = await fetch('https://api.nal.usda.gov/fdc/v1/foods/search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Api-Key': apiKey },
+          body: JSON.stringify({
+            query,
+            dataType: ['Foundation', 'SR Legacy', 'Survey (FNDDS)'],
+            pageSize: 10,
+          }),
+        });
         if (!response.ok) throw new Error(`USDA API error: ${response.status}`);
         const data = (await response.json()) as { foods?: Record<string, unknown>[] };
         results = (data.foods ?? []).map(usdaToNormalized);

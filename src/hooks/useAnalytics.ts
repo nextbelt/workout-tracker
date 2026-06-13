@@ -45,7 +45,7 @@ interface MoodCorrelationPoint {
 }
 
 export function useAnalytics() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [loading, setLoading] = useState(false);
 
   const getVolumeOverTime = useCallback(async (days = 90): Promise<VolumeDataPoint[]> => {
@@ -128,31 +128,41 @@ export function useAnalytics() {
 
   const getConsistency = useCallback(async (weeks = 12): Promise<ConsistencyData[]> => {
     if (!user) return [];
-    const result: ConsistencyData[] = [];
     const today = new Date();
 
+    // One query across the whole window, then bucket into weeks client-side
+    // (was 12 sequential round-trips).
+    const earliest = new Date(today);
+    earliest.setDate(today.getDate() - ((weeks - 1) * 7) - today.getDay());
+
+    const { data } = await supabase
+      .from('workout_sessions')
+      .select('scheduled_date')
+      .eq('user_id', user.id)
+      .not('completed_at', 'is', null)
+      .gte('scheduled_date', earliest.toISOString().split('T')[0])
+      .order('scheduled_date');
+
+    const dates = ((data ?? []) as Array<{ scheduled_date: string }>).map((r) => r.scheduled_date);
+    const target = profile?.training_days_per_week ?? 4;
+
+    const result: ConsistencyData[] = [];
     for (let w = weeks - 1; w >= 0; w--) {
       const weekStart = new Date(today);
       weekStart.setDate(today.getDate() - (w * 7) - today.getDay());
       const weekEnd = new Date(weekStart);
       weekEnd.setDate(weekStart.getDate() + 6);
-
-      const { data } = await supabase
-        .from('workout_sessions')
-        .select('id')
-        .eq('user_id', user.id)
-        .not('completed_at', 'is', null)
-        .gte('scheduled_date', weekStart.toISOString().split('T')[0])
-        .lte('scheduled_date', weekEnd.toISOString().split('T')[0]);
+      const startStr = weekStart.toISOString().split('T')[0];
+      const endStr = weekEnd.toISOString().split('T')[0];
 
       result.push({
         weekLabel: `W${weeks - w}`,
-        sessionsCompleted: data?.length ?? 0,
-        targetSessions: 4,
+        sessionsCompleted: dates.filter((d) => d >= startStr && d <= endStr).length,
+        targetSessions: target,
       });
     }
     return result;
-  }, [user]);
+  }, [user, profile?.training_days_per_week]);
 
   const getRecoveryData = useCallback(async (days = 90): Promise<RecoveryData[]> => {
     if (!user) return [];
@@ -234,7 +244,8 @@ export function useAnalytics() {
       volBySession.set(s.session_id, (volBySession.get(s.session_id) ?? 0) + ((s.weight ?? 0) * (s.reps ?? 0)));
     }
 
-    const moodMap: Record<string, number> = { fired_up: 4, steady: 3, low: 2, beat_up: 1 };
+    // Matches the PreMood enum the app actually stores (energized/normal/low_energy).
+    const moodMap: Record<string, number> = { energized: 3, normal: 2, low_energy: 1 };
 
     return typed.map((s) => ({
       date: s.scheduled_date.slice(5),
@@ -242,6 +253,24 @@ export function useAnalytics() {
       moodNum: moodMap[s.pre_mood] ?? 2,
       totalVolume: volBySession.get(s.id) ?? 0,
       energy: s.energy_level ?? 3,
+    }));
+  }, [user]);
+
+  const getBodyweightTrend = useCallback(async (days = 90): Promise<Array<{ date: string; weight: number }>> => {
+    if (!user) return [];
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - days);
+
+    const { data } = await supabase
+      .from('bodyweight_log')
+      .select('log_date, weight')
+      .eq('user_id', user.id)
+      .gte('log_date', cutoff.toISOString().split('T')[0])
+      .order('log_date');
+
+    return ((data ?? []) as Array<{ log_date: string; weight: number }>).map((r) => ({
+      date: r.log_date.slice(5),
+      weight: Number(r.weight),
     }));
   }, [user]);
 
@@ -253,5 +282,6 @@ export function useAnalytics() {
     getRecoveryData,
     getNutritionTrends,
     getMoodCorrelation,
-  }), [loading, getVolumeOverTime, getExerciseProgress, getConsistency, getRecoveryData, getNutritionTrends, getMoodCorrelation]);
+    getBodyweightTrend,
+  }), [loading, getVolumeOverTime, getExerciseProgress, getConsistency, getRecoveryData, getNutritionTrends, getMoodCorrelation, getBodyweightTrend]);
 }

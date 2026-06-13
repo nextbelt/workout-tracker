@@ -62,63 +62,51 @@ export function useExerciseVideo(
 
     async function init() {
       setLoading(true);
+      const userId = user?.id;
 
-      // Step 1: Check for user's liked video
-      if (user) {
+      // Step 1: Check for user's liked video (a saved YouTube demo)
+      if (userId) {
         try {
           const { data: liked } = await supabase
             .from('exercise_video_feedback')
             .select('video_url, video_title, liked')
-            .eq('user_id', user.id)
+            .eq('user_id', userId)
             .eq('exercise_id', exerciseId)
             .eq('liked', true)
             .limit(1)
             .maybeSingle();
 
           if (!cancelled && liked) {
-            const videoId = extractYouTubeId(liked.video_url) ?? liked.video_url;
-            setVideo({
-              videoId,
-              videoUrl: `https://www.youtube.com/embed/${videoId}?rel=0&playsinline=1`,
-              title: liked.video_title,
-              channelName: null,
-              thumbnailUrl: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
-              isEmbed: true,
-              isImage: false,
-              isGif: false,
-              imageUrls: [],
-              viewCount: null,
-              source: 'liked',
-            });
-            setHasLiked(true);
-            setCanCycle(true);
-            setLoading(false);
-            return;
+            const videoId = extractYouTubeId(liked.video_url);
+            if (videoId) {
+              setVideo({
+                videoId,
+                videoUrl: `https://www.youtube.com/embed/${videoId}?rel=0&playsinline=1`,
+                title: liked.video_title,
+                channelName: null,
+                thumbnailUrl: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
+                isEmbed: true,
+                isImage: false,
+                isGif: false,
+                imageUrls: [],
+                viewCount: null,
+                source: 'liked',
+              });
+              setHasLiked(true);
+              setCanCycle(true);
+              setLoading(false);
+              return;
+            }
+            // Unparseable liked URL — fall through to local media instead of
+            // embedding a broken URL.
           }
         } catch {
           // Table may not exist on remote yet — fall through to local media
         }
       }
 
-      // Step 2: Search YouTube via API proxy (main path for embedded video + like/dislike)
-      if (!cancelled && API_BASE) {
-        try {
-          const results = await searchYouTube(exerciseName, 0, userSex);
-          if (!cancelled && results.length > 0) {
-            setSearchResults(results);
-            setCurrentIndex(0);
-            setSearchAttempt(0);
-            setVideoFromSearchResult(results[0]);
-            setCanCycle(true);
-            setLoading(false);
-            return;
-          }
-        } catch {
-          // Proxy not available — fall through to local media
-        }
-      }
-
-      // Step 3: GIF from free-exercise-db (fallback if YouTube unavailable)
+      // Step 2: GIF from free-exercise-db — the zero-quota animated demo.
+      // Preferred over a live YouTube search so opening an exercise costs nothing.
       if (!cancelled && existingGifUrl) {
         setVideo({
           videoId: '',
@@ -133,12 +121,12 @@ export function useExerciseVideo(
           viewCount: null,
           source: 'local_gif',
         });
-        setCanCycle(true);
+        setCanCycle(false);
         setLoading(false);
         return;
       }
 
-      // Step 4: Existing video_url in exercises table
+      // Step 3: Existing video_url in exercises table
       if (!cancelled && existingVideoUrl) {
         const videoId = extractYouTubeId(existingVideoUrl);
         if (videoId) {
@@ -155,13 +143,13 @@ export function useExerciseVideo(
             viewCount: null,
             source: 'local_video',
           });
-          setCanCycle(true);
+          setCanCycle(false);
           setLoading(false);
           return;
         }
       }
 
-      // Step 5: Static images
+      // Step 4: Static images
       if (!cancelled && existingImageUrls && existingImageUrls.length > 0) {
         setVideo({
           videoId: '',
@@ -181,6 +169,24 @@ export function useExerciseVideo(
         return;
       }
 
+      // Step 5: No local demo at all — search YouTube (the only content source).
+      if (!cancelled && API_BASE) {
+        try {
+          const results = await searchYouTube(exerciseName, 0, userSex);
+          if (!cancelled && results.length > 0) {
+            setSearchResults(results);
+            setCurrentIndex(0);
+            setSearchAttempt(0);
+            setVideoFromSearchResult(results[0]);
+            setCanCycle(true);
+            setLoading(false);
+            return;
+          }
+        } catch {
+          // Proxy not available — nothing to show
+        }
+      }
+
       // Step 6: Nothing available
       if (!cancelled) {
         setVideo(null);
@@ -191,7 +197,9 @@ export function useExerciseVideo(
 
     init();
     return () => { cancelled = true; };
-  }, [exerciseId, exerciseName, user, userSex, existingGifUrl, existingVideoUrl, existingImageUrls]);
+    // Depend on user?.id (primitive) rather than the user object, which useAuth
+    // re-creates on every token refresh — that would needlessly re-run the search.
+  }, [exerciseId, exerciseName, user?.id, userSex, existingGifUrl, existingVideoUrl, existingImageUrls]);
 
   // Like current video → save to exercise_video_feedback
   const likeVideo = useCallback(async () => {
@@ -310,6 +318,26 @@ export function useExerciseVideo(
     }
   }, [user, userSex, exerciseId, exerciseName]);
 
+  // User-initiated YouTube search (when local media is showing but they want a
+  // video tutorial). Keeps the per-view quota at zero unless explicitly requested.
+  const findVideoTutorial = useCallback(async () => {
+    setLoading(true);
+    try {
+      const results = await searchYouTube(exerciseName, 0, userSex);
+      if (results.length > 0) {
+        setSearchResults(results);
+        setCurrentIndex(0);
+        setSearchAttempt(0);
+        setVideoFromSearchResult(results[0]);
+        setCanCycle(true);
+      }
+    } catch {
+      // ignore — leave the existing local media in place
+    } finally {
+      setLoading(false);
+    }
+  }, [exerciseName, userSex]);
+
   function setVideoFromSearchResult(result: YouTubeResult) {
     setVideo({
       videoId: result.videoId,
@@ -338,9 +366,10 @@ export function useExerciseVideo(
     likeVideo,
     dislikeVideo,
     changeVideo,
+    findVideoTutorial,
     searchResultCount: searchResults.length,
     currentResultIndex: currentIndex,
-  }), [video, loading, hasLocalMedia, hasLiked, canCycle, youtubeSearchUrl, likeVideo, dislikeVideo, changeVideo, searchResults.length, currentIndex]);
+  }), [video, loading, hasLocalMedia, hasLiked, canCycle, youtubeSearchUrl, likeVideo, dislikeVideo, changeVideo, findVideoTutorial, searchResults.length, currentIndex]);
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────────
@@ -358,7 +387,17 @@ function extractYouTubeId(url: string): string | null {
   return null;
 }
 
+// In-memory cache so reopening the same exercise within a session doesn't re-hit
+// the proxy (the proxy has its own 30-day Supabase cache; this avoids the round-trip).
+const searchCache = new Map<string, { results: YouTubeResult[]; at: number }>();
+const SEARCH_CACHE_TTL = 30 * 60 * 1000; // 30 min
+
 async function searchYouTube(exerciseName: string, attempt: number, sex?: string | null): Promise<YouTubeResult[]> {
+  const normalized = exerciseName.toLowerCase().replace(/\s+/g, ' ').trim();
+  const cacheKey = `${normalized}|${attempt}|${sex ?? ''}`;
+  const cached = searchCache.get(cacheKey);
+  if (cached && Date.now() - cached.at < SEARCH_CACHE_TTL) return cached.results;
+
   const params = new URLSearchParams({
     q: exerciseName,
     attempt: String(attempt),
@@ -367,5 +406,7 @@ async function searchYouTube(exerciseName: string, attempt: number, sex?: string
   const response = await fetch(`${API_BASE}/api/youtube/search?${params}`);
   if (!response.ok) return [];
   const data = await response.json();
-  return (data.results ?? []) as YouTubeResult[];
+  const results = (data.results ?? []) as YouTubeResult[];
+  searchCache.set(cacheKey, { results, at: Date.now() });
+  return results;
 }

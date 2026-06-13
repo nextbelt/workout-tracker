@@ -1,9 +1,11 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Dumbbell, Apple, TrendingUp, Flame, Target, ChevronRight, Calendar, Loader2, Trophy, Zap } from 'lucide-react';
+import { Dumbbell, Apple, TrendingUp, TrendingDown, Flame, Target, ChevronRight, Calendar, Loader2, Trophy, Zap, Scale } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useWorkout } from '../hooks/useWorkout';
 import { useNutrition } from '../hooks/useNutrition';
+import { useBodyweight } from '../hooks/useBodyweight';
+import { getBlockWeek } from '../lib/blockWeek';
 import { supabase } from '../lib/supabase';
 import type { WorkoutSession } from '../types/database';
 
@@ -87,15 +89,20 @@ export default function HomePage() {
   const caloriePct = Math.min(100, Math.round((totals.calories / calorieTarget) * 100));
 
   const blockWeek = activeBlock
-    ? Math.min(
-        activeBlock.total_weeks,
-        Math.ceil(
-          (Date.now() - new Date(activeBlock.start_date).getTime()) / (7 * 24 * 60 * 60 * 1000)
-        ) + 1
-      )
+    ? getBlockWeek(activeBlock.start_date, activeBlock.total_weeks)
     : null;
 
   const targetDays = profile?.training_days_per_week ?? 4;
+
+  // Bodyweight trend (latest + delta vs ~1 week ago)
+  const { entries: weightEntries } = useBodyweight();
+  const latestWeight = weightEntries[0]?.weight ?? null;
+  const priorWeight = weightEntries.length > 1
+    ? weightEntries[Math.min(weightEntries.length - 1, 6)]?.weight ?? null
+    : null;
+  const weightDelta = latestWeight != null && priorWeight != null
+    ? Math.round((latestWeight - priorWeight) * 10) / 10
+    : null;
 
   if (workoutLoading || loadingStats) {
     return (
@@ -170,6 +177,29 @@ export default function HomePage() {
           <p className="text-xs text-muted">Last 30 Days</p>
         </div>
       </div>
+
+      {/* Bodyweight trend */}
+      {latestWeight != null && (
+        <button
+          onClick={() => navigate('/analytics')}
+          className="w-full bg-surface rounded-xl p-4 border border-border flex items-center gap-3 active:bg-surface-2 transition-colors"
+        >
+          <div className="w-10 h-10 rounded-lg bg-brand/10 flex items-center justify-center shrink-0">
+            <Scale size={18} className="text-brand" />
+          </div>
+          <div className="flex-1 text-left">
+            <p className="text-sm font-semibold text-foreground">Bodyweight</p>
+            <p className="text-xs text-muted">{latestWeight} lbs</p>
+          </div>
+          {weightDelta != null && weightDelta !== 0 && (
+            <div className={`flex items-center gap-1 text-sm font-medium ${weightDelta < 0 ? 'text-green-400' : 'text-orange-400'}`}>
+              {weightDelta < 0 ? <TrendingDown size={16} /> : <TrendingUp size={16} />}
+              {weightDelta > 0 ? '+' : ''}{weightDelta} lbs
+            </div>
+          )}
+          <ChevronRight size={16} className="text-muted shrink-0" />
+        </button>
+      )}
 
       {/* Nutrition Summary */}
       <button

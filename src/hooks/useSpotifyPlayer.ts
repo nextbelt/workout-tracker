@@ -4,10 +4,10 @@ import type { SpotifyTrack } from './useSpotify';
 const API_BASE = (import.meta.env.VITE_API_PROXY_URL as string) ?? 'http://localhost:3001';
 const SDK_URL = 'https://sdk.scdn.co/spotify-player.js';
 
-/** Retry delay between attempts (ms) */
-const RETRY_DELAY = 1500;
-/** Max retries for play on 404 */
-const MAX_PLAY_RETRIES = 3;
+/** Retry delay between attempts (ms) — kept > DEVICE_SETTLE_MS so a settle wait can't absorb a full retry interval */
+const RETRY_DELAY = 2000;
+/** Max retries for play on 404 (Spotify backend device registration can lag a few seconds) */
+const MAX_PLAY_RETRIES = 4;
 /** Time after 'ready' before we consider the device stable */
 const DEVICE_SETTLE_MS = 1500;
 /** Auto-clear transient errors after this many ms */
@@ -46,6 +46,13 @@ export function useSpotifyPlayer({ getToken, enabled }: UseSpotifyPlayerOptions)
   const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Keep deviceId in a ref too so the play closure always sees the latest value
   const deviceIdRef = useRef<string | null>(null);
+  // Keep getToken in a ref so the player-init effect doesn't depend on its identity.
+  // Without this, a token refresh (which re-creates getToken) would tear down and
+  // recreate the player mid-session, churning the device_id right as you tap a track.
+  const getTokenRef = useRef(getToken);
+  useEffect(() => { getTokenRef.current = getToken; }, [getToken]);
+  // One-time audio-element activation guard (browser autoplay policy)
+  const activatedRef = useRef(false);
 
   // --- helpers ---
   const setTransientError = useCallback((msg: string) => {
@@ -92,7 +99,7 @@ export function useSpotifyPlayer({ getToken, enabled }: UseSpotifyPlayerOptions)
     const player = new Spotify.Player({
       name: 'WorkIn Player',
       getOAuthToken: (cb) => {
-        getToken().then((token) => {
+        getTokenRef.current().then((token) => {
           if (token) cb(token);
         });
       },
@@ -110,6 +117,7 @@ export function useSpotifyPlayer({ getToken, enabled }: UseSpotifyPlayerOptions)
     player.addListener('not_ready', ({ device_id }: SpotifyDeviceReady) => {
       console.log('[SpotifyPlayer] Device not ready:', device_id);
       deviceIdRef.current = null;
+      activatedRef.current = false;
       setPlayerState((prev) => ({ ...prev, deviceId: null }));
 
       // Auto-reconnect after a short delay
@@ -182,11 +190,14 @@ export function useSpotifyPlayer({ getToken, enabled }: UseSpotifyPlayerOptions)
     return () => {
       player.disconnect();
       playerRef.current = null;
+      activatedRef.current = false;
       if (positionInterval.current) clearInterval(positionInterval.current);
       if (reconnectTimer.current) clearTimeout(reconnectTimer.current);
       if (errorClearTimer.current) clearTimeout(errorClearTimer.current);
     };
-  }, [sdkReady, enabled, getToken, setTransientError, clearError]);
+    // getToken is read via getTokenRef so it is intentionally NOT a dependency —
+    // this keeps the player from re-initializing (new device_id) on token refresh.
+  }, [sdkReady, enabled]);
 
   // Position tracking when playing
   useEffect(() => {
@@ -211,6 +222,16 @@ export function useSpotifyPlayer({ getToken, enabled }: UseSpotifyPlayerOptions)
 
   // Core play call with retry logic for 404 "Device not found"
   const play = useCallback(async (tracks: SpotifyTrack[], startIndex = 0) => {
+    if (!tracks.length) return;
+
+    // Unlock the SDK audio element on the first user gesture (autoplay policy on
+    // Safari/iOS/Chrome). Issue it synchronously inside the gesture tick — do not
+    // await it before the rest of play() runs, or the gesture context is lost.
+    if (!activatedRef.current && playerRef.current) {
+      activatedRef.current = true;
+      try { void playerRef.current.activateElement(); } catch { /* ignore */ }
+    }
+
     // Cache tracks for metadata lookup
     const map = new Map<string, SpotifyTrack>();
     for (const t of tracks) map.set(t.id, t);
@@ -274,11 +295,10 @@ export function useSpotifyPlayer({ getToken, enabled }: UseSpotifyPlayerOptions)
         }
 
         if (res.status === 404 && attempt < MAX_PLAY_RETRIES - 1) {
-          // Device not found — Spotify backend may be slow to register
+          // Device not yet registered on Spotify's backend — just give it time.
+          // Do NOT reconnect here: that resets the settle timer and triggers the
+          // not_ready auto-reconnect, prolonging the unsettled window we're waiting on.
           console.log(`[SpotifyPlayer] 404 Device not found, retrying in ${RETRY_DELAY}ms (attempt ${attempt + 1})`);
-
-          // Try to reconnect the player so a fresh device_id is generated
-          playerRef.current?.connect();
           await sleep(RETRY_DELAY);
           continue;
         }

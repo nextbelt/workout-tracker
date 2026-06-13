@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './useAuth';
 import type { SpotifyMood } from '../components/SpotifyMoodPlaylist';
@@ -34,6 +34,15 @@ export function useSpotify() {
   const [loading, setLoading] = useState(false);
   const [loadingTracks, setLoadingTracks] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Refs so the token helpers keep a STABLE identity across connection refreshes.
+  // getValidToken is passed to useSpotifyPlayer; if its identity changed on every
+  // token refresh, the Web Playback player would re-initialize and churn its
+  // device_id — the root cause of "first tap fails, retry works".
+  const connectionRef = useRef<SpotifyConnection | null>(null);
+  const userRef = useRef(user);
+  useEffect(() => { connectionRef.current = connection; }, [connection]);
+  useEffect(() => { userRef.current = user; }, [user]);
 
   // Load existing connection
   useEffect(() => {
@@ -137,8 +146,11 @@ export function useSpotify() {
     }
   }, [user]);
 
-  // Refresh access token if expired
+  // Refresh access token if expired. Reads connection/user from refs so its
+  // identity stays stable (deps []), preventing player re-init on refresh.
   const refreshToken = useCallback(async (): Promise<string | null> => {
+    const connection = connectionRef.current;
+    const user = userRef.current;
     if (!connection || !user) return null;
 
     const isExpired = new Date(connection.token_expires_at) <= new Date();
@@ -182,26 +194,28 @@ export function useSpotify() {
     } catch {
       return null;
     }
-  }, [connection, user]);
+  }, []);
+
+  // Get a valid (non-expired) access token, refreshing if needed. Stable identity.
+  const getValidToken = useCallback(async (): Promise<string | null> => {
+    const connection = connectionRef.current;
+    if (!connection) return null;
+    const isExpired = new Date(connection.token_expires_at) <= new Date();
+    if (!isExpired) return connection.access_token;
+    return refreshToken();
+  }, [refreshToken]);
 
   // Fetch mood-based recommendations
   const fetchRecommendations = useCallback(async (mood: SpotifyMood) => {
-    if (!connection) return;
+    if (!connectionRef.current) return;
     setLoadingTracks(true);
     setError(null);
 
     try {
-      let token = connection.access_token;
-
-      // Refresh if needed
-      const isExpired = new Date(connection.token_expires_at) <= new Date();
-      if (isExpired) {
-        const refreshed = await refreshToken();
-        if (!refreshed) {
-          setError('Session expired — reconnect Spotify in Settings');
-          return;
-        }
-        token = refreshed;
+      const token = await getValidToken();
+      if (!token) {
+        setError('Session expired — reconnect Spotify in Settings');
+        return;
       }
 
       const res = await fetch(
@@ -237,15 +251,7 @@ export function useSpotify() {
     } finally {
       setLoadingTracks(false);
     }
-  }, [connection, refreshToken]);
-
-  // Get a valid (non-expired) access token, refreshing if needed
-  const getValidToken = useCallback(async (): Promise<string | null> => {
-    if (!connection) return null;
-    const isExpired = new Date(connection.token_expires_at) <= new Date();
-    if (!isExpired) return connection.access_token;
-    return refreshToken();
-  }, [connection, refreshToken]);
+  }, [getValidToken, refreshToken]);
 
   // Disconnect Spotify
   const disconnect = useCallback(async () => {

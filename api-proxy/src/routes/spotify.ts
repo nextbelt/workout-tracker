@@ -387,8 +387,12 @@ spotifyRouter.put('/play', async (req: Request, res: Response) => {
   try {
     const params = device_id ? `?device_id=${encodeURIComponent(device_id)}` : '';
     const body: Record<string, unknown> = {};
-    if (uris) body.uris = uris;
-    if (offset) body.offset = offset;
+    // Only attach offset when we actually have URIs — Spotify rejects an offset
+    // with an empty/absent uris list.
+    if (uris && uris.length) {
+      body.uris = uris;
+      if (offset) body.offset = offset;
+    }
 
     const playRes = await fetch(`${SPOTIFY_API_BASE}/me/player/play${params}`, {
       method: 'PUT',

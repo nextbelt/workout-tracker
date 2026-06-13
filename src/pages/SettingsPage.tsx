@@ -7,7 +7,7 @@ import { useSpotify } from '../hooks/useSpotify';
 import { supabase } from '../lib/supabase';
 import { BodyweightLog } from '../components/BodyweightLog';
 import { useNotifications } from '../hooks/useNotifications';
-import { downloadPlanPdf, downloadExerciseReferencePdf, type PdfBlockExercise } from '../lib/planPdfGenerator';
+import type { PdfBlockExercise } from '../lib/planPdfGenerator';
 import { calculateNutrition, type OnboardingAnswers } from '../lib/programGenerator';
 import type { TrainingMode, ActivityLevel, MealsPerDay, EatingApproach, DayTemplate } from '../types/database';
 
@@ -35,9 +35,9 @@ export default function SettingsPage() {
   const [equipment, setEquipment] = useState<string[]>(profile?.equipment_available ?? ['barbell', 'dumbbell', 'cable', 'machine']);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [restDayReminder, setRestDayReminder] = useState(true);
-  const [proteinAlert, setProteinAlert] = useState(true);
-  const [recoveryWarning, setRecoveryWarning] = useState(true);
+  const [restDayReminder, setRestDayReminder] = useState(profile?.notify_rest_day ?? true);
+  const [proteinAlert, setProteinAlert] = useState(profile?.notify_protein ?? true);
+  const [recoveryWarning, setRecoveryWarning] = useState(profile?.notify_recovery ?? true);
   const notifications = useNotifications();
 
   const autoCalcInitRef = useRef(false);
@@ -82,13 +82,16 @@ export default function SettingsPage() {
         calorie_target: Number(calorieTarget) || profile?.calorie_target || 0,
         training_mode: trainingMode,
         equipment_available: equipment,
+        notify_rest_day: restDayReminder,
+        notify_protein: proteinAlert,
+        notify_recovery: recoveryWarning,
       })
       .eq('id', profile.id);
     await refreshProfile();
     setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
-  }, [profile, displayName, heightInches, currentWeight, targetWeight, proteinMin, proteinMax, calorieTarget, trainingMode, equipment, refreshProfile]);
+  }, [profile, displayName, heightInches, currentWeight, targetWeight, proteinMin, proteinMax, calorieTarget, trainingMode, equipment, restDayReminder, proteinAlert, recoveryWarning, refreshProfile]);
 
   return (
     <div className="p-4 pb-24 space-y-6">
@@ -286,7 +289,18 @@ export default function SettingsPage() {
                   Disconnect
                 </button>
               </div>
-              <p className="text-faint text-xs">Mood-based playlists will appear on your workout screen.</p>
+              <p className="text-faint text-xs">Mood-based playlists will play during your workout.</p>
+              {/* Show reconnect prompt if missing streaming scope */}
+              {spotify.connection && !(spotify.connection.scopes ?? []).includes('streaming') && (
+                <button
+                  onClick={spotify.connect}
+                  disabled={spotify.loading}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 min-h-11 bg-[#1DB954]/15 text-[#1DB954] font-medium rounded-xl text-sm transition-colors hover:bg-[#1DB954]/25 disabled:opacity-50"
+                >
+                  {spotify.loading ? <Loader2 size={16} className="animate-spin" /> : <Music size={16} />}
+                  Reconnect for full playback
+                </button>
+              )}
             </>
           ) : (
             <>
@@ -450,6 +464,7 @@ export default function SettingsPage() {
             previousTrainingStyle: profile.previous_training_style ?? undefined,
             showFormExplanations: profile.show_form_explanations ?? 'all',
           };
+          const { downloadPlanPdf } = await import('../lib/planPdfGenerator');
           downloadPlanPdf(answers, profile.display_name, pdfExercises);
         }}
         className="w-full bg-surface-2 hover:bg-surface-3 text-brand font-medium rounded-xl py-3 min-h-11 transition-colors flex items-center justify-center gap-2"
@@ -513,6 +528,7 @@ export default function SettingsPage() {
             };
           });
 
+          const { downloadExerciseReferencePdf } = await import('../lib/planPdfGenerator');
           downloadExerciseReferencePdf(pdfExercises, profile.display_name);
         }}
         className="w-full bg-surface-2 hover:bg-surface-3 text-brand font-medium rounded-xl py-3 min-h-11 transition-colors flex items-center justify-center gap-2"

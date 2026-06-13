@@ -1,6 +1,7 @@
 import { useState, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, NavLink, useLocation } from 'react-router-dom';
-import { Dumbbell, CalendarDays, Apple, History, Settings, BarChart3, BookOpen, Loader2, Home } from 'lucide-react';
+import { Dumbbell, CalendarDays, Apple, History, Settings, BarChart3, BookOpen, Loader2, Home, ScanEye } from 'lucide-react';
+import { CAMERA_COACH_ENABLED } from './vision/config';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import { RestTimerProvider } from './context/RestTimerContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -12,12 +13,15 @@ import TodayPage from './pages/TodayPage';
 import ProgramPage from './pages/ProgramPage';
 import NutritionPage from './pages/NutritionPage';
 import HistoryPage from './pages/HistoryPage';
-import SettingsPage from './pages/SettingsPage';
 import SpotifyCallbackPage from './pages/SpotifyCallbackPage';
 import { RestTimerWidget } from './components/RestTimer';
 
 const AnalyticsPage = lazy(() => import('./pages/AnalyticsPage'));
 const ExerciseLibraryPage = lazy(() => import('./pages/ExerciseLibraryPage'));
+// Lazy so jsPDF (~336KB, imported by planPdfGenerator) stays out of the initial bundle.
+const SettingsPage = lazy(() => import('./pages/SettingsPage'));
+// Lazy so MediaPipe wasm/model only loads when the user opens Camera Coach.
+const CameraCoachPage = lazy(() => import('./pages/CameraCoachPage'));
 
 const NAV_ITEMS = [
   { to: '/',           label: 'Home',      Icon: Home         },
@@ -28,10 +32,11 @@ const NAV_ITEMS = [
 
 const MORE_PAGES = [
   { to: '/program',    label: 'Program',   Icon: CalendarDays },
+  ...(CAMERA_COACH_ENABLED ? [{ to: '/camera-coach', label: 'Camera Coach', Icon: ScanEye }] : []),
   { to: '/analytics',  label: 'Analytics', Icon: BarChart3    },
   { to: '/history',    label: 'History',   Icon: History      },
   { to: '/settings',   label: 'Settings',  Icon: Settings     },
-] as const;
+];
 
 function AppShell() {
   const { user, profile, loading, profileLoading } = useAuth();
@@ -78,6 +83,7 @@ function AppShell() {
           <Route path="/history"    element={<HistoryPage />}         />
           <Route path="/exercises"  element={<ExerciseLibraryPage />} />
           <Route path="/settings"   element={<SettingsPage />}        />
+          {CAMERA_COACH_ENABLED && <Route path="/camera-coach" element={<CameraCoachPage />} />}
           <Route path="/onboarding" element={<OnboardingFlow />}     />
           <Route path="/spotify/callback" element={<SpotifyCallbackPage />} />
         </Routes>

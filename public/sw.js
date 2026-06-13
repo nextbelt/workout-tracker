@@ -76,22 +76,18 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 2) Navigation (HTML pages) — Stale-while-revalidate
-  //    Serve cached HTML instantly (prevents reload flash when returning
-  //    to a background tab), then update the cache in the background.
-  //    New deploys take effect on next visit.
+  // 2) Navigation (HTML pages) — Network-first, cache fallback.
+  //    Always try the network so a fresh deploy (new hashed asset refs in
+  //    index.html) is picked up on the FIRST load; fall back to cache offline.
   if (isNavigationRequest(request)) {
     event.respondWith(
-      caches.match(request).then((cached) => {
-        const networkFetch = fetch(request)
-          .then((response) => {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
-            return response;
-          })
-          .catch(() => cached ?? caches.match('/'));
-        return cached ?? networkFetch;
-      }),
+      fetch(request)
+        .then((response) => {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          return response;
+        })
+        .catch(() => caches.match(request).then((cached) => cached ?? caches.match('/'))),
     );
     return;
   }

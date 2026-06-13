@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { BarChart3, TrendingUp, Calendar, Heart, Apple, Loader2, ChevronDown, Smile } from 'lucide-react';
+import { BarChart3, TrendingUp, Calendar, Heart, Apple, Loader2, ChevronDown, Smile, Scale } from 'lucide-react';
 import { useAnalytics } from '../hooks/useAnalytics';
 import { useWorkout } from '../hooks/useWorkout';
 import {
@@ -19,12 +19,13 @@ import {
   ZAxis,
 } from 'recharts';
 
-type TabKey = 'volume' | 'progression' | 'consistency' | 'recovery' | 'nutrition' | 'mood';
+type TabKey = 'volume' | 'progression' | 'consistency' | 'recovery' | 'nutrition' | 'mood' | 'weight';
 
 const TABS: Array<{ key: TabKey; label: string; Icon: typeof BarChart3 }> = [
   { key: 'volume', label: 'Volume', Icon: BarChart3 },
   { key: 'progression', label: 'Progress', Icon: TrendingUp },
   { key: 'consistency', label: 'Streak', Icon: Calendar },
+  { key: 'weight', label: 'Weight', Icon: Scale },
   { key: 'recovery', label: 'Recovery', Icon: Heart },
   { key: 'nutrition', label: 'Nutrition', Icon: Apple },
   { key: 'mood', label: 'Mood', Icon: Smile },
@@ -40,12 +41,16 @@ const CHART_COLORS = {
 };
 
 function useChartTheme() {
-  const style = typeof window !== 'undefined' ? getComputedStyle(document.documentElement) : null;
-  return {
-    surface: style?.getPropertyValue('--color-surface-2').trim() || '#1a1a1a',
-    border: style?.getPropertyValue('--color-border').trim() || '#333333',
-    text: style?.getPropertyValue('--color-muted').trim() || '#a3a3a3',
-  };
+  // Memoized: getComputedStyle forces a reflow, and a fresh object every render
+  // would defeat recharts' internal memoization.
+  return useMemo(() => {
+    const style = typeof window !== 'undefined' ? getComputedStyle(document.documentElement) : null;
+    return {
+      surface: style?.getPropertyValue('--color-surface-2').trim() || '#1a1a1a',
+      border: style?.getPropertyValue('--color-border').trim() || '#333333',
+      text: style?.getPropertyValue('--color-muted').trim() || '#a3a3a3',
+    };
+  }, []);
 }
 
 export default function AnalyticsPage() {
@@ -58,6 +63,7 @@ export default function AnalyticsPage() {
     getRecoveryData,
     getNutritionTrends,
     getMoodCorrelation,
+    getBodyweightTrend,
   } = useAnalytics();
   const { blockExercises } = useWorkout();
   const chartTheme = useChartTheme();
@@ -90,6 +96,7 @@ export default function AnalyticsPage() {
   const [nutritionData, setNutritionData] = useState<Array<Record<string, unknown>>>([]);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [moodData, setMoodData] = useState<Array<Record<string, any>>>([]);
+  const [weightData, setWeightData] = useState<Array<{ date: string; weight: number }>>([]);
   const [selectedExercise, setSelectedExercise] = useState<string>('');
 
   const loadTab = useCallback(async (tab: TabKey, exerciseOverride?: string) => {
@@ -145,9 +152,14 @@ export default function AnalyticsPage() {
         setMoodData(data);
         break;
       }
+      case 'weight': {
+        const data = await getBodyweightTrend(90);
+        setWeightData(data);
+        break;
+      }
     }
     setLoading(false);
-  }, [getVolumeOverTime, getExerciseProgress, getConsistency, getRecoveryData, getNutritionTrends, getMoodCorrelation, selectedExercise]);
+  }, [getVolumeOverTime, getExerciseProgress, getConsistency, getRecoveryData, getNutritionTrends, getMoodCorrelation, getBodyweightTrend, selectedExercise]);
 
   useEffect(() => {
     loadTab(activeTab);
@@ -279,6 +291,27 @@ export default function AnalyticsPage() {
           </div>
         );
 
+      case 'weight':
+        return weightData.length === 0 ? (
+          <EmptyState message="Log your bodyweight (Settings) to see your trend." />
+        ) : (
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={weightData}>
+                <CartesianGrid strokeDasharray="3 3" stroke={chartTheme.border} />
+                <XAxis dataKey="date" tick={{ fontSize: 10, fill: chartTheme.text }} />
+                <YAxis domain={['dataMin - 2', 'dataMax + 2']} tick={{ fontSize: 10, fill: chartTheme.text }} />
+                <Tooltip
+                  contentStyle={{ backgroundColor: chartTheme.surface, border: `1px solid ${chartTheme.border}`, borderRadius: '8px' }}
+                  labelStyle={{ color: '#fff' }}
+                  formatter={(value) => [`${Number(value).toFixed(1)} lbs`, 'Weight']}
+                />
+                <Line type="monotone" dataKey="weight" stroke={CHART_COLORS.brand} strokeWidth={2} dot={{ fill: CHART_COLORS.brand, r: 2 }} name="Weight" />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        );
+
       case 'recovery':
         return recoveryData.length === 0 ? (
           <EmptyState message="Rate your recovery after workouts to see trends." />
@@ -371,9 +404,9 @@ export default function AnalyticsPage() {
                     <XAxis
                       dataKey="moodNum"
                       type="number"
-                      domain={[0.5, 4.5]}
-                      ticks={[1, 2, 3, 4]}
-                      tickFormatter={(v: number) => ['', 'Beat Up', 'Low', 'Steady', 'Fired Up'][v] ?? ''}
+                      domain={[0.5, 3.5]}
+                      ticks={[1, 2, 3]}
+                      tickFormatter={(v: number) => ['', 'Drained', 'Normal', 'Energized'][v] ?? ''}
                       tick={{ fontSize: 9, fill: chartTheme.text }}
                       name="Mood"
                     />
@@ -388,7 +421,7 @@ export default function AnalyticsPage() {
                       labelStyle={{ color: '#fff' }}
                       formatter={(value, name) => {
                         if (name === 'Mood') {
-                          const labels = ['', 'Beat Up', 'Low', 'Steady', 'Fired Up'];
+                          const labels = ['', 'Drained', 'Normal', 'Energized'];
                           return labels[Number(value)] ?? value;
                         }
                         return name === 'Volume' ? `${Number(value).toLocaleString()} lbs` : value;
@@ -408,9 +441,9 @@ export default function AnalyticsPage() {
                     <CartesianGrid strokeDasharray="3 3" stroke={chartTheme.border} />
                     <XAxis dataKey="date" tick={{ fontSize: 10, fill: chartTheme.text }} />
                     <YAxis
-                      domain={[0.5, 4.5]}
-                      ticks={[1, 2, 3, 4]}
-                      tickFormatter={(v: number) => ['', '😫', '😐', '💪', '🔥'][v] ?? ''}
+                      domain={[0.5, 3.5]}
+                      ticks={[1, 2, 3]}
+                      tickFormatter={(v: number) => ['', '😫', '😐', '🔥'][v] ?? ''}
                       tick={{ fontSize: 12, fill: chartTheme.text }}
                     />
                     <Tooltip
@@ -424,9 +457,9 @@ export default function AnalyticsPage() {
               </div>
             </div>
             {/* Mood summary cards */}
-            <div className="grid grid-cols-4 gap-2">
-              {(['fired_up', 'steady', 'low', 'beat_up'] as const).map((m) => {
-                const moodLabels: Record<string, string> = { fired_up: '🔥', steady: '💪', low: '😐', beat_up: '😫' };
+            <div className="grid grid-cols-3 gap-2">
+              {(['energized', 'normal', 'low_energy'] as const).map((m) => {
+                const moodLabels: Record<string, string> = { energized: '🔥', normal: '😐', low_energy: '😫' };
                 const count = (moodData as Array<{ mood: string }>).filter((d) => d.mood === m).length;
                 const avgVol = count > 0
                   ? Math.round((moodData as Array<{ mood: string; totalVolume: number }>)

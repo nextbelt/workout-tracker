@@ -65,6 +65,9 @@ export interface Database {
           split_type: SplitType;
           onboarding_completed: boolean;
           onboarding_completed_at: string | null;
+          notify_rest_day: boolean;
+          notify_protein: boolean;
+          notify_recovery: boolean;
           compound_rep_min: number;
           compound_rep_max: number;
           starting_rir: number;
@@ -125,6 +128,9 @@ export interface Database {
           split_type?: SplitType;
           onboarding_completed?: boolean;
           onboarding_completed_at?: string | null;
+          notify_rest_day?: boolean;
+          notify_protein?: boolean;
+          notify_recovery?: boolean;
           compound_rep_min?: number;
           compound_rep_max?: number;
           starting_rir?: number;
@@ -183,6 +189,9 @@ export interface Database {
           split_type?: SplitType;
           onboarding_completed?: boolean;
           onboarding_completed_at?: string | null;
+          notify_rest_day?: boolean;
+          notify_protein?: boolean;
+          notify_recovery?: boolean;
           compound_rep_min?: number;
           compound_rep_max?: number;
           starting_rir?: number;
@@ -837,6 +846,145 @@ export interface Database {
           token_expires_at?: string;
           scopes?: string[];
           updated_at?: string;
+        };
+        Relationships: [];
+      };
+      youtube_search_cache: {
+        Row: {
+          id: string;
+          search_query: string;
+          results: Json;
+          fetched_at: string;
+        };
+        Insert: {
+          id?: string;
+          search_query: string;
+          results: Json;
+          fetched_at?: string;
+        };
+        Update: {
+          id?: string;
+          search_query?: string;
+          results?: Json;
+          fetched_at?: string;
+        };
+        Relationships: [];
+      };
+      vision_sessions: {
+        Row: {
+          id: string;
+          user_id: string;
+          workout_session_id: string | null;
+          exercise_name: string;
+          started_at: string;
+          ended_at: string | null;
+          pose_provider: string;
+          object_detection_provider: string | null;
+          device_info: string | null;
+          frame_upload_consent: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          workout_session_id?: string | null;
+          exercise_name: string;
+          started_at?: string;
+          ended_at?: string | null;
+          pose_provider?: string;
+          object_detection_provider?: string | null;
+          device_info?: string | null;
+          frame_upload_consent?: boolean;
+        };
+        Update: {
+          ended_at?: string | null;
+          exercise_name?: string;
+          object_detection_provider?: string | null;
+          frame_upload_consent?: boolean;
+          workout_session_id?: string | null;
+        };
+        Relationships: [];
+      };
+      pose_session_summaries: {
+        Row: {
+          id: string;
+          vision_session_id: string;
+          reps_detected: number;
+          reps_confirmed: number | null;
+          avg_tempo: number | null;
+          cue_summary: Json | null;
+          confidence_avg: number | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          vision_session_id: string;
+          reps_detected?: number;
+          reps_confirmed?: number | null;
+          avg_tempo?: number | null;
+          cue_summary?: Json | null;
+          confidence_avg?: number | null;
+        };
+        Update: {
+          reps_confirmed?: number | null;
+          avg_tempo?: number | null;
+          cue_summary?: Json | null;
+          confidence_avg?: number | null;
+        };
+        Relationships: [];
+      };
+      object_detection_events: {
+        Row: {
+          id: string;
+          vision_session_id: string;
+          class_name: string;
+          confidence: number;
+          bounding_box: Json | null;
+          timestamp: string;
+          provider: string;
+          model_version: string | null;
+        };
+        Insert: {
+          id?: string;
+          vision_session_id: string;
+          class_name: string;
+          confidence: number;
+          bounding_box?: Json | null;
+          timestamp?: string;
+          provider: string;
+          model_version?: string | null;
+        };
+        Update: {
+          confidence?: number;
+          bounding_box?: Json | null;
+        };
+        Relationships: [];
+      };
+      ai_corrections: {
+        Row: {
+          id: string;
+          user_id: string;
+          vision_session_id: string | null;
+          predicted_exercise: string | null;
+          corrected_exercise: string | null;
+          predicted_reps: number | null;
+          corrected_reps: number | null;
+          correction_type: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          vision_session_id?: string | null;
+          predicted_exercise?: string | null;
+          corrected_exercise?: string | null;
+          predicted_reps?: number | null;
+          corrected_reps?: number | null;
+          correction_type: string;
+        };
+        Update: {
+          corrected_exercise?: string | null;
+          corrected_reps?: number | null;
         };
         Relationships: [];
       };

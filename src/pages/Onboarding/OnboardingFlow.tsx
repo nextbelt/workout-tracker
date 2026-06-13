@@ -831,7 +831,7 @@ export default function OnboardingFlow() {
                     <p className="text-xs text-muted">Target Calories</p>
                     <p className="text-2xl font-bold text-brand">{params.calorieTarget}</p>
                     <p className="text-xs text-faint">
-                      {primaryGoal === 'lose_fat' ? '20% deficit' : primaryGoal === 'build_muscle' || primaryGoal === 'get_stronger' ? '10% surplus' : 'maintenance'}
+                      {primaryGoal === 'lose_fat' ? '~500 kcal deficit' : primaryGoal === 'build_muscle' || primaryGoal === 'get_stronger' ? '10% surplus' : 'maintenance'}
                     </p>
                   </div>
                   <div className="grid grid-cols-3 gap-2 text-center">

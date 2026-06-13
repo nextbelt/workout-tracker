@@ -2,14 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { ChevronDown, ChevronUp, Loader2, Calendar, Dumbbell } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../hooks/useAuth';
+import { dayLabel } from '../lib/dayLabels';
 import type { SetLog } from '../types/database';
-
-const DAY_LABELS: Record<string, string> = {
-  upper_a: 'Upper A',
-  lower_a: 'Lower A',
-  upper_b: 'Upper B',
-  lower_b: 'Lower B',
-};
 
 const RECOVERY_COLORS: Record<string, string> = {
   great: 'text-brand',
@@ -129,7 +123,7 @@ export default function HistoryPage() {
               <div className="text-left">
                 <div className="flex items-center gap-2">
                   <p className="text-foreground font-medium">
-                    {DAY_LABELS[session.day_template] ?? session.day_template}
+                    {dayLabel(session.day_template)}
                   </p>
                   {session.recovery_rating && (
                     <span className={`text-xs font-medium capitalize ${RECOVERY_COLORS[session.recovery_rating] ?? 'text-muted'}`}>

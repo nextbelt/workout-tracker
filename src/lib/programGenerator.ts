@@ -140,6 +140,7 @@ export function calculateNutrition(
   heightInches?: number | null,
   activityLevel?: string | null,
   primaryGoal?: PrimaryGoal | null,
+  eatingApproach?: EatingApproach | null,
 ): NutritionResult {
   const w = currentWeight ?? 170;
   const userAge = age ?? 30;
@@ -196,8 +197,12 @@ export function calculateNutrition(
   // Use midpoint for macro math
   const proteinGrams = Math.round((proteinMin + proteinMax) / 2);
 
-  // Fat: 25% of total calories (minimum for hormone health)
-  const fatCalories = Math.round(calorieTarget * 0.25);
+  // Fat ratio varies by eating approach (default balanced = 25% for hormone health).
+  // Carbs take the remainder, so keto automatically yields very low carbs.
+  let fatRatio = 0.25;
+  if (eatingApproach === 'keto') fatRatio = 0.65;
+  else if (eatingApproach === 'high_carb') fatRatio = 0.20;
+  const fatCalories = Math.round(calorieTarget * fatRatio);
   const fatTarget = Math.round(fatCalories / 9);
 
   // Carbs: remaining calories
@@ -292,6 +297,7 @@ export function deriveTrainingParams(answers: OnboardingAnswers): DerivedTrainin
     answers.heightInches,
     answers.activityLevel,
     answers.primaryGoal,
+    answers.eatingApproach,
   );
 
   // ── BMI & Timeline ────────────────────────────────────────────────────

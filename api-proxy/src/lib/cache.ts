@@ -18,14 +18,21 @@ function getClient() {
   return createClient(url, key);
 }
 
+// Cached rows older than this are ignored (and re-fetched), so a bad/stale result
+// — e.g. an Open Food Facts entry cached while USDA was misconfigured — heals itself
+// instead of being served forever.
+const CACHE_TTL_DAYS = 30;
+
 export async function cacheGet(query: string): Promise<NormalizedFood[]> {
   try {
     const supabase = getClient();
     const term = query.toLowerCase().trim();
+    const freshSince = new Date(Date.now() - CACHE_TTL_DAYS * 24 * 60 * 60 * 1000).toISOString();
     const { data, error } = await supabase
       .from('food_cache')
       .select('*')
       .contains('search_terms', [term])
+      .gte('last_fetched', freshSince)
       .limit(10);
 
     if (error) throw error;

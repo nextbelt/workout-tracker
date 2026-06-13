@@ -101,7 +101,9 @@ export function FoodSearch({ mealType, onAdd, searchFood, recentFoods = [], onCl
                 className="w-16 bg-surface-3 border border-neutral-600 rounded-lg px-2 py-1 min-h-11 text-center text-foreground focus:outline-none focus:border-brand"
               />
               <span className="text-faint text-xs">
-                ({selectedFood.serving_description ?? `${servingGrams}g`})
+                ({servingCount === 1
+                  ? (selectedFood.serving_description ?? `${servingGrams}g`)
+                  : `${servingCount} × ${selectedFood.serving_description ?? `${servingGrams}g`}`})
               </span>
             </div>
             <div className="flex gap-3 mt-2 text-xs text-muted">
@@ -154,7 +156,7 @@ export function FoodSearch({ mealType, onAdd, searchFood, recentFoods = [], onCl
                     className="flex-1 text-left p-3 min-h-11 bg-surface-3/50 hover:bg-surface-3 rounded-xl transition-colors"
                   >
                     <p className="text-foreground text-sm font-medium truncate">{fav.name}</p>
-                    <span className="text-neutral-600 text-xs">
+                    <span className="text-faint text-xs">
                       {Math.round(fav.calories)} cal · {Math.round(fav.protein)}g P
                     </span>
                   </button>
@@ -203,7 +205,7 @@ function FoodResultRow({ food, onSelect, onFavorite }: { food: FoodResult; onSel
         <p className="text-foreground text-sm font-medium truncate">{food.name}</p>
         <div className="flex items-center gap-2 mt-0.5">
           {food.brand && <span className="text-faint text-xs">{food.brand}</span>}
-          <span className="text-neutral-600 text-xs">
+          <span className="text-faint text-xs">
             {Math.round(food.calories_per_100g * (food.serving_grams ?? 100) / 100)} cal · {Math.round(food.protein_per_100g * (food.serving_grams ?? 100) / 100)}g P
           </span>
         </div>

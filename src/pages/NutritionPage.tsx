@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { Plus, Trash2, Edit3, ChevronDown, ChevronUp, Loader2, ScanBarcode, TrendingUp } from 'lucide-react';
+import { Plus, Trash2, Edit3, ChevronDown, ChevronUp, Loader2, ScanBarcode, TrendingUp, Sunrise, Sun, Moon, Cookie, Check, AlertTriangle, type LucideIcon } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useNutrition } from '../hooks/useNutrition';
 import { ProteinBar, MacroCard } from '../components/MacroDashboard';
@@ -16,12 +16,24 @@ const MEAL_LABELS: Record<MealType, string> = {
   dinner: 'Dinner',
   snack: 'Snacks',
 };
-const MEAL_ICONS: Record<MealType, string> = {
-  breakfast: '🌅',
-  lunch: '☀️',
-  dinner: '🌙',
-  snack: '🍎',
+const MEAL_ICONS: Record<MealType, LucideIcon> = {
+  breakfast: Sunrise,
+  lunch: Sun,
+  dinner: Moon,
+  snack: Cookie,
 };
+
+// Shape returned by the api-proxy /api/food/search route (per its serving_size).
+interface ProxyFood {
+  source: string;
+  external_id: string;
+  food_name: string;
+  serving_size: string | null;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+}
 
 export default function NutritionPage() {
   const { profile, user } = useAuth();
@@ -111,10 +123,13 @@ export default function NutritionPage() {
     if (!searchMeal) return;
     const sg = food.serving_grams ?? 100;
     const mult = (sg * servings) / 100;
+    // Macros are scaled by `servings`, so the serving label must reflect it too —
+    // otherwise a 2-serving (330 cal) entry misleadingly logs as a single "100g".
+    const oneServing = food.serving_description ?? `${Math.round(sg)}g`;
     await addEntry({
       meal_type: searchMeal,
       food_name: food.name,
-      serving_size: food.serving_description ?? `${Math.round(sg * servings)}g`,
+      serving_size: servings === 1 ? oneServing : `${servings} × ${oneServing}`,
       calories: Math.round(food.calories_per_100g * mult),
       protein: Math.round(food.protein_per_100g * mult),
       carbs: Math.round(food.carbs_per_100g * mult),
@@ -143,12 +158,24 @@ export default function NutritionPage() {
       const res = await fetch(`${API_BASE}/api/food/search?q=${encodeURIComponent(query)}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
-      if (json.error) {
-        setSearchError(true);
-      } else {
-        setSearchError(false);
-      }
-      return json.results ?? [];
+      setSearchError(Boolean(json.error));
+      // The proxy returns ONE macro set per its `serving_size` (USDA = per 100g,
+      // OFF = per its serving). Map into the per-100g + serving_grams:100 shape
+      // FoodSearch expects so the multiplier is 1 — i.e. "1 serving" shows the
+      // proxy's numbers verbatim. Without this map the *_per_100g fields are
+      // undefined and every row renders "NaN cal · NaNg P".
+      return ((json.results ?? []) as ProxyFood[]).map((r) => ({
+        name: r.food_name,
+        brand: null,
+        calories_per_100g: Number(r.calories) || 0,
+        protein_per_100g: Number(r.protein) || 0,
+        carbs_per_100g: Number(r.carbs) || 0,
+        fat_per_100g: Number(r.fat) || 0,
+        serving_description: r.serving_size ?? null,
+        serving_grams: 100,
+        source: r.source,
+        source_id: r.external_id,
+      }));
     } catch {
       setSearchError(true);
       return [];
@@ -216,15 +243,17 @@ export default function NutritionPage() {
               {weeklyAvg.days < 7 && ` (${weeklyAvg.days} days logged)`}
             </p>
           </div>
-          {profile?.protein_target_min && (
-            <div className={`px-2 py-1 rounded-lg text-xs font-medium ${
-              weeklyAvg.protein >= (profile.protein_target_min ?? 0)
-                ? 'bg-green-500/15 text-green-400'
-                : 'bg-yellow-500/15 text-yellow-400'
-            }`}>
-              {weeklyAvg.protein >= (profile.protein_target_min ?? 0) ? '✓ On Track' : 'Below Target'}
-            </div>
-          )}
+          {profile?.protein_target_min && (() => {
+            const onTrack = weeklyAvg.protein >= (profile.protein_target_min ?? 0);
+            return (
+              <div className={`px-2 py-1 rounded-lg text-xs font-medium flex items-center gap-1 shrink-0 ${
+                onTrack ? 'bg-success/10 text-success-strong' : 'bg-warning/10 text-warning-strong'
+              }`}>
+                {onTrack && <Check size={12} />}
+                {onTrack ? 'On Track' : 'Below Target'}
+              </div>
+            );
+          })()}
         </div>
       )}
 
@@ -233,8 +262,9 @@ export default function NutritionPage() {
 
       {/* Search error banner */}
       {searchError && (
-        <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3 flex items-center gap-2">
-          <span className="text-yellow-400 text-sm">⚠️ Food search unavailable — try again later or use Manual entry.</span>
+        <div className="bg-warning/10 border border-warning/20 rounded-xl p-3 flex items-center gap-2">
+          <AlertTriangle size={16} className="text-warning-strong shrink-0" />
+          <span className="text-warning-strong text-sm">Food search unavailable — try again later or use Manual entry.</span>
         </div>
       )}
 
@@ -243,6 +273,7 @@ export default function NutritionPage() {
         const mealEntries = entriesByMeal.get(meal) ?? [];
         const totalsForMeal = mealTotals.get(meal) ?? { calories: 0, protein: 0 };
         const isExpanded = expandedMeal === meal;
+        const MealIcon = MEAL_ICONS[meal];
 
         return (
           <div key={meal} className="bg-surface-2 rounded-xl overflow-hidden">
@@ -252,7 +283,9 @@ export default function NutritionPage() {
               className="w-full flex items-center justify-between p-4 min-h-11"
             >
               <div className="flex items-center gap-3">
-                <span className="text-lg">{MEAL_ICONS[meal]}</span>
+                <div className="w-9 h-9 bg-brand/10 rounded-lg flex items-center justify-center shrink-0">
+                  <MealIcon size={18} className="text-brand" />
+                </div>
                 <div className="text-left">
                   <p className="text-foreground font-medium">{MEAL_LABELS[meal]}</p>
                   <p className="text-faint text-xs">
@@ -276,7 +309,7 @@ export default function NutritionPage() {
                       <p className="text-foreground text-sm font-medium truncate">{entry.food_name}</p>
                       <p className="text-faint text-xs">
                         {Math.round(Number(entry.calories))} cal · {Math.round(Number(entry.protein))}g P · {Math.round(Number(entry.carbs))}g C · {Math.round(Number(entry.fat))}g F
-                        {entry.serving_size && <span className="ml-1 text-neutral-600">({entry.serving_size})</span>}
+                        {entry.serving_size && <span className="ml-1 text-faint">({entry.serving_size})</span>}
                       </p>
                     </div>
                     <div className="flex items-center gap-0.5 shrink-0">

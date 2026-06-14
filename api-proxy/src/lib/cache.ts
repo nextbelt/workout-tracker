@@ -32,7 +32,7 @@ export async function cacheGet(query: string): Promise<NormalizedFood[]> {
       .from('food_cache')
       .select('*')
       .contains('search_terms', [term])
-      .gte('last_fetched', freshSince)
+      .gte('created_at', freshSince)
       .limit(10);
 
     if (error) throw error;
@@ -68,12 +68,14 @@ export async function cacheSet(query: string, foods: NormalizedFood[]): Promise<
       carbs: f.carbs,
       fat: f.fat,
       search_terms: [term],
-      last_fetched: new Date().toISOString(),
+      // The table has no last_fetched column; created_at IS the freshness anchor.
+      // Set it explicitly so a re-fetch (upsert merge) refreshes the TTL window.
+      created_at: new Date().toISOString(),
     }));
 
     const { error } = await supabase
       .from('food_cache')
-      .upsert(rows, { onConflict: 'external_id,source' });
+      .upsert(rows, { onConflict: 'source,external_id' });
 
     if (error) throw error;
   } catch (err) {

@@ -14,6 +14,13 @@ interface NormalizedFood {
   fat: number;
 }
 
+// Some USDA Foundation foods carry only granular analytical nutrients (individual
+// fatty acids, vitamins) and omit the summary macros entirely — those map to an
+// all-zero row that's useless to log, so drop them.
+function hasMacros(f: NormalizedFood): boolean {
+  return f.calories > 0 || f.protein > 0 || f.carbs > 0 || f.fat > 0;
+}
+
 function usdaToNormalized(item: Record<string, unknown>): NormalizedFood {
   const nutrients = (item['foodNutrients'] as Record<string, unknown>[]) ?? [];
   const get = (id: number) =>
@@ -85,7 +92,7 @@ foodRouter.get('/search', async (req: Request, res: Response) => {
         });
         if (!response.ok) throw new Error(`USDA API error: ${response.status}`);
         const data = (await response.json()) as { foods?: Record<string, unknown>[] };
-        results = (data.foods ?? []).map(usdaToNormalized);
+        results = (data.foods ?? []).map(usdaToNormalized).filter(hasMacros);
       } catch (usdaErr) {
         console.error('[food/search] USDA failed, trying OFF fallback:', usdaErr);
       }
@@ -102,7 +109,8 @@ foodRouter.get('/search', async (req: Request, res: Response) => {
           const offData = (await offResponse.json()) as { products?: Record<string, unknown>[] };
           results = (offData.products ?? [])
             .filter((p) => p['product_name'])
-            .map((p) => offToNormalized(p, String(p['code'] ?? '')));
+            .map((p) => offToNormalized(p, String(p['code'] ?? '')))
+            .filter(hasMacros);
         }
       } catch (offErr) {
         console.error('[food/search] OFF fallback also failed:', offErr);

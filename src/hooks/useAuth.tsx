@@ -1,6 +1,9 @@
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
 import type { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
+import { isGuestMode, exitGuestMode, GUEST_USER, GUEST_SESSION, GUEST_USER_ID } from '../lib/guest';
+import { ensureGuestSeeded } from '../lib/guestSeed';
+import { resetGuestDb } from '../lib/guestClient';
 import type { UserProfile } from '../types/database';
 
 interface AuthContextValue {
@@ -64,6 +67,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user, fetchProfile]);
 
   useEffect(() => {
+    // Guest/demo mode: synthesize a session and seed the in-memory backend
+    // before rendering the app. No real auth, no network.
+    if (isGuestMode()) {
+      setUser(GUEST_USER as unknown as User);
+      setSession(GUEST_SESSION as unknown as Session);
+      ensureGuestSeeded()
+        .then(() => fetchProfile(GUEST_USER_ID))
+        .finally(() => setLoading(false));
+      return;
+    }
+
     supabase.auth.getSession().then(({ data: { session: s } }) => {
       setSession(s);
       setUser(s?.user ?? null);
@@ -105,6 +119,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
+    if (isGuestMode()) {
+      exitGuestMode();
+      resetGuestDb();
+      window.location.reload();
+      return;
+    }
     await supabase.auth.signOut();
     setProfile(null);
     setCachedProfile(null);

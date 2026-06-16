@@ -1,7 +1,15 @@
 import { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
-import { Mail, Lock, Loader2 } from 'lucide-react';
+import { Mail, Lock, Loader2, Sparkles } from 'lucide-react';
 import { SkyHero } from '../components/SkyHero';
+import { enterGuestMode } from '../lib/guest';
+import { HAS_BACKEND } from '../lib/supabase';
+
+function startGuestDemo() {
+  enterGuestMode();
+  // Reload so the supabase client re-initializes as the in-memory mock.
+  window.location.reload();
+}
 
 export default function LoginPage() {
   const { signIn, signUp, signInWithMagicLink } = useAuth();
@@ -115,6 +123,26 @@ export default function LoginPage() {
             </p>
           </form>
         )}
+
+        {/* Guest / demo entry — works with or without a real backend */}
+        <div className="flex items-center gap-3 my-5">
+          <div className="flex-1 h-px bg-border" />
+          <span className="text-faint text-xs">or</span>
+          <div className="flex-1 h-px bg-border" />
+        </div>
+        <button
+          type="button"
+          onClick={startGuestDemo}
+          className="w-full bg-surface-2 hover:bg-surface-3 text-foreground font-semibold rounded-xl py-3.5 min-h-12 transition-colors border border-border flex items-center justify-center gap-2 active:scale-[0.99]"
+        >
+          <Sparkles size={18} className="text-brand" />
+          Explore the demo — no account
+        </button>
+        <p className="text-center text-faint text-xs mt-2">
+          {HAS_BACKEND
+            ? 'Loads a sample program, history & nutrition. Nothing is saved.'
+            : 'No backend configured — this loads a fully seeded local demo.'}
+        </p>
       </div>
     </div>
   );

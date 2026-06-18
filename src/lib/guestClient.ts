@@ -117,6 +117,7 @@ interface Filter {
   kind: FilterKind;
   col: string;
   val: unknown;
+  negate?: boolean;
 }
 
 type Result = { data: unknown; error: { message: string } | null; count: number | null };
@@ -182,6 +183,15 @@ class GuestQuery implements PromiseLike<Result> {
   }
   // PostgREST `.or()` is best-effort no-op here — the demo just shows unfiltered results.
   or() { return this; }
+  // PostgREST `.not(col, op, val)` — a negated filter, e.g. .not('completed_at','is',null)
+  // ⇒ "completed_at IS NOT NULL". Dotted (embedded) columns can't be evaluated before
+  // embeds are attached, so they pass through as a lenient no-op rather than wrongly
+  // dropping every row.
+  not(col: string, operator: string, val: unknown) {
+    if (col.includes('.')) return this;
+    this.filters.push({ kind: operator as FilterKind, col, val, negate: true });
+    return this;
+  }
 
   order(col: string, opts?: { ascending?: boolean }) {
     this.orderCol = col;
@@ -193,24 +203,28 @@ class GuestQuery implements PromiseLike<Result> {
   single() { this.singleMode = 'single'; this.returnRows = true; return this; }
   maybeSingle() { this.singleMode = 'maybe'; this.returnRows = true; return this; }
 
+  private matchOne(f: Filter, v: unknown): boolean {
+    switch (f.kind) {
+      case 'eq': return v === f.val;
+      case 'neq': return v !== f.val;
+      case 'gt': return cmp(v, f.val) > 0;
+      case 'gte': return cmp(v, f.val) >= 0;
+      case 'lt': return cmp(v, f.val) < 0;
+      case 'lte': return cmp(v, f.val) <= 0;
+      case 'in': return Array.isArray(f.val) && f.val.includes(v);
+      case 'is': return f.val === null ? v === null || v === undefined : v === f.val;
+      case 'contains':
+        return Array.isArray(v) && Array.isArray(f.val) && f.val.every((x) => v.includes(x));
+      case 'ilike':
+        return String(v ?? '').toLowerCase().includes(String(f.val).replace(/%/g, '').toLowerCase());
+      default: return true;
+    }
+  }
+
   private passes(row: Row): boolean {
     return this.filters.every((f) => {
-      const v = row[f.col];
-      switch (f.kind) {
-        case 'eq': return v === f.val;
-        case 'neq': return v !== f.val;
-        case 'gt': return cmp(v, f.val) > 0;
-        case 'gte': return cmp(v, f.val) >= 0;
-        case 'lt': return cmp(v, f.val) < 0;
-        case 'lte': return cmp(v, f.val) <= 0;
-        case 'in': return Array.isArray(f.val) && f.val.includes(v);
-        case 'is': return f.val === null ? v === null || v === undefined : v === f.val;
-        case 'contains':
-          return Array.isArray(v) && Array.isArray(f.val) && f.val.every((x) => v.includes(x));
-        case 'ilike':
-          return String(v ?? '').toLowerCase().includes(String(f.val).replace(/%/g, '').toLowerCase());
-        default: return true;
-      }
+      const res = this.matchOne(f, row[f.col]);
+      return f.negate ? !res : res;
     });
   }
 

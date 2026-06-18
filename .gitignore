@@ -34,3 +34,14 @@ api-proxy/.env.local
 *.sw?
 # Added by code-review-graph
 .code-review-graph/
+
+# AI assistant / agent tooling (local, per-developer — never commit)
+.claude/
+.gemini/
+.qoder/
+.opencode.json
+.mcp.json
+AGENTS.md
+
+# Supabase CLI local cache / temp
+supabase/.temp/

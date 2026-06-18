@@ -1,8 +1,3 @@
-<!--
-  Before you publish: replace OWNER below with your GitHub username (badges + clone URL),
-  add a LICENSE file, and set the deploy secrets listed in "Going to production".
--->
-
 <div align="center">
 
 # WorkIn.ai
@@ -20,7 +15,7 @@ mood-adaptive sessions, on-device AI form coaching, and food tracking, in one ca
 ![Supabase](https://img.shields.io/badge/Supabase-Postgres%20%2B%20RLS-3FCF8E?logo=supabase&logoColor=white)
 ![PWA](https://img.shields.io/badge/PWA-installable-5A0FC8?logo=pwa&logoColor=white)
 
-**[▶︎ Try the live demo](https://YOUR-DEPLOYED-URL)** &nbsp;·&nbsp; no install — sign up and start logging.
+**[▶︎ Try the live demo](https://workout-tracker-production-8f33.up.railway.app)** &nbsp;·&nbsp; no install — sign up and start logging.
 <br/>Just want to look around? Hit **"Try as guest"** on the landing page for a seeded demo (no account, no setup).
 
 </div>

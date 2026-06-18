@@ -12,9 +12,9 @@
 A hypertrophy-focused training **and** nutrition PWA for serious lifters — block periodization,
 mood-adaptive sessions, on-device AI form coaching, and food tracking, in one calm daily ritual.
 
-[![CI](https://github.com/nextbelt/workout-tracker/actions/workflows/ci.yml/badge.svg)](https://github.com/nextbelt/workout-tracker/actions/workflows/ci.yml)
-[![Security Scan](https://github.com/nextbelt/workout-tracker/actions/workflows/security-scan.yml/badge.svg)](https://github.com/nextbelt/workout-tracker/actions/workflows/security-scan.yml)
-[![CodeQL](https://github.com/nextbelt/workout-tracker/actions/workflows/codeql.yml/badge.svg)](https://github.com/nextbelt/workout-tracker/actions/workflows/codeql.yml)
+[![CI](https://github.com/cnchapa0018/workout-tracker/actions/workflows/ci.yml/badge.svg)](https://github.com/cnchapa0018/workout-tracker/actions/workflows/ci.yml)
+[![Security Scan](https://github.com/cnchapa0018/workout-tracker/actions/workflows/security-scan.yml/badge.svg)](https://github.com/cnchapa0018/workout-tracker/actions/workflows/security-scan.yml)
+[![CodeQL](https://github.com/cnchapa0018/workout-tracker/actions/workflows/codeql.yml/badge.svg)](https://github.com/cnchapa0018/workout-tracker/actions/workflows/codeql.yml)
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&logoColor=white)
 ![Supabase](https://img.shields.io/badge/Supabase-Postgres%20%2B%20RLS-3FCF8E?logo=supabase&logoColor=white)
@@ -197,7 +197,7 @@ exclusively in the api-proxy, which adds a CORS origin allowlist and a 100-req/m
 ### 1 — Clone & install
 
 ```bash
-git clone https://github.com/nextbelt/workout-tracker.git
+git clone https://github.com/cnchapa0018/workout-tracker.git
 cd workout-tracker
 npm install
 ```
